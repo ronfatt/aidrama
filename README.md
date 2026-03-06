@@ -63,10 +63,10 @@ Copy `.env.example` to `.env.local` and set:
 
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-5.1
 ```
 
-`OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-4.1-mini`.
+`OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1`.
 
 ## Local Development
 

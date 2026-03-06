@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const model = process.env.OPENAI_MODEL || "gpt-5.1";
 
 let client: OpenAI | null = null;
 

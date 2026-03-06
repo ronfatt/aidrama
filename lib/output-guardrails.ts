@@ -30,6 +30,9 @@ interface GuardrailOptions {
   strictMode?: boolean;
 }
 
+type NormalizableScene = Omit<SceneItem, "shotType"> & { shotType: string };
+type NormalizableFilmPack = Omit<FilmPack, "scenes"> & { scenes: NormalizableScene[] };
+
 function normalizeWhitespace(input: string): string {
   return input.replace(/\s+/g, " ").trim();
 }
@@ -89,7 +92,7 @@ function normalizeShotType(input: string): (typeof ALLOWED_SCENE_TYPES)[number] 
   return SHOT_TYPE_MAP[normalized] ?? "behavior shot";
 }
 
-function normalizeScene(scene: SceneItem, strictMode: boolean): SceneItem {
+function normalizeScene(scene: NormalizableScene, strictMode: boolean): SceneItem {
   return {
     ...scene,
     shotType: normalizeShotType(scene.shotType),
@@ -98,7 +101,10 @@ function normalizeScene(scene: SceneItem, strictMode: boolean): SceneItem {
   };
 }
 
-export function enforceFilmPackGuardrails(pack: FilmPack, options?: GuardrailOptions): FilmPack {
+export function enforceFilmPackGuardrails(
+  pack: NormalizableFilmPack,
+  options?: GuardrailOptions
+): FilmPack {
   const strictMode = options?.strictMode ?? true;
   const settingNote = SINGAPORE_PATTERN.test(pack.settingNote)
     ? normalizeWhitespace(pack.settingNote)

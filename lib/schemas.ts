@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ALLOWED_SCENE_TYPES } from "@/lib/prompts/sceneRules";
 
 const sceneCountSchema = z.union([z.literal(20), z.literal(22), z.literal(25)]);
 
@@ -31,7 +30,7 @@ export const generateRequestSchema = z.object({
 export const sceneItemSchema = z.object({
   sceneNumber: z.number().int().positive(),
   voLine: z.string().min(1),
-  shotType: z.enum(ALLOWED_SCENE_TYPES),
+  shotType: z.string().min(1),
   scenePurpose: z.string().min(1),
   importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
   useReferenceImage: z.boolean(),
