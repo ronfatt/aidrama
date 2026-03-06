@@ -1,5 +1,5 @@
-import type { FilmPack, SceneItem } from "@/types/film-pack";
-import { ALLOWED_SCENE_TYPES, IMAGE_PROMPT_SUFFIX } from "@/lib/prompts/sceneRules";
+import type { FilmPack, SceneItem, ScenePhase } from "@/types/film-pack";
+import { ALLOWED_SCENE_TYPES, IMAGE_PROMPT_SUFFIX, ALLOWED_SCENE_PHASES } from "@/lib/prompts/sceneRules";
 
 const SINGAPORE_PATTERN =
   /(singapore|hdb|void deck|mrt|hawker|toa payoh|tampines|ang mo kio|jurong|bishan|bedok|punggol|yishun)/i;
@@ -30,8 +30,23 @@ interface GuardrailOptions {
   strictMode?: boolean;
 }
 
-type NormalizableScene = Omit<SceneItem, "shotType"> & { shotType: string };
+type NormalizableScene = Omit<SceneItem, "shotType" | "phase"> & { shotType: string; phase?: string };
 type NormalizableFilmPack = Omit<FilmPack, "scenes"> & { scenes: NormalizableScene[] };
+
+const PHASE_MAP: Record<string, ScenePhase> = {
+  "opening - awareness": "Opening - Awareness",
+  opening: "Opening - Awareness",
+  awareness: "Opening - Awareness",
+  "understanding - reframing": "Understanding - Reframing",
+  understanding: "Understanding - Reframing",
+  reframing: "Understanding - Reframing",
+  "turning point - action": "Turning Point - Action",
+  "turning point": "Turning Point - Action",
+  action: "Turning Point - Action",
+  "impact - closing": "Impact - Closing",
+  impact: "Impact - Closing",
+  closing: "Impact - Closing",
+};
 
 function normalizeWhitespace(input: string): string {
   return input.replace(/\s+/g, " ").trim();
@@ -92,9 +107,36 @@ function normalizeShotType(input: string): (typeof ALLOWED_SCENE_TYPES)[number] 
   return SHOT_TYPE_MAP[normalized] ?? "behavior shot";
 }
 
-function normalizeScene(scene: NormalizableScene, strictMode: boolean): SceneItem {
+function phaseByPosition(index: number, total: number): ScenePhase {
+  const ratio = total <= 1 ? 1 : index / (total - 1);
+  if (ratio < 0.25) return "Opening - Awareness";
+  if (ratio < 0.5) return "Understanding - Reframing";
+  if (ratio < 0.75) return "Turning Point - Action";
+  return "Impact - Closing";
+}
+
+function normalizePhase(input: string | undefined, index: number, total: number): ScenePhase {
+  const normalized = normalizeWhitespace(input || "").toLowerCase();
+  if (normalized) {
+    if ((ALLOWED_SCENE_PHASES as readonly string[]).includes(input || "")) {
+      return input as ScenePhase;
+    }
+    if (PHASE_MAP[normalized]) {
+      return PHASE_MAP[normalized];
+    }
+  }
+  return phaseByPosition(index, total);
+}
+
+function normalizeScene(
+  scene: NormalizableScene,
+  strictMode: boolean,
+  index: number,
+  total: number
+): SceneItem {
   return {
     ...scene,
+    phase: normalizePhase(scene.phase, index, total),
     shotType: normalizeShotType(scene.shotType),
     imagePrompt: makeConciseCinematicPrompt(scene.imagePrompt, "image", strictMode),
     videoPrompt: makeConciseCinematicPrompt(scene.videoPrompt, "video", strictMode),
@@ -113,6 +155,6 @@ export function enforceFilmPackGuardrails(
   return {
     ...pack,
     settingNote,
-    scenes: pack.scenes.map((scene) => normalizeScene(scene, strictMode)),
+    scenes: pack.scenes.map((scene, index) => normalizeScene(scene, strictMode, index, pack.scenes.length)),
   };
 }

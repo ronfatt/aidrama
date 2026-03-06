@@ -10,9 +10,14 @@ export function SceneCard({ scene }: SceneCardProps) {
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-lg font-semibold text-zinc-100">Scene {scene.sceneNumber}</h4>
-        <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-xs font-semibold text-cyan-200">
-          {scene.importance}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-xs font-semibold text-amber-200">
+            {scene.phase}
+          </span>
+          <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-xs font-semibold text-cyan-200">
+            {scene.importance}
+          </span>
+        </div>
       </div>
 
       <p className="mb-3 text-sm text-zinc-200">

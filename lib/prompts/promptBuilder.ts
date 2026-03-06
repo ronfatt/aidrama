@@ -38,6 +38,8 @@ Additional hard constraints:
 - preservedVoiceOverScript must be a compression/re-phrasing of source lines, not a rewritten new script.
 - If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
 - Scene count must be exactly ${options.sceneCount}.
+- Scenes must follow 4 story stages in order:
+  Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
 - Every scene must remain in Singapore.
 - Only one clearly visible character per scene.
 - If main character appears, useReferenceImage=true.

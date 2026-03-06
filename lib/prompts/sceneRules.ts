@@ -7,6 +7,13 @@ export const ALLOWED_SCENE_TYPES = [
   "over-shoulder shot",
 ] as const;
 
+export const ALLOWED_SCENE_PHASES = [
+  "Opening - Awareness",
+  "Understanding - Reframing",
+  "Turning Point - Action",
+  "Impact - Closing",
+] as const;
+
 export const IMAGE_PROMPT_SUFFIX =
   "cinematic composition, photorealistic, 35mm film still, dramatic lighting, shallow depth of field";
 
@@ -27,6 +34,7 @@ Scene types allowed:
 Each scene must include:
 
 - scene number
+- phase (story stage)
 - VO line
 - shot type
 - scene purpose
@@ -36,6 +44,14 @@ Each scene must include:
 - video prompt
 - camera movement
 - lighting and color notes
+
+Story phase rules:
+- Use all four stages in order:
+  1) Opening - Awareness
+  2) Understanding - Reframing
+  3) Turning Point - Action
+  4) Impact - Closing
+- Distribute scenes across these stages progressively.
 
 Image prompt guidelines:
 

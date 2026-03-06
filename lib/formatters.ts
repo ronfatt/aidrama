@@ -5,7 +5,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
 
   const sceneBlocks = pack.scenes
     .map((scene) => {
-      return `### Scene ${scene.sceneNumber}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}`;
+      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}`;
     })
     .join("\n\n");
 

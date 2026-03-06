@@ -30,6 +30,7 @@ export const generateRequestSchema = z.object({
 
 export const sceneItemSchema = z.object({
   sceneNumber: z.number().int().positive(),
+  phase: z.string().optional().or(z.literal("")),
   voLine: z.string().min(1),
   shotType: z.string().min(1),
   scenePurpose: z.string().min(1),

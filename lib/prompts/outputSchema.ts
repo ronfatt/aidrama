@@ -1,4 +1,4 @@
-import { ALLOWED_SCENE_TYPES } from "@/lib/prompts/sceneRules";
+import { ALLOWED_SCENE_PHASES, ALLOWED_SCENE_TYPES } from "@/lib/prompts/sceneRules";
 
 export const outputSchema = `
 Return output in valid JSON only.
@@ -14,6 +14,7 @@ Use this exact structure and key names:
   "scenes": [
     {
       "sceneNumber": 1,
+      "phase": "Opening - Awareness | Understanding - Reframing | Turning Point - Action | Impact - Closing",
       "voLine": "string",
       "shotType": "environment | character close-up | behavior shot | symbolic insert | POV shot | over-shoulder shot",
       "scenePurpose": "string",
@@ -57,6 +58,7 @@ export const filmPackJsonSchema = {
           additionalProperties: false,
           properties: {
             sceneNumber: { type: "integer" },
+            phase: { type: "string", enum: [...ALLOWED_SCENE_PHASES] },
             voLine: { type: "string" },
             shotType: { type: "string", enum: [...ALLOWED_SCENE_TYPES] },
             scenePurpose: { type: "string" },
@@ -69,6 +71,7 @@ export const filmPackJsonSchema = {
           },
           required: [
             "sceneNumber",
+            "phase",
             "voLine",
             "shotType",
             "scenePurpose",

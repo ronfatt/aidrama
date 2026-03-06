@@ -7,6 +7,11 @@ export type FilmTone =
   | "emotional realism";
 
 export type SceneImportance = "A" | "B" | "C";
+export type ScenePhase =
+  | "Opening - Awareness"
+  | "Understanding - Reframing"
+  | "Turning Point - Action"
+  | "Impact - Closing";
 export type SceneType =
   | "environment"
   | "character close-up"
@@ -27,6 +32,7 @@ export interface UserSettings {
 
 export interface SceneItem {
   sceneNumber: number;
+  phase: ScenePhase;
   voLine: string;
   shotType: SceneType;
   scenePurpose: string;
