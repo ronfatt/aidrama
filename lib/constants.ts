@@ -1,6 +1,6 @@
-import type { FilmTone, SceneCount } from "@/types/film-pack";
+import type { FilmTone, SceneCountInput } from "@/types/film-pack";
 
-export const SCENE_COUNTS: SceneCount[] = [20, 22, 25];
+export const SCENE_COUNTS: SceneCountInput[] = ["auto", 20, 22, 25];
 
 export const FILM_STYLES: FilmTone[] = [
   "cinematic documentary",
@@ -11,7 +11,7 @@ export const FILM_STYLES: FilmTone[] = [
 
 export const RULE_CHECKLIST = [
   "Preserve original meaning and keep narration around 80–90 seconds.",
-  "Generate exactly selected scene count (20 / 22 / 25).",
+  "Generate exactly selected scene count (Auto / 20 / 22 / 25).",
   "Only one clearly visible character per scene.",
   "If interaction is needed, use POV / over-shoulder / back view / silhouette.",
   "Avoid two clear faces in one scene.",

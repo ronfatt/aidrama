@@ -6,6 +6,7 @@ import { buildPrompt } from "@/lib/prompts/promptBuilder";
 import { filmPackJsonSchema } from "@/lib/prompts/outputSchema";
 import { filmPackSchema, generateRequestSchema } from "@/lib/schemas";
 import { passesVoFidelity } from "@/lib/vo-fidelity";
+import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
 
 export const runtime = "nodejs";
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
 
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const lockedVoiceOver = parsedBody.settings.lockedVoiceOver?.trim() || "";
-    const sceneCount = parsedBody.settings.sceneCount;
+    const sceneCount = resolveSceneCount(parsedBody.settings.sceneCount, {
+      lockedVoiceOver,
+      originalScript: parsedBody.settings.originalScript,
+    });
     const sceneBeats = lockedVoiceOver ? splitVoiceOverIntoSceneBeats(lockedVoiceOver, sceneCount) : undefined;
 
     const client = getOpenAIClient();

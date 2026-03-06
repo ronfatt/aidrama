@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const sceneCountSchema = z.union([z.literal(20), z.literal(22), z.literal(25)]);
+const sceneCountSchema = z.union([z.literal("auto"), z.literal(20), z.literal(22), z.literal(25)]);
 
 const styleSchema = z.union([
   z.literal("cinematic documentary"),

@@ -1,4 +1,5 @@
 export type SceneCount = 20 | 22 | 25;
+export type SceneCountInput = SceneCount | "auto";
 
 export type FilmTone =
   | "cinematic documentary"
@@ -25,7 +26,7 @@ export interface UserSettings {
   originalScript: string;
   lockedVoiceOver?: string;
   referenceTag?: string;
-  sceneCount: SceneCount;
+  sceneCount: SceneCountInput;
   style: FilmTone;
   strictMode?: boolean;
 }

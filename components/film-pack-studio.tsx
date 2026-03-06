@@ -11,7 +11,7 @@ import {
   SCENE_COUNTS,
 } from "@/lib/constants";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
-import type { FilmPack, FilmTone, SceneCount } from "@/types/film-pack";
+import type { FilmPack, FilmTone, SceneCountInput } from "@/types/film-pack";
 
 interface GenerateResponse {
   filmPack: FilmPack;
@@ -32,7 +32,7 @@ export function FilmPackStudio() {
   const [originalScript, setOriginalScript] = useState(SAMPLE_SCRIPT);
   const [lockedVoiceOver, setLockedVoiceOver] = useState("");
   const [referenceTag, setReferenceTag] = useState(DEFAULT_REFERENCE_TAG);
-  const [sceneCount, setSceneCount] = useState<SceneCount>(22);
+  const [sceneCount, setSceneCount] = useState<SceneCountInput>("auto");
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
   const [strictMode, setStrictMode] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -143,12 +143,15 @@ export function FilmPackStudio() {
             <span className="text-sm font-medium text-zinc-200">Scene Count</span>
             <select
               value={sceneCount}
-              onChange={(event) => setSceneCount(Number(event.target.value) as SceneCount)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSceneCount(value === "auto" ? "auto" : (Number(value) as SceneCountInput));
+              }}
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
             >
               {SCENE_COUNTS.map((count) => (
                 <option key={count} value={count}>
-                  {count} scenes
+                  {count === "auto" ? "Auto (recommended)" : `${count} scenes`}
                 </option>
               ))}
             </select>
