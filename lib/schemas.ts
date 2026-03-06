@@ -12,7 +12,8 @@ const styleSchema = z.union([
 export const generateRequestSchema = z.object({
   settings: z.object({
     title: z.string().trim().max(120).optional(),
-    originalScript: z.string().trim().min(80, "Script is too short.").max(10000),
+    originalScript: z.string().trim().min(20, "Script is too short.").max(10000),
+    lockedVoiceOver: z.string().trim().min(20).max(10000).optional().or(z.literal("")),
     referenceTag: z
       .string()
       .trim()

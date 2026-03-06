@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsedBody = generateRequestSchema.parse(body);
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
+    const lockedVoiceOver = parsedBody.settings.lockedVoiceOver?.trim() || "";
 
     const client = getOpenAIClient();
 
@@ -27,10 +28,11 @@ export async function POST(request: Request) {
             role: "user",
             content: buildPrompt(parsedBody.settings.originalScript, {
               title: parsedBody.settings.title,
-              referenceTag: parsedBody.settings.referenceTag,
-              sceneCount: parsedBody.settings.sceneCount,
-              style: parsedBody.settings.style,
-              strictMode,
+            referenceTag: parsedBody.settings.referenceTag,
+            lockedVoiceOver,
+            sceneCount: parsedBody.settings.sceneCount,
+            style: parsedBody.settings.style,
+            strictMode,
               extraInstruction,
             }),
           },
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
 
     let filmPack = await generateOnce();
 
-    if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
+    if (!lockedVoiceOver && !passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
       filmPack = await generateOnce(
         "The preservedVoiceOverScript drifted. Regenerate with very high fidelity to source wording. " +
           "Do not add new claims. Keep narration concise by trimming only redundancy."
@@ -71,7 +73,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
+    if (lockedVoiceOver) {
+      filmPack = {
+        ...filmPack,
+        preservedVoiceOverScript: lockedVoiceOver,
+      };
+    } else if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
       return NextResponse.json(
         { error: "VO drifted too far from source script. Please retry or keep Strict Mode ON." },
         { status: 502 }

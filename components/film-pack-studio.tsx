@@ -30,6 +30,7 @@ function downloadFile(content: string, fileName: string, mimeType: string) {
 export function FilmPackStudio() {
   const [title, setTitle] = useState("Community in Motion");
   const [originalScript, setOriginalScript] = useState(SAMPLE_SCRIPT);
+  const [lockedVoiceOver, setLockedVoiceOver] = useState("");
   const [referenceTag, setReferenceTag] = useState(DEFAULT_REFERENCE_TAG);
   const [sceneCount, setSceneCount] = useState<SceneCount>(22);
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
@@ -58,6 +59,7 @@ export function FilmPackStudio() {
           settings: {
             title,
             originalScript,
+            lockedVoiceOver,
             referenceTag,
             sceneCount,
             style,
@@ -123,6 +125,16 @@ export function FilmPackStudio() {
             onChange={(event) => setOriginalScript(event.target.value)}
             className="min-h-52 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
             placeholder="Paste full script here"
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-zinc-200">Locked VO Script (Optional, no rewrite)</span>
+          <textarea
+            value={lockedVoiceOver}
+            onChange={(event) => setLockedVoiceOver(event.target.value)}
+            className="min-h-36 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+            placeholder="Paste your final VO here. If provided, system will keep this VO exactly."
           />
         </label>
 

@@ -18,6 +18,7 @@ export type SceneType =
 export interface UserSettings {
   title?: string;
   originalScript: string;
+  lockedVoiceOver?: string;
   referenceTag?: string;
   sceneCount: SceneCount;
   style: FilmTone;

@@ -6,6 +6,7 @@ import { systemPrompt } from "@/lib/prompts/systemPrompt";
 interface PromptOptions {
   title?: string;
   referenceTag?: string;
+  lockedVoiceOver?: string;
   sceneCount: 20 | 22 | 25;
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
   strictMode: boolean;
@@ -27,6 +28,7 @@ Production settings:
 - style: ${options.style}
 - scene count: ${options.sceneCount}
 - main reference tag: ${options.referenceTag?.trim() || "(not provided)"}
+- locked voice over provided: ${options.lockedVoiceOver?.trim() ? "YES" : "NO"}
 - strict mode: ${options.strictMode ? "ON" : "OFF"}
 
 Additional hard constraints:
@@ -34,6 +36,7 @@ Additional hard constraints:
 - Do NOT add new facts, characters, events, diagnoses, places, or timelines not present in the source.
 - Preserve the source language style and language mix; do not translate unless source already mixes languages.
 - preservedVoiceOverScript must be a compression/re-phrasing of source lines, not a rewritten new script.
+- If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
 - Scene count must be exactly ${options.sceneCount}.
 - Every scene must remain in Singapore.
 - Only one clearly visible character per scene.
@@ -41,6 +44,8 @@ Additional hard constraints:
 - Keep prompts concise and practical for Kling -> select frame -> image-to-video workflow.
 
 ${options.extraInstruction ? `Correction instruction:\n${options.extraInstruction}\n` : ""}
+
+${options.lockedVoiceOver?.trim() ? `Locked voice over (must be used exactly):\n${options.lockedVoiceOver.trim()}\n` : ""}
 
 Script to convert:
 

@@ -13,6 +13,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
 ## Features
 
 - Script input with optional title and reference tag (e.g. `[DARREN_REF]`)
+- Optional locked VO input (if provided, system keeps VO text exactly and does not rewrite)
 - Scene count selection: `20 / 22 / 25`
 - Tone/style selection:
   - `cinematic documentary`
