@@ -4,6 +4,7 @@ import { enforceFilmPackGuardrails } from "@/lib/output-guardrails";
 import { filmPackJsonSchema } from "@/lib/prompts/outputSchema";
 import { buildPrompt } from "@/lib/prompts/promptBuilder";
 import { filmPackSchema, generateRequestSchema } from "@/lib/schemas";
+import { passesVoFidelity } from "@/lib/vo-fidelity";
 import { getModelName, getOpenAIClient } from "@/lib/openai";
 
 export const runtime = "nodejs";
@@ -17,44 +18,62 @@ export async function POST(request: Request) {
 
     const client = getOpenAIClient();
 
-    const response = await client.responses.create({
-      model: getModelName(),
-      temperature: strictMode ? 0.18 : 0.55,
-      input: [
-        {
-          role: "user",
-          content: buildPrompt(parsedBody.settings.originalScript, {
-            title: parsedBody.settings.title,
-            referenceTag: parsedBody.settings.referenceTag,
-            sceneCount: parsedBody.settings.sceneCount,
-            style: parsedBody.settings.style,
-            strictMode,
-          }),
+    const generateOnce = async (extraInstruction?: string) => {
+      const response = await client.responses.create({
+        model: getModelName(),
+        temperature: strictMode ? 0.18 : 0.55,
+        input: [
+          {
+            role: "user",
+            content: buildPrompt(parsedBody.settings.originalScript, {
+              title: parsedBody.settings.title,
+              referenceTag: parsedBody.settings.referenceTag,
+              sceneCount: parsedBody.settings.sceneCount,
+              style: parsedBody.settings.style,
+              strictMode,
+              extraInstruction,
+            }),
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            ...filmPackJsonSchema,
+          },
         },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          ...filmPackJsonSchema,
-        },
-      },
-    });
+      });
 
-    const raw = response.output_text;
+      const raw = response.output_text;
+      if (!raw) {
+        throw new Error("No content returned from model.");
+      }
 
-    if (!raw) {
-      return NextResponse.json({ error: "No content returned from model." }, { status: 502 });
+      const candidate = JSON.parse(raw);
+      const parsedFilmPack = filmPackSchema.parse(candidate);
+      return enforceFilmPackGuardrails(parsedFilmPack, { strictMode });
+    };
+
+    let filmPack = await generateOnce();
+
+    if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
+      filmPack = await generateOnce(
+        "The preservedVoiceOverScript drifted. Regenerate with very high fidelity to source wording. " +
+          "Do not add new claims. Keep narration concise by trimming only redundancy."
+      );
     }
-
-    const candidate = JSON.parse(raw);
-    const parsedFilmPack = filmPackSchema.parse(candidate);
-    const filmPack = enforceFilmPackGuardrails(parsedFilmPack, { strictMode });
 
     if (filmPack.scenes.length !== parsedBody.settings.sceneCount) {
       return NextResponse.json(
         {
           error: `Model returned ${filmPack.scenes.length} scenes; expected ${parsedBody.settings.sceneCount}. Please retry.`,
         },
+        { status: 502 }
+      );
+    }
+
+    if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
+      return NextResponse.json(
+        { error: "VO drifted too far from source script. Please retry or keep Strict Mode ON." },
         { status: 502 }
       );
     }
