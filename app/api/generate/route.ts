@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { getModelName, getOpenAIClient } from "@/lib/openai";
 import { enforceFilmPackGuardrails } from "@/lib/output-guardrails";
-import { filmPackJsonSchema } from "@/lib/prompts/outputSchema";
 import { buildPrompt } from "@/lib/prompts/promptBuilder";
+import { filmPackJsonSchema } from "@/lib/prompts/outputSchema";
 import { filmPackSchema, generateRequestSchema } from "@/lib/schemas";
 import { passesVoFidelity } from "@/lib/vo-fidelity";
-import { getModelName, getOpenAIClient } from "@/lib/openai";
+import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +15,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsedBody = generateRequestSchema.parse(body);
+
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const lockedVoiceOver = parsedBody.settings.lockedVoiceOver?.trim() || "";
+    const sceneCount = parsedBody.settings.sceneCount;
+    const sceneBeats = lockedVoiceOver ? splitVoiceOverIntoSceneBeats(lockedVoiceOver, sceneCount) : undefined;
 
     const client = getOpenAIClient();
 
@@ -28,11 +32,12 @@ export async function POST(request: Request) {
             role: "user",
             content: buildPrompt(parsedBody.settings.originalScript, {
               title: parsedBody.settings.title,
-            referenceTag: parsedBody.settings.referenceTag,
-            lockedVoiceOver,
-            sceneCount: parsedBody.settings.sceneCount,
-            style: parsedBody.settings.style,
-            strictMode,
+              referenceTag: parsedBody.settings.referenceTag,
+              lockedVoiceOver,
+              sceneCount,
+              style: parsedBody.settings.style,
+              strictMode,
+              sceneBeats,
               extraInstruction,
             }),
           },
@@ -64,10 +69,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (filmPack.scenes.length !== parsedBody.settings.sceneCount) {
+    if (filmPack.scenes.length !== sceneCount) {
       return NextResponse.json(
         {
-          error: `Model returned ${filmPack.scenes.length} scenes; expected ${parsedBody.settings.sceneCount}. Please retry.`,
+          error: `Model returned ${filmPack.scenes.length} scenes; expected ${sceneCount}. Please retry.`,
         },
         { status: 502 }
       );
@@ -77,6 +82,10 @@ export async function POST(request: Request) {
       filmPack = {
         ...filmPack,
         preservedVoiceOverScript: lockedVoiceOver,
+        scenes: filmPack.scenes.map((scene, index) => ({
+          ...scene,
+          voLine: sceneBeats?.[index] || scene.voLine,
+        })),
       };
     } else if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
       return NextResponse.json(

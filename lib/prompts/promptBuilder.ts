@@ -10,6 +10,7 @@ interface PromptOptions {
   sceneCount: 20 | 22 | 25;
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
   strictMode: boolean;
+  sceneBeats?: string[];
   extraInstruction?: string;
 }
 
@@ -37,6 +38,7 @@ Additional hard constraints:
 - Preserve the source language style and language mix; do not translate unless source already mixes languages.
 - preservedVoiceOverScript must be a compression/re-phrasing of source lines, not a rewritten new script.
 - If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
+- If scene beats are provided, each scene's voLine must map to the corresponding beat in order.
 - Scene count must be exactly ${options.sceneCount}.
 - Scenes must follow 4 story stages in order:
   Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
@@ -48,6 +50,7 @@ Additional hard constraints:
 ${options.extraInstruction ? `Correction instruction:\n${options.extraInstruction}\n` : ""}
 
 ${options.lockedVoiceOver?.trim() ? `Locked voice over (must be used exactly):\n${options.lockedVoiceOver.trim()}\n` : ""}
+${options.sceneBeats?.length ? `Scene beat map (must cover all beats in order):\n${options.sceneBeats.map((beat, index) => `${index + 1}. ${beat}`).join("\n")}\n` : ""}
 
 Script to convert:
 
