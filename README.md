@@ -38,6 +38,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
   - Full film pack
   - Scene image prompt
   - Scene video prompt
+- Optional one-click scene image generation via Gemini API
 - Exports:
   - Download `.txt`
   - Download `.md`
@@ -65,9 +66,12 @@ Copy `.env.example` to `.env.local` and set:
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.1
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image-preview
 ```
 
 `OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1`.
+`GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-2.5-flash-image-preview`.
 
 ## Local Development
 
@@ -92,6 +96,7 @@ npm run dev
 3. Set environment variables in Vercel Project Settings:
    - `OPENAI_API_KEY`
    - Optional: `OPENAI_MODEL`
+   - Optional (for one-click image generation): `GEMINI_API_KEY`, `GEMINI_IMAGE_MODEL`
 4. Deploy.
 
 No code changes are required for Vercel deployment.

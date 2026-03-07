@@ -1,11 +1,22 @@
+import Image from "next/image";
 import type { SceneItem } from "@/types/film-pack";
 import { CopyButton } from "@/components/copy-button";
 
 interface SceneCardProps {
   scene: SceneItem;
+  generatedImageUrl?: string;
+  generatingImage?: boolean;
+  imageError?: string;
+  onGenerateImage?: (scene: SceneItem) => void;
 }
 
-export function SceneCard({ scene }: SceneCardProps) {
+export function SceneCard({
+  scene,
+  generatedImageUrl,
+  generatingImage,
+  imageError,
+  onGenerateImage,
+}: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -47,9 +58,32 @@ export function SceneCard({ scene }: SceneCardProps) {
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Image Prompt</p>
-            <CopyButton text={scene.imagePrompt} label="Copy image" />
+            <div className="flex gap-2">
+              <CopyButton text={scene.imagePrompt} label="Copy image" />
+              <button
+                type="button"
+                onClick={() => onGenerateImage?.(scene)}
+                disabled={generatingImage || !onGenerateImage}
+                className="rounded-md border border-emerald-300/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {generatingImage ? "Generating..." : generatedImageUrl ? "Regenerate" : "Generate image"}
+              </button>
+            </div>
           </div>
           <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">{scene.imagePrompt}</p>
+          {imageError ? <p className="mt-2 text-xs text-rose-300">{imageError}</p> : null}
+          {generatedImageUrl ? (
+            <div className="mt-3 overflow-hidden rounded-lg border border-white/10">
+              <Image
+                src={generatedImageUrl}
+                alt={`Scene ${scene.sceneNumber} generated visual`}
+                width={1280}
+                height={720}
+                unoptimized
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">

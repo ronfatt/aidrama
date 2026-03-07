@@ -49,6 +49,9 @@ export function FilmPackStudio() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FilmPack | null>(null);
+  const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
+  const [sceneImageLoading, setSceneImageLoading] = useState<Record<number, boolean>>({});
+  const [sceneImageErrors, setSceneImageErrors] = useState<Record<number, string>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
 
   const fullCopy = useMemo(() => (result ? fullOutputCopy(result) : ""), [result]);
@@ -92,11 +95,49 @@ export function FilmPackStudio() {
     const target = savedPacks.find((record) => record.id === id);
     if (target) {
       setResult(target.filmPack);
+      setSceneImages({});
+      setSceneImageLoading({});
+      setSceneImageErrors({});
     }
   };
 
   const deleteSavedPack = (id: string) => {
     persistSavedPacks(savedPacks.filter((record) => record.id !== id));
+  };
+
+  const generateSceneImage = async (scene: FilmPack["scenes"][number]) => {
+    if (!result) return;
+
+    setSceneImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: true }));
+    setSceneImageErrors((prev) => ({ ...prev, [scene.sceneNumber]: "" }));
+
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imagePrompt: scene.imagePrompt,
+          sceneNumber: scene.sceneNumber,
+          useReferenceImage: scene.useReferenceImage,
+          referenceTag,
+          style,
+          strictMode,
+          continuitySeed: `${result.title}|${referenceTag || "NO_REF"}`,
+        }),
+      });
+
+      const payload = (await response.json()) as { imageDataUrl?: string; error?: string };
+      if (!response.ok || !payload.imageDataUrl) {
+        throw new Error(payload.error || "Image generation failed.");
+      }
+
+      setSceneImages((prev) => ({ ...prev, [scene.sceneNumber]: payload.imageDataUrl as string }));
+    } catch (generationError) {
+      const message = generationError instanceof Error ? generationError.message : "Image generation failed.";
+      setSceneImageErrors((prev) => ({ ...prev, [scene.sceneNumber]: message }));
+    } finally {
+      setSceneImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+    }
   };
 
   const onGenerate = async (event: FormEvent<HTMLFormElement>) => {
@@ -129,6 +170,9 @@ export function FilmPackStudio() {
 
       const payload = (await response.json()) as GenerateResponse;
       setResult(payload.filmPack);
+      setSceneImages({});
+      setSceneImageLoading({});
+      setSceneImageErrors({});
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Generation failed.";
       setError(message);
@@ -323,7 +367,14 @@ export function FilmPackStudio() {
 
           <div className="grid gap-4 xl:grid-cols-2">
             {result.scenes.map((scene) => (
-              <SceneCard key={`${scene.sceneNumber}-${scene.voLine.slice(0, 20)}`} scene={scene} />
+              <SceneCard
+                key={`${scene.sceneNumber}-${scene.voLine.slice(0, 20)}`}
+                scene={scene}
+                generatedImageUrl={sceneImages[scene.sceneNumber]}
+                generatingImage={sceneImageLoading[scene.sceneNumber]}
+                imageError={sceneImageErrors[scene.sceneNumber]}
+                onGenerateImage={generateSceneImage}
+              />
             ))}
           </div>
         </section>
