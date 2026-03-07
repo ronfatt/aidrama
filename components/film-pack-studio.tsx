@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import NextImage from "next/image";
 import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
@@ -37,6 +37,37 @@ function downloadFile(content: string, fileName: string, mimeType: string) {
   link.download = fileName;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function resizeImageFile(file: File, maxWidth = 900, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Failed to get canvas context."));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Failed to load image for resize."));
+      img.src = String(reader.result || "");
+    };
+    reader.onerror = () => reject(new Error("Failed to read image file."));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function FilmPackStudio() {
@@ -110,17 +141,7 @@ export function FilmPackStudio() {
 
   const onUploadMasterRefs = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []).slice(0, 4);
-    const dataUrls = await Promise.all(
-      files.map(
-        (file) =>
-          new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result || ""));
-            reader.onerror = () => reject(new Error("Failed to read image file."));
-            reader.readAsDataURL(file);
-          })
-      )
-    );
+    const dataUrls = await Promise.all(files.map((file) => resizeImageFile(file)));
     setMasterReferenceImages(dataUrls.filter(Boolean));
   };
 
@@ -155,7 +176,18 @@ export function FilmPackStudio() {
         }),
       });
 
-      const payload = (await response.json()) as { imageDataUrl?: string; error?: string };
+      const raw = await response.text();
+      let payload: { imageDataUrl?: string; error?: string } = {};
+      try {
+        payload = JSON.parse(raw) as { imageDataUrl?: string; error?: string };
+      } catch {
+        payload = {
+          error: raw.includes("Request Entity Too Large")
+            ? "Request too large. Use fewer/smaller master reference images."
+            : raw || "Image generation failed (non-JSON response).",
+        };
+      }
+
       if (!response.ok || !payload.imageDataUrl) {
         throw new Error(payload.error || "Image generation failed.");
       }
@@ -281,7 +313,7 @@ export function FilmPackStudio() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {masterReferenceImages.map((src, index) => (
                 <div key={index} className="overflow-hidden rounded-lg border border-white/10">
-                  <Image
+                  <NextImage
                     src={src}
                     alt={`Master ref ${index + 1}`}
                     width={300}
