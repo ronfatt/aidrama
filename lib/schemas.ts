@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-const sceneCountSchema = z.union([z.literal("auto"), z.literal(20), z.literal(22), z.literal(25)]);
+const sceneCountSchema = z.union([
+  z.literal("auto"),
+  z.literal(20),
+  z.literal(22),
+  z.literal(25),
+  z.literal(28),
+  z.literal(30),
+]);
 
 const styleSchema = z.union([
   z.literal("cinematic documentary"),
@@ -48,5 +55,5 @@ export const filmPackSchema = z.object({
   settingNote: z.string().min(1),
   preservedVoiceOverScript: z.string().min(1),
   characterReferenceGuidance: z.string().min(1),
-  scenes: z.array(sceneItemSchema).min(20).max(25),
+  scenes: z.array(sceneItemSchema).min(20).max(30),
 });

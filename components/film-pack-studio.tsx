@@ -250,7 +250,7 @@ export function FilmPackStudio() {
         <h1 className="text-3xl font-semibold text-white sm:text-4xl">Film Pack Studio</h1>
         <p className="mt-3 max-w-3xl text-sm text-zinc-300 sm:text-base">
           Turn an original script into a production-ready film pack: preserved VO, scene structure, Kling O1 prompts,
-          and image-to-video prompt flow tuned for fast short-video execution.
+          and image-to-video prompt flow tuned for fast short-video execution with a small B-roll layer for pacing.
         </p>
       </section>
 

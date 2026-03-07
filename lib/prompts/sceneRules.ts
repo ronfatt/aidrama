@@ -3,6 +3,8 @@ export const ALLOWED_SCENE_TYPES = [
   "character close-up",
   "behavior shot",
   "symbolic insert",
+  "transition B-roll",
+  "atmospheric insert",
   "POV shot",
   "over-shoulder shot",
 ] as const;
@@ -20,7 +22,9 @@ export const IMAGE_PROMPT_SUFFIX =
 export const sceneRules = `
 Scene generation rules:
 
-Generate between 20 and 25 scenes.
+Generate between 20 and 30 scenes.
+Aim for roughly 5 B-roll or transition scenes when total scene count is 25 or more.
+If total scene count is below 25, still include 4 B-roll or transition scenes.
 
 Scene types allowed:
 
@@ -28,6 +32,8 @@ Scene types allowed:
 - character close-up
 - behavior shot
 - symbolic insert
+- transition B-roll
+- atmospheric insert
 - POV shot
 - over-shoulder shot
 
@@ -44,6 +50,13 @@ Each scene must include:
 - video prompt
 - camera movement
 - lighting and color notes
+
+B-roll / transition rules:
+- Include a small set of non-primary scenes for pacing and coverage.
+- Use about 5 scenes as B-roll or transition scenes.
+- These scenes should usually be lower importance (B or C).
+- Prefer these shot types for B-roll: environment, symbolic insert, transition B-roll, atmospheric insert.
+- Use them to bridge emotion, location, time shift, or narration transitions without advancing new plot facts.
 
 Story phase rules:
 - Use all four stages in order:

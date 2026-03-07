@@ -7,7 +7,7 @@ interface PromptOptions {
   title?: string;
   referenceTag?: string;
   lockedVoiceOver?: string;
-  sceneCount: 20 | 22 | 25;
+  sceneCount: 20 | 22 | 25 | 28 | 30;
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
   strictMode: boolean;
   sceneBeats?: string[];
@@ -40,6 +40,7 @@ Additional hard constraints:
 - If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
 - If scene beats are provided, each scene's voLine must map to the corresponding beat in order.
 - Scene count must be exactly ${options.sceneCount}.
+- Include a small B-roll layer: about 5 scenes should function as transition/B-roll coverage when scene count is 25 or higher.
 - Scenes must follow 4 story stages in order:
   Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
 - Every scene must remain in Singapore.

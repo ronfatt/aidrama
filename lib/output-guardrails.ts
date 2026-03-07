@@ -19,6 +19,12 @@ const SHOT_TYPE_MAP: Record<string, (typeof ALLOWED_SCENE_TYPES)[number]> = {
   behavior: "behavior shot",
   "symbolic insert": "symbolic insert",
   symbolic: "symbolic insert",
+  "transition b-roll": "transition B-roll",
+  transition: "transition B-roll",
+  broll: "transition B-roll",
+  "b-roll": "transition B-roll",
+  "atmospheric insert": "atmospheric insert",
+  atmospheric: "atmospheric insert",
   "pov shot": "POV shot",
   pov: "POV shot",
   "over-shoulder shot": "over-shoulder shot",
@@ -143,6 +149,44 @@ function normalizeScene(
   };
 }
 
+function isBrollShotType(shotType: SceneItem["shotType"]): boolean {
+  return (
+    shotType === "environment" ||
+    shotType === "symbolic insert" ||
+    shotType === "transition B-roll" ||
+    shotType === "atmospheric insert"
+  );
+}
+
+function rebalanceBrollScenes(scenes: SceneItem[]): SceneItem[] {
+  const minimumBroll = scenes.length >= 25 ? 5 : 4;
+  const currentBroll = scenes.filter((scene) => isBrollShotType(scene.shotType)).length;
+
+  if (currentBroll >= minimumBroll) {
+    return scenes;
+  }
+
+  const updated = [...scenes];
+  let needed = minimumBroll - currentBroll;
+
+  for (let index = 0; index < updated.length && needed > 0; index += 1) {
+    const scene = updated[index];
+    if (isBrollShotType(scene.shotType) || scene.importance === "A") {
+      continue;
+    }
+
+    const replacementType = index % 2 === 0 ? "transition B-roll" : "atmospheric insert";
+    updated[index] = {
+      ...scene,
+      shotType: replacementType,
+      scenePurpose: `Transition coverage: ${scene.scenePurpose}`,
+    };
+    needed -= 1;
+  }
+
+  return updated;
+}
+
 export function enforceFilmPackGuardrails(
   pack: NormalizableFilmPack,
   options?: GuardrailOptions
@@ -155,6 +199,8 @@ export function enforceFilmPackGuardrails(
   return {
     ...pack,
     settingNote,
-    scenes: pack.scenes.map((scene, index) => normalizeScene(scene, strictMode, index, pack.scenes.length)),
+    scenes: rebalanceBrollScenes(
+      pack.scenes.map((scene, index) => normalizeScene(scene, strictMode, index, pack.scenes.length))
+    ),
   };
 }

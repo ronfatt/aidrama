@@ -22,7 +22,7 @@ export function resolveSceneCount(
   const source = (opts.lockedVoiceOver?.trim() || opts.originalScript || "").trim();
   const seconds = estimateDurationSeconds(source);
 
-  if (seconds <= 90) return 20;
-  if (seconds <= 102) return 22;
-  return 25;
+  if (seconds <= 90) return 25;
+  if (seconds <= 102) return 28;
+  return 30;
 }

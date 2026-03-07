@@ -16,7 +16,7 @@ Use this exact structure and key names:
       "sceneNumber": 1,
       "phase": "Opening - Awareness | Understanding - Reframing | Turning Point - Action | Impact - Closing",
       "voLine": "string",
-      "shotType": "environment | character close-up | behavior shot | symbolic insert | POV shot | over-shoulder shot",
+      "shotType": "environment | character close-up | behavior shot | symbolic insert | transition B-roll | atmospheric insert | POV shot | over-shoulder shot",
       "scenePurpose": "string",
       "importance": "A | B | C",
       "useReferenceImage": true,
@@ -52,7 +52,7 @@ export const filmPackJsonSchema = {
       scenes: {
         type: "array",
         minItems: 20,
-        maxItems: 25,
+        maxItems: 30,
         items: {
           type: "object",
           additionalProperties: false,

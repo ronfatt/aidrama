@@ -1,4 +1,4 @@
-export type SceneCount = 20 | 22 | 25;
+export type SceneCount = 20 | 22 | 25 | 28 | 30;
 export type SceneCountInput = SceneCount | "auto";
 
 export type FilmTone =
@@ -18,6 +18,8 @@ export type SceneType =
   | "character close-up"
   | "behavior shot"
   | "symbolic insert"
+  | "transition B-roll"
+  | "atmospheric insert"
   | "POV shot"
   | "over-shoulder shot";
 
