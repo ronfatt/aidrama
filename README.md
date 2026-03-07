@@ -67,11 +67,13 @@ Copy `.env.example` to `.env.local` and set:
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.1
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_IMAGE_MODEL=gemini-2.5-flash-image-preview
+GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
+GEMINI_IMAGE_FALLBACK_MODEL=gemini-2.5-flash-image-preview
 ```
 
 `OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1`.
-`GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-2.5-flash-image-preview`.
+`GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-3-pro-image-preview`.
+`GEMINI_IMAGE_FALLBACK_MODEL` is optional. If omitted, the app falls back to `gemini-2.5-flash-image-preview` when primary model fails.
 
 ## Local Development
 

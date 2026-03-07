@@ -62,48 +62,68 @@ function findInlineImageData(node: unknown): { mimeType: string; data: string } 
   return null;
 }
 
+async function generateWithModel(apiKey: string, model: string, prompt: string) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
+      "Gemini image generation failed.";
+    return { ok: false as const, error: message };
+  }
+
+  const image = findInlineImageData(data);
+  if (!image) {
+    return { ok: false as const, error: "No image returned by Gemini." };
+  }
+
+  return {
+    ok: true as const,
+    imageDataUrl: `data:${image.mimeType};base64,${image.data}`,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const payload = generateImageSchema.parse(body);
 
     const apiKey = process.env.GEMINI_API_KEY;
-    const model = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image-preview";
+    const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
+    const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image-preview";
 
     if (!apiKey) {
       return NextResponse.json({ error: "Missing GEMINI_API_KEY environment variable." }, { status: 500 });
     }
 
     const prompt = buildLockedImagePrompt(payload);
+    const models = Array.from(new Set([primaryModel, fallbackModel]));
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
-          },
-        }),
+    let lastError = "Gemini image generation failed.";
+
+    for (const model of models) {
+      const result = await generateWithModel(apiKey, model, prompt);
+      if (result.ok) {
+        return NextResponse.json({ imageDataUrl: result.imageDataUrl, modelUsed: model });
       }
-    );
-
-    const data = await response.json();
-    if (!response.ok) {
-      const message =
-        (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
-        "Gemini image generation failed.";
-      return NextResponse.json({ error: message }, { status: 502 });
+      lastError = `${lastError} [${model}] ${result.error}`;
     }
 
-    const image = findInlineImageData(data);
-    if (!image) {
-      return NextResponse.json({ error: "No image returned by Gemini." }, { status: 502 });
-    }
-
-    return NextResponse.json({ imageDataUrl: `data:${image.mimeType};base64,${image.data}` });
+    return NextResponse.json({ error: lastError }, { status: 502 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid image generation request." }, { status: 400 });
