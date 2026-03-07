@@ -9,6 +9,7 @@ const generateImageSchema = z.object({
   style: z.string().min(1),
   strictMode: z.boolean().optional(),
   continuitySeed: z.string().min(1).max(200).optional(),
+  masterReferenceImages: z.array(z.string().min(10)).max(8).optional(),
 });
 
 type Provider = "gemini" | "kling";
@@ -35,7 +36,17 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     locks.push("strict continuity mode");
   }
 
+  if ((input.masterReferenceImages || []).length > 0) {
+    locks.push("must match identity in provided master reference images");
+  }
+
   return `${input.imagePrompt}. Style: ${input.style}. Locks: ${locks.join(", ")}. Output a single best frame.`;
+}
+
+function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return null;
+  return { mimeType: match[1], data: match[2] };
 }
 
 function findInlineImageData(node: unknown): { mimeType: string; data: string } | null {
@@ -188,7 +199,10 @@ function buildKlingQueryUrl(taskId: string): string {
   return `${base}/v1/images/generations/${taskId}`;
 }
 
-async function generateWithGemini(prompt: string): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
+async function generateWithGemini(
+  prompt: string,
+  refs: string[]
+): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
   const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image-preview";
@@ -201,13 +215,18 @@ async function generateWithGemini(prompt: string): Promise<{ ok: true; imageSrc:
   let lastError = "Gemini image generation failed.";
 
   for (const model of models) {
+    const referenceParts = refs
+      .map((ref) => parseDataUrlImage(ref))
+      .filter((item): item is { mimeType: string; data: string } => Boolean(item))
+      .map((item) => ({ inlineData: { mimeType: item.mimeType, data: item.data } }));
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts: [{ text: prompt }, ...referenceParts] }],
           generationConfig: {
             responseModalities: ["TEXT", "IMAGE"],
           },
@@ -255,6 +274,7 @@ async function generateWithKling(
   }
 
   const seed = hashToSeed(`${payload.continuitySeed || "seed"}|${payload.sceneNumber}`);
+  const referenceUrls = (payload.masterReferenceImages || []).filter((item) => /^https?:\/\//i.test(item));
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -266,6 +286,7 @@ async function generateWithKling(
       model_name: model,
       prompt,
       negative_prompt: "",
+      image_list: referenceUrls.slice(0, 4).map((image) => ({ image })),
       n: 1,
       external_task_id: `scene_${payload.sceneNumber}_${seed}`,
       callback_url: "",
@@ -353,8 +374,9 @@ export async function POST(request: Request) {
 
     const prompt = buildLockedImagePrompt(payload);
     const provider = getProvider();
+    const refs = payload.masterReferenceImages || [];
 
-    const primary = provider === "kling" ? await generateWithKling(prompt, payload) : await generateWithGemini(prompt);
+    const primary = provider === "kling" ? await generateWithKling(prompt, payload) : await generateWithGemini(prompt, refs);
 
     if (primary.ok) {
       return NextResponse.json({ imageDataUrl: primary.imageSrc, modelUsed: primary.modelUsed, provider });
@@ -362,7 +384,7 @@ export async function POST(request: Request) {
 
     const fallbackProvider = (process.env.IMAGE_FALLBACK_PROVIDER || "").toLowerCase();
     if (fallbackProvider === "gemini" && provider === "kling") {
-      const fallback = await generateWithGemini(prompt);
+      const fallback = await generateWithGemini(prompt, refs);
       if (fallback.ok) {
         return NextResponse.json({
           imageDataUrl: fallback.imageSrc,

@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
@@ -46,6 +47,8 @@ export function FilmPackStudio() {
   const [sceneCount, setSceneCount] = useState<SceneCountInput>("auto");
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
   const [strictMode, setStrictMode] = useState(true);
+  const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
+  const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FilmPack | null>(null);
@@ -105,6 +108,31 @@ export function FilmPackStudio() {
     persistSavedPacks(savedPacks.filter((record) => record.id !== id));
   };
 
+  const onUploadMasterRefs = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []).slice(0, 4);
+    const dataUrls = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read image file."));
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+    setMasterReferenceImages(dataUrls.filter(Boolean));
+  };
+
+  const parsedMasterUrls = useMemo(
+    () =>
+      masterReferenceUrls
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^https?:\/\//i.test(line)),
+    [masterReferenceUrls]
+  );
+
   const generateSceneImage = async (scene: FilmPack["scenes"][number]) => {
     if (!result) return;
 
@@ -123,6 +151,7 @@ export function FilmPackStudio() {
           style,
           strictMode,
           continuitySeed: `${result.title}|${referenceTag || "NO_REF"}`,
+          masterReferenceImages: [...masterReferenceImages, ...parsedMasterUrls],
         }),
       });
 
@@ -235,6 +264,47 @@ export function FilmPackStudio() {
             placeholder="Paste your final VO here. If provided, system will keep this VO exactly."
           />
         </label>
+
+        <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-sm font-medium text-zinc-100">Character Master Reference (for consistency)</p>
+          <label className="grid gap-2">
+            <span className="text-xs text-zinc-300">Upload 1-4 master images (best for Gemini)</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={onUploadMasterRefs}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-zinc-200"
+            />
+          </label>
+          {masterReferenceImages.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {masterReferenceImages.map((src, index) => (
+                <div key={index} className="overflow-hidden rounded-lg border border-white/10">
+                  <Image
+                    src={src}
+                    alt={`Master ref ${index + 1}`}
+                    width={300}
+                    height={160}
+                    unoptimized
+                    className="h-20 w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <label className="grid gap-2">
+            <span className="text-xs text-zinc-300">
+              Optional master image URL list (one per line, used by Kling image_list)
+            </span>
+            <textarea
+              value={masterReferenceUrls}
+              onChange={(event) => setMasterReferenceUrls(event.target.value)}
+              className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-xs text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+              placeholder="https://.../master-1.jpg"
+            />
+          </label>
+        </section>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2">
