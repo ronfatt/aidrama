@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
@@ -16,6 +16,17 @@ import type { FilmPack, FilmTone, SceneCountInput } from "@/types/film-pack";
 interface GenerateResponse {
   filmPack: FilmPack;
 }
+
+interface SavedFilmPackRecord {
+  id: string;
+  title: string;
+  style: FilmTone;
+  sceneCount: number;
+  createdAt: string;
+  filmPack: FilmPack;
+}
+
+const STORAGE_KEY = "film-pack-studio:saved-packs";
 
 function downloadFile(content: string, fileName: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -38,12 +49,55 @@ export function FilmPackStudio() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FilmPack | null>(null);
+  const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
 
   const fullCopy = useMemo(() => (result ? fullOutputCopy(result) : ""), [result]);
   const referenceSceneCount = useMemo(
     () => (result ? result.scenes.filter((scene) => scene.useReferenceImage).length : 0),
     [result]
   );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as SavedFilmPackRecord[];
+      if (Array.isArray(parsed)) {
+        setSavedPacks(parsed);
+      }
+    } catch {
+      setSavedPacks([]);
+    }
+  }, []);
+
+  const persistSavedPacks = (records: SavedFilmPackRecord[]) => {
+    setSavedPacks(records);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  };
+
+  const saveCurrentPack = () => {
+    if (!result) return;
+    const record: SavedFilmPackRecord = {
+      id: crypto.randomUUID(),
+      title: result.title,
+      style: result.style,
+      sceneCount: result.scenes.length,
+      createdAt: new Date().toISOString(),
+      filmPack: result,
+    };
+    persistSavedPacks([record, ...savedPacks].slice(0, 50));
+  };
+
+  const openSavedPack = (id: string) => {
+    const target = savedPacks.find((record) => record.id === id);
+    if (target) {
+      setResult(target.filmPack);
+    }
+  };
+
+  const deleteSavedPack = (id: string) => {
+    persistSavedPacks(savedPacks.filter((record) => record.id !== id));
+  };
 
   const onGenerate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -232,6 +286,13 @@ export function FilmPackStudio() {
                 <CopyButton text={fullCopy} label="Copy full output" />
                 <button
                   type="button"
+                  onClick={saveCurrentPack}
+                  className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+                >
+                  Save Archive
+                </button>
+                <button
+                  type="button"
                   onClick={() => downloadFile(toFilmPackText(result), "film-pack.txt", "text/plain")}
                   className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
                 >
@@ -267,6 +328,46 @@ export function FilmPackStudio() {
           </div>
         </section>
       ) : null}
+
+      <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/80 p-5">
+        <h3 className="mb-3 text-lg font-semibold text-zinc-100">Saved Archives</h3>
+        {savedPacks.length === 0 ? (
+          <p className="text-sm text-zinc-400">No saved film packs yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {savedPacks.map((record) => (
+              <div
+                key={record.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
+              >
+                <div className="text-sm text-zinc-300">
+                  <p className="font-medium text-zinc-100">{record.title}</p>
+                  <p className="text-xs text-zinc-400">
+                    {record.style} · {record.sceneCount} scenes ·{" "}
+                    {new Date(record.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openSavedPack(record.id)}
+                    className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteSavedPack(record.id)}
+                    className="rounded-md border border-rose-300/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/20"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
