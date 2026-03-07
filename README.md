@@ -72,12 +72,12 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
 GEMINI_IMAGE_FALLBACK_MODEL=gemini-2.5-flash-image-preview
 KLING_API_KEY=your_kling_api_key_here
-KLING_IMAGE_ENDPOINT=https://api-singapore.klingai.com/v1/images/generations
-KLING_IMAGE_MODEL=kling-v2-1
+KLING_IMAGE_ENDPOINT=https://api-singapore.klingai.com/v1/images/omni-image
+KLING_IMAGE_MODEL=kling-image-o1
 KLING_AUTH_HEADER=Authorization
 KLING_AUTH_PREFIX=Bearer
 KLING_BASE_URL=https://api-singapore.klingai.com
-KLING_QUERY_ENDPOINT_TEMPLATE=
+KLING_QUERY_ENDPOINT_TEMPLATE=https://api-singapore.klingai.com/v1/images/omni-image/{task_id}
 KLING_POLL_MAX_ATTEMPTS=12
 KLING_POLL_INTERVAL_MS=1500
 ```

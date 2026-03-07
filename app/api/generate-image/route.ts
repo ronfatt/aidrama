@@ -207,7 +207,7 @@ async function generateWithKling(
   payload: z.infer<typeof generateImageSchema>
 ): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.KLING_API_KEY;
-  const endpoint = process.env.KLING_IMAGE_ENDPOINT || "https://api-singapore.klingai.com/v1/images/generations";
+  const endpoint = process.env.KLING_IMAGE_ENDPOINT || "https://api-singapore.klingai.com/v1/images/omni-image";
   const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
   const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
   const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
