@@ -66,14 +66,24 @@ Copy `.env.example` to `.env.local` and set:
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.1
+IMAGE_PROVIDER=gemini
+IMAGE_FALLBACK_PROVIDER=
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
 GEMINI_IMAGE_FALLBACK_MODEL=gemini-2.5-flash-image-preview
+KLING_API_KEY=your_kling_api_key_here
+KLING_IMAGE_ENDPOINT=https://your-kling-image-endpoint
+KLING_IMAGE_MODEL=kling-o1-image
+KLING_AUTH_HEADER=Authorization
+KLING_AUTH_PREFIX=Bearer
 ```
 
 `OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1`.
 `GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-3-pro-image-preview`.
 `GEMINI_IMAGE_FALLBACK_MODEL` is optional. If omitted, the app falls back to `gemini-2.5-flash-image-preview` when primary model fails.
+`IMAGE_PROVIDER` controls image backend (`gemini` or `kling`).
+If `IMAGE_PROVIDER=kling`, configure `KLING_API_KEY` and `KLING_IMAGE_ENDPOINT`.
+Optional: set `IMAGE_FALLBACK_PROVIDER=gemini` to auto-fallback when Kling fails.
 
 ## Local Development
 
@@ -98,7 +108,9 @@ npm run dev
 3. Set environment variables in Vercel Project Settings:
    - `OPENAI_API_KEY`
    - Optional: `OPENAI_MODEL`
-   - Optional (for one-click image generation): `GEMINI_API_KEY`, `GEMINI_IMAGE_MODEL`
+   - For one-click image generation:
+     - `IMAGE_PROVIDER=gemini` with `GEMINI_API_KEY` (and optional Gemini model vars), or
+     - `IMAGE_PROVIDER=kling` with `KLING_API_KEY` + `KLING_IMAGE_ENDPOINT`
 4. Deploy.
 
 No code changes are required for Vercel deployment.

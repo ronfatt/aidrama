@@ -11,6 +11,8 @@ const generateImageSchema = z.object({
   continuitySeed: z.string().min(1).max(200).optional(),
 });
 
+type Provider = "gemini" | "kling";
+
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
   const locks = [
     "single clearly visible character",
@@ -62,39 +64,176 @@ function findInlineImageData(node: unknown): { mimeType: string; data: string } 
   return null;
 }
 
-async function generateWithModel(apiKey: string, model: string, prompt: string) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-        },
-      }),
+function findStringImageUrl(node: unknown): string | null {
+  if (!node || typeof node !== "object") return null;
+
+  const candidate = node as Record<string, unknown>;
+  const directUrl = candidate.url;
+  if (typeof directUrl === "string" && /^https?:\/\//i.test(directUrl)) {
+    return directUrl;
+  }
+
+  for (const value of Object.values(candidate)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = findStringImageUrl(item);
+        if (found) return found;
+      }
+    } else {
+      const found = findStringImageUrl(value);
+      if (found) return found;
     }
-  );
+  }
 
-  const data = await response.json();
+  return null;
+}
 
+function findBase64Image(node: unknown): { mimeType: string; data: string } | null {
+  if (!node || typeof node !== "object") return null;
+
+  const candidate = node as Record<string, unknown>;
+  const keys = ["b64_json", "base64", "image_base64", "imageBase64"];
+
+  for (const key of keys) {
+    const value = candidate[key];
+    if (typeof value === "string" && value.length > 100) {
+      return { mimeType: "image/png", data: value };
+    }
+  }
+
+  for (const value of Object.values(candidate)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = findBase64Image(item);
+        if (found) return found;
+      }
+    } else {
+      const found = findBase64Image(value);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+function hashToSeed(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash >>> 0) % 2147483647;
+}
+
+async function generateWithGemini(prompt: string): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
+  const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image-preview";
+
+  if (!apiKey) {
+    return { ok: false, error: "Missing GEMINI_API_KEY environment variable." };
+  }
+
+  const models = Array.from(new Set([primaryModel, fallbackModel]));
+  let lastError = "Gemini image generation failed.";
+
+  for (const model of models) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      const message =
+        (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
+        "Gemini image generation failed.";
+      lastError = `${lastError} [${model}] ${message}`;
+      continue;
+    }
+
+    const inline = findInlineImageData(data);
+    if (inline) {
+      return { ok: true, imageSrc: `data:${inline.mimeType};base64,${inline.data}`, modelUsed: model };
+    }
+
+    return { ok: false, error: `No image returned by Gemini model ${model}.` };
+  }
+
+  return { ok: false, error: lastError };
+}
+
+async function generateWithKling(
+  prompt: string,
+  payload: z.infer<typeof generateImageSchema>
+): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
+  const apiKey = process.env.KLING_API_KEY;
+  const endpoint = process.env.KLING_IMAGE_ENDPOINT;
+  const model = process.env.KLING_IMAGE_MODEL || "kling-o1-image";
+  const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
+  const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
+
+  if (!apiKey) {
+    return { ok: false, error: "Missing KLING_API_KEY environment variable." };
+  }
+  if (!endpoint) {
+    return { ok: false, error: "Missing KLING_IMAGE_ENDPOINT environment variable." };
+  }
+
+  const seed = hashToSeed(`${payload.continuitySeed || "seed"}|${payload.sceneNumber}`);
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      [authHeader]: `${authPrefix} ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      seed,
+      response_format: "b64_json",
+      metadata: {
+        scene_number: payload.sceneNumber,
+        reference_tag: payload.referenceTag || "",
+        use_reference: payload.useReferenceImage,
+      },
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message =
       (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
-      "Gemini image generation failed.";
-    return { ok: false as const, error: message };
+      "Kling image generation failed.";
+    return { ok: false, error: message };
   }
 
-  const image = findInlineImageData(data);
-  if (!image) {
-    return { ok: false as const, error: "No image returned by Gemini." };
+  const base64 = findBase64Image(data);
+  if (base64) {
+    return { ok: true, imageSrc: `data:${base64.mimeType};base64,${base64.data}`, modelUsed: model };
   }
 
-  return {
-    ok: true as const,
-    imageDataUrl: `data:${image.mimeType};base64,${image.data}`,
-  };
+  const url = findStringImageUrl(data);
+  if (url) {
+    return { ok: true, imageSrc: url, modelUsed: model };
+  }
+
+  return { ok: false, error: "Kling returned no parseable image output." };
+}
+
+function getProvider(): Provider {
+  const provider = (process.env.IMAGE_PROVIDER || "gemini").toLowerCase();
+  return provider === "kling" ? "kling" : "gemini";
 }
 
 export async function POST(request: Request) {
@@ -102,28 +241,33 @@ export async function POST(request: Request) {
     const body = await request.json();
     const payload = generateImageSchema.parse(body);
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
-    const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image-preview";
-
-    if (!apiKey) {
-      return NextResponse.json({ error: "Missing GEMINI_API_KEY environment variable." }, { status: 500 });
-    }
-
     const prompt = buildLockedImagePrompt(payload);
-    const models = Array.from(new Set([primaryModel, fallbackModel]));
+    const provider = getProvider();
 
-    let lastError = "Gemini image generation failed.";
+    const primary = provider === "kling" ? await generateWithKling(prompt, payload) : await generateWithGemini(prompt);
 
-    for (const model of models) {
-      const result = await generateWithModel(apiKey, model, prompt);
-      if (result.ok) {
-        return NextResponse.json({ imageDataUrl: result.imageDataUrl, modelUsed: model });
-      }
-      lastError = `${lastError} [${model}] ${result.error}`;
+    if (primary.ok) {
+      return NextResponse.json({ imageDataUrl: primary.imageSrc, modelUsed: primary.modelUsed, provider });
     }
 
-    return NextResponse.json({ error: lastError }, { status: 502 });
+    const fallbackProvider = (process.env.IMAGE_FALLBACK_PROVIDER || "").toLowerCase();
+    if (fallbackProvider === "gemini" && provider === "kling") {
+      const fallback = await generateWithGemini(prompt);
+      if (fallback.ok) {
+        return NextResponse.json({
+          imageDataUrl: fallback.imageSrc,
+          modelUsed: fallback.modelUsed,
+          provider: "gemini",
+          fallbackFrom: "kling",
+        });
+      }
+      return NextResponse.json(
+        { error: `Kling failed: ${primary.error} | Gemini fallback failed: ${fallback.error}` },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ error: primary.error }, { status: 502 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid image generation request." }, { status: 400 });
