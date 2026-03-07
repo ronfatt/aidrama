@@ -88,6 +88,39 @@ function findStringImageUrl(node: unknown): string | null {
   return null;
 }
 
+function extractKlingResultUrl(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const data = (root.data as Record<string, unknown> | undefined) || root;
+  const taskResult = (data.task_result as Record<string, unknown> | undefined) || {};
+
+  const images = taskResult.images;
+  if (Array.isArray(images)) {
+    for (const item of images) {
+      if (item && typeof item === "object") {
+        const url = (item as Record<string, unknown>).url;
+        if (typeof url === "string" && /^https?:\/\//i.test(url)) {
+          return url;
+        }
+      }
+    }
+  }
+
+  const seriesImages = taskResult.series_images;
+  if (Array.isArray(seriesImages)) {
+    for (const item of seriesImages) {
+      if (item && typeof item === "object") {
+        const url = (item as Record<string, unknown>).url;
+        if (typeof url === "string" && /^https?:\/\//i.test(url)) {
+          return url;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function findBase64Image(node: unknown): { mimeType: string; data: string } | null {
   if (!node || typeof node !== "object") return null;
 
@@ -281,6 +314,11 @@ async function generateWithKling(
         (taskData && typeof taskData === "object" && (taskData.error as { message?: string })?.message) ||
         "Kling task query failed.";
       return { ok: false, error: message };
+    }
+
+    const directResultUrl = extractKlingResultUrl(taskData);
+    if (directResultUrl) {
+      return { ok: true, imageSrc: directResultUrl, modelUsed: model };
     }
 
     const polledBase64 = findBase64Image(taskData);
