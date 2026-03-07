@@ -72,10 +72,14 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
 GEMINI_IMAGE_FALLBACK_MODEL=gemini-2.5-flash-image-preview
 KLING_API_KEY=your_kling_api_key_here
-KLING_IMAGE_ENDPOINT=https://your-kling-image-endpoint
-KLING_IMAGE_MODEL=kling-o1-image
+KLING_IMAGE_ENDPOINT=https://api-singapore.klingai.com/v1/images/generations
+KLING_IMAGE_MODEL=kling-v2-1
 KLING_AUTH_HEADER=Authorization
 KLING_AUTH_PREFIX=Bearer
+KLING_BASE_URL=https://api-singapore.klingai.com
+KLING_QUERY_ENDPOINT_TEMPLATE=
+KLING_POLL_MAX_ATTEMPTS=12
+KLING_POLL_INTERVAL_MS=1500
 ```
 
 `OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1`.
@@ -83,6 +87,7 @@ KLING_AUTH_PREFIX=Bearer
 `GEMINI_IMAGE_FALLBACK_MODEL` is optional. If omitted, the app falls back to `gemini-2.5-flash-image-preview` when primary model fails.
 `IMAGE_PROVIDER` controls image backend (`gemini` or `kling`).
 If `IMAGE_PROVIDER=kling`, configure `KLING_API_KEY` and `KLING_IMAGE_ENDPOINT`.
+For the Kling doc flow shown in API docs, `KLING_API_KEY` should be the Bearer token value used in `Authorization`.
 Optional: set `IMAGE_FALLBACK_PROVIDER=gemini` to auto-fallback when Kling fails.
 
 ## Local Development

@@ -125,6 +125,36 @@ function hashToSeed(input: string): number {
   return Math.abs(hash >>> 0) % 2147483647;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function extractKlingTaskId(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const data = (root.data as Record<string, unknown> | undefined) || root;
+  const taskId = data.task_id || data.taskId;
+  return typeof taskId === "string" ? taskId : null;
+}
+
+function extractKlingTaskStatus(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const root = payload as Record<string, unknown>;
+  const data = (root.data as Record<string, unknown> | undefined) || root;
+  const status = data.task_status || data.taskStatus || root.status;
+  return typeof status === "string" ? status.toLowerCase() : "";
+}
+
+function buildKlingQueryUrl(taskId: string): string {
+  const template = process.env.KLING_QUERY_ENDPOINT_TEMPLATE;
+  if (template?.includes("{task_id}")) {
+    return template.replace("{task_id}", taskId);
+  }
+
+  const base = process.env.KLING_BASE_URL || "https://api-singapore.klingai.com";
+  return `${base}/v1/images/generations/${taskId}`;
+}
+
 async function generateWithGemini(prompt: string): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
@@ -177,10 +207,12 @@ async function generateWithKling(
   payload: z.infer<typeof generateImageSchema>
 ): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.KLING_API_KEY;
-  const endpoint = process.env.KLING_IMAGE_ENDPOINT;
-  const model = process.env.KLING_IMAGE_MODEL || "kling-o1-image";
+  const endpoint = process.env.KLING_IMAGE_ENDPOINT || "https://api-singapore.klingai.com/v1/images/generations";
+  const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
   const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
   const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
+  const pollAttempts = Number(process.env.KLING_POLL_MAX_ATTEMPTS || 12);
+  const pollIntervalMs = Number(process.env.KLING_POLL_INTERVAL_MS || 1500);
 
   if (!apiKey) {
     return { ok: false, error: "Missing KLING_API_KEY environment variable." };
@@ -198,15 +230,12 @@ async function generateWithKling(
       [authHeader]: `${authPrefix} ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model_name: model,
       prompt,
-      seed,
-      response_format: "b64_json",
-      metadata: {
-        scene_number: payload.sceneNumber,
-        reference_tag: payload.referenceTag || "",
-        use_reference: payload.useReferenceImage,
-      },
+      negative_prompt: "",
+      n: 1,
+      external_task_id: `scene_${payload.sceneNumber}_${seed}`,
+      callback_url: "",
     }),
   });
 
@@ -218,17 +247,60 @@ async function generateWithKling(
     return { ok: false, error: message };
   }
 
-  const base64 = findBase64Image(data);
-  if (base64) {
-    return { ok: true, imageSrc: `data:${base64.mimeType};base64,${base64.data}`, modelUsed: model };
+  const immediateBase64 = findBase64Image(data);
+  if (immediateBase64) {
+    return { ok: true, imageSrc: `data:${immediateBase64.mimeType};base64,${immediateBase64.data}`, modelUsed: model };
   }
 
-  const url = findStringImageUrl(data);
-  if (url) {
-    return { ok: true, imageSrc: url, modelUsed: model };
+  const immediateUrl = findStringImageUrl(data);
+  if (immediateUrl) {
+    return { ok: true, imageSrc: immediateUrl, modelUsed: model };
   }
 
-  return { ok: false, error: "Kling returned no parseable image output." };
+  const taskId = extractKlingTaskId(data);
+  if (!taskId) {
+    return { ok: false, error: "Kling create task succeeded but no task_id returned." };
+  }
+
+  const queryUrl = buildKlingQueryUrl(taskId);
+
+  for (let attempt = 0; attempt < pollAttempts; attempt += 1) {
+    await sleep(pollIntervalMs);
+
+    const taskResponse = await fetch(queryUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        [authHeader]: `${authPrefix} ${apiKey}`,
+      },
+    });
+
+    const taskData = await taskResponse.json().catch(() => ({}));
+    if (!taskResponse.ok) {
+      const message =
+        (taskData && typeof taskData === "object" && (taskData.error as { message?: string })?.message) ||
+        "Kling task query failed.";
+      return { ok: false, error: message };
+    }
+
+    const polledBase64 = findBase64Image(taskData);
+    if (polledBase64) {
+      return { ok: true, imageSrc: `data:${polledBase64.mimeType};base64,${polledBase64.data}`, modelUsed: model };
+    }
+
+    const polledUrl = findStringImageUrl(taskData);
+    if (polledUrl) {
+      return { ok: true, imageSrc: polledUrl, modelUsed: model };
+    }
+
+    const status = extractKlingTaskStatus(taskData);
+    if (status.includes("fail") || status.includes("error")) {
+      return { ok: false, error: `Kling task failed with status: ${status}` };
+    }
+  }
+
+  return { ok: false, error: "Kling task timeout while waiting for image result." };
+
 }
 
 function getProvider(): Provider {
