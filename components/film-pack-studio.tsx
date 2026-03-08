@@ -22,8 +22,9 @@ interface GenerateBeatSheetResponse {
   sceneCount: number;
 }
 
-interface GenerateCompanionShotResponse {
-  shot: CompanionShot;
+interface GenerateCompanionShotPayload {
+  shot?: CompanionShot;
+  error?: string;
 }
 
 interface SavedFilmPackRecord {
@@ -301,6 +302,11 @@ export function FilmPackStudio() {
     if (!result) return;
 
     setCompanionLoading((prev) => ({ ...prev, [scene.sceneNumber]: kind }));
+    setCompanionImageErrors((prev) => ({
+      ...prev,
+      [`scene-${scene.sceneNumber}-broll`]: "",
+      [`scene-${scene.sceneNumber}-transition`]: "",
+    }));
     try {
       const response = await fetch("/api/generate-companion-shot", {
         method: "POST",
@@ -317,11 +323,19 @@ export function FilmPackStudio() {
         }),
       });
 
-      const payload = (await response.json()) as GenerateCompanionShotResponse & { error?: string };
+      const raw = await response.text();
+      let payload: GenerateCompanionShotPayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateCompanionShotPayload;
+      } catch {
+        payload = { error: raw || "Failed to generate companion shot." };
+      }
+
       if (!response.ok || !payload.shot) {
         throw new Error(payload.error || "Failed to generate companion shot.");
       }
 
+      const createdShot = payload.shot;
       setResult((prev) => {
         if (!prev) return prev;
         return {
@@ -330,12 +344,14 @@ export function FilmPackStudio() {
             item.sceneNumber === scene.sceneNumber
               ? {
                   ...item,
-                  companionShots: [...(item.companionShots || []), payload.shot],
+                  companionShots: [...(item.companionShots || []), createdShot],
                 }
               : item
           ),
         };
       });
+
+      await generateSceneImage(createdShot);
     } catch (generationError) {
       const message =
         generationError instanceof Error ? generationError.message : "Failed to generate companion shot.";
