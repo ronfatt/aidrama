@@ -16,6 +16,24 @@ const styleSchema = z.union([
   z.literal("emotional realism"),
 ]);
 
+const phaseSchema = z.union([
+  z.literal("Opening - Awareness"),
+  z.literal("Understanding - Reframing"),
+  z.literal("Turning Point - Action"),
+  z.literal("Impact - Closing"),
+]);
+
+const beatRoleSchema = z.union([z.literal("hero"), z.literal("broll"), z.literal("transition")]);
+
+export const beatItemSchema = z.object({
+  beatNumber: z.number().int().positive(),
+  phase: phaseSchema,
+  role: beatRoleSchema,
+  importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
+  voLine: z.string().min(1),
+  purpose: z.string().min(1),
+});
+
 export const generateRequestSchema = z.object({
   settings: z.object({
     title: z.string().trim().max(120).optional(),
@@ -32,6 +50,7 @@ export const generateRequestSchema = z.object({
     style: styleSchema,
     strictMode: z.boolean().optional(),
   }),
+  beatSheet: z.array(beatItemSchema).min(20).max(30).optional(),
   strict_mode: z.boolean().optional(),
 });
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
-import NextImage from "next/image";
 import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
@@ -12,10 +11,15 @@ import {
   SCENE_COUNTS,
 } from "@/lib/constants";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
-import type { CompanionShot, FilmPack, FilmTone, SceneCountInput, SceneItem } from "@/types/film-pack";
+import type { BeatItem, CompanionShot, FilmPack, FilmTone, SceneCountInput, SceneItem } from "@/types/film-pack";
 
 interface GenerateResponse {
   filmPack: FilmPack;
+}
+
+interface GenerateBeatSheetResponse {
+  beatSheet: BeatItem[];
+  sceneCount: number;
 }
 
 interface GenerateCompanionShotResponse {
@@ -84,6 +88,10 @@ export function FilmPackStudio() {
   const [strictMode, setStrictMode] = useState(true);
   const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
   const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
+  const [officialMasterReference, setOfficialMasterReference] = useState<string | null>(null);
+  const [beatSheet, setBeatSheet] = useState<BeatItem[]>([]);
+  const [beatSceneCount, setBeatSceneCount] = useState<number | null>(null);
+  const [beatLoading, setBeatLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FilmPack | null>(null);
@@ -137,6 +145,8 @@ export function FilmPackStudio() {
     const target = savedPacks.find((record) => record.id === id);
     if (target) {
       setResult(target.filmPack);
+      setBeatSheet(target.filmPack.beatSheet || []);
+      setBeatSceneCount(target.filmPack.beatSheet?.length || target.filmPack.scenes.length);
       setSceneImages({});
       setCompanionImages({});
       setSceneImageLoading({});
@@ -166,6 +176,61 @@ export function FilmPackStudio() {
     [masterReferenceUrls]
   );
 
+  const referenceCandidates = useMemo(
+    () => [...masterReferenceImages, ...parsedMasterUrls],
+    [masterReferenceImages, parsedMasterUrls]
+  );
+
+  const effectiveMasterReferences = useMemo(() => {
+    if (officialMasterReference) {
+      return [officialMasterReference];
+    }
+    return referenceCandidates;
+  }, [officialMasterReference, referenceCandidates]);
+
+  useEffect(() => {
+    if (!referenceCandidates.length) {
+      setOfficialMasterReference(null);
+      return;
+    }
+
+    if (!officialMasterReference || !referenceCandidates.includes(officialMasterReference)) {
+      setOfficialMasterReference(referenceCandidates[0]);
+    }
+  }, [officialMasterReference, referenceCandidates]);
+
+  const generateBeatSheet = async (): Promise<GenerateBeatSheetResponse> => {
+    setBeatLoading(true);
+    try {
+      const response = await fetch("/api/generate-beats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            title,
+            originalScript,
+            lockedVoiceOver,
+            referenceTag,
+            sceneCount,
+            style,
+            strictMode,
+          },
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as GenerateBeatSheetResponse & { error?: string } | null;
+      if (!response.ok || !payload?.beatSheet) {
+        throw new Error(payload?.error || "Beat sheet generation failed.");
+      }
+
+      setBeatSheet(payload.beatSheet);
+      setBeatSceneCount(payload.sceneCount);
+      return { beatSheet: payload.beatSheet, sceneCount: payload.sceneCount };
+    } finally {
+      setBeatLoading(false);
+    }
+  };
+
   const generateSceneImage = async (scene: SceneItem | CompanionShot) => {
     if (!result) return;
     const isCompanion = "id" in scene;
@@ -191,7 +256,7 @@ export function FilmPackStudio() {
           style,
           strictMode,
           continuitySeed: `${result.title}|${referenceTag || "NO_REF"}`,
-          masterReferenceImages: [...masterReferenceImages, ...parsedMasterUrls],
+          masterReferenceImages: effectiveMasterReferences,
         }),
       });
 
@@ -287,6 +352,7 @@ export function FilmPackStudio() {
     setError(null);
 
     try {
+      const beatResponse = await generateBeatSheet();
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -300,6 +366,7 @@ export function FilmPackStudio() {
             style,
             strictMode,
           },
+          beatSheet: beatResponse.beatSheet,
         }),
       });
 
@@ -310,6 +377,8 @@ export function FilmPackStudio() {
 
       const payload = (await response.json()) as GenerateResponse;
       setResult(payload.filmPack);
+      setBeatSheet(payload.filmPack.beatSheet || beatResponse.beatSheet);
+      setBeatSceneCount(payload.filmPack.beatSheet?.length || beatResponse.sceneCount);
       setSceneImages({});
       setCompanionImages({});
       setSceneImageLoading({});
@@ -382,6 +451,9 @@ export function FilmPackStudio() {
 
         <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <p className="text-sm font-medium text-zinc-100">Character Master Reference (for consistency)</p>
+          <p className="text-xs text-zinc-400">
+            Choose one official master ref. All per-scene image generation will bind to that ref by default.
+          </p>
           <label className="grid gap-2">
             <span className="text-xs text-zinc-300">Upload 1-4 master images (best for Gemini)</span>
             <input
@@ -392,20 +464,36 @@ export function FilmPackStudio() {
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-zinc-200"
             />
           </label>
-          {masterReferenceImages.length > 0 ? (
+          {referenceCandidates.length > 0 ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {masterReferenceImages.map((src, index) => (
-                <div key={index} className="overflow-hidden rounded-lg border border-white/10">
-                  <NextImage
+              {referenceCandidates.map((src, index) => {
+                const isOfficial = officialMasterReference === src;
+                return (
+                <div
+                  key={`${src.slice(0, 40)}-${index}`}
+                  className={`overflow-hidden rounded-lg border ${isOfficial ? "border-cyan-300/70" : "border-white/10"}`}
+                >
+                  {/* Remote master refs can come from arbitrary providers, so this preview intentionally avoids Next image optimization. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={src}
                     alt={`Master ref ${index + 1}`}
-                    width={300}
-                    height={160}
-                    unoptimized
                     className="h-20 w-full object-cover"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setOfficialMasterReference(src)}
+                    className={`w-full border-t px-2 py-1 text-[11px] font-medium ${
+                      isOfficial
+                        ? "border-cyan-300/40 bg-cyan-500/10 text-cyan-200"
+                        : "border-white/10 bg-black/30 text-zinc-300"
+                    }`}
+                  >
+                    {isOfficial ? "Official master ref" : "Set as official"}
+                  </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
           <label className="grid gap-2">
@@ -420,6 +508,45 @@ export function FilmPackStudio() {
             />
           </label>
         </section>
+
+        {beatSheet.length > 0 ? (
+          <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-zinc-100">Beat Sheet Preview</p>
+                <p className="text-xs text-zinc-400">
+                  {beatSceneCount || beatSheet.length} beats locked for the next scene pack generation.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void generateBeatSheet().catch((beatError) => {
+                    setError(beatError instanceof Error ? beatError.message : "Beat sheet generation failed.");
+                  });
+                }}
+                disabled={beatLoading}
+                className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15 disabled:opacity-60"
+              >
+                {beatLoading ? "Refreshing..." : "Refresh Beat Sheet"}
+              </button>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {beatSheet.map((beat) => (
+                <div key={beat.beatNumber} className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-zinc-300">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-zinc-100">Beat {beat.beatNumber}</span>
+                    <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.phase}</span>
+                    <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.role}</span>
+                    <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.importance}</span>
+                  </div>
+                  <p className="mb-2 max-h-14 overflow-hidden">{beat.voLine}</p>
+                  <p className="text-zinc-400">{beat.purpose}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2">
@@ -480,10 +607,10 @@ export function FilmPackStudio() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || beatLoading}
           className="inline-flex items-center rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Generating film pack..." : "Generate Film Pack"}
+          {loading ? "Generating film pack..." : beatLoading ? "Generating beat sheet..." : "Generate Film Pack"}
         </button>
 
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}
@@ -509,6 +636,11 @@ export function FilmPackStudio() {
               <span className="rounded-full border border-white/15 bg-white/[0.03] px-3 py-1">
                 strict mode: {strictMode ? "on" : "off"}
               </span>
+              {result.beatSheet?.length ? (
+                <span className="rounded-full border border-white/15 bg-white/[0.03] px-3 py-1">
+                  beat-first flow: on
+                </span>
+              ) : null}
             </div>
 
             <div className="sticky top-3 z-10 mb-4 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-zinc-950/85 p-3 backdrop-blur">
@@ -547,6 +679,12 @@ export function FilmPackStudio() {
                 <span className="font-semibold text-zinc-100">Character Reference Guidance:</span>{" "}
                 {result.characterReferenceGuidance}
               </p>
+              {officialMasterReference ? (
+                <p>
+                  <span className="font-semibold text-zinc-100">Official Master Ref:</span>{" "}
+                  {officialMasterReference.startsWith("data:") ? "uploaded master image" : officialMasterReference}
+                </p>
+              ) : null}
             </div>
           </div>
 

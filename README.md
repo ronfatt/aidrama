@@ -14,6 +14,10 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
 
 - Script input with optional title and reference tag (e.g. `[DARREN_REF]`)
 - Optional locked VO input (if provided, system keeps VO text exactly and does not rewrite)
+- Beat-first generation flow:
+  - Generate beat sheet first
+  - Then generate scenes from beats
+  - Better VO coverage and more stable B-roll distribution
 - Scene count selection: `Auto / 20 / 22 / 25 / 28 / 30`
 - Tone/style selection:
   - `cinematic documentary`
@@ -41,6 +45,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
   - Scene video prompt
 - Optional one-click scene image generation via Gemini API
 - Character master reference workflow (upload master refs / paste master ref URLs for stronger identity consistency)
+- Official master reference selection (choose one canonical character image and bind future scene image generation to it)
 - Per-scene companion shot generation (`Generate B-roll` / `Generate Transition`) without replacing the main shot
 - Exports:
   - Download `.txt`
@@ -61,6 +66,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
   - `promptBuilder.ts`
 - `types/`
 - `app/api/generate/route.ts`
+- `app/api/generate-beats/route.ts`
 
 ## Environment Variables
 
@@ -126,9 +132,12 @@ No code changes are required for Vercel deployment.
 ## API Endpoint
 
 - `POST /api/generate`
+- `POST /api/generate-beats`
 - Validates incoming settings with Zod
 - Calls OpenAI Responses API with strict JSON schema
 - Validates returned JSON before responding
+- `generate-beats` creates a beat sheet with `phase + role + importance + purpose`
+- `generate` consumes that beat sheet to produce the final scene pack
 - Supports strict mode toggle:
   - `settings.strictMode` (camelCase) or `strict_mode` (snake_case)
   - Default: `true` (stability-first)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getModelName, getOpenAIClient } from "@/lib/openai";
+import { normalizeBeatSheet } from "@/lib/beat-sheet";
 import { enforceFilmPackGuardrails } from "@/lib/output-guardrails";
 import { buildPrompt } from "@/lib/prompts/promptBuilder";
 import { filmPackJsonSchema } from "@/lib/prompts/outputSchema";
@@ -23,7 +24,12 @@ export async function POST(request: Request) {
       lockedVoiceOver,
       originalScript: parsedBody.settings.originalScript,
     });
-    const sceneBeats = lockedVoiceOver ? splitVoiceOverIntoSceneBeats(lockedVoiceOver, sceneCount) : undefined;
+    const providedBeatSheet =
+      parsedBody.beatSheet && parsedBody.beatSheet.length === sceneCount
+        ? normalizeBeatSheet(parsedBody.beatSheet, sceneCount)
+        : undefined;
+    const sceneBeats = providedBeatSheet?.map((beat) => beat.voLine)
+      ?? (lockedVoiceOver ? splitVoiceOverIntoSceneBeats(lockedVoiceOver, sceneCount) : undefined);
 
     const client = getOpenAIClient();
 
@@ -42,6 +48,7 @@ export async function POST(request: Request) {
               style: parsedBody.settings.style,
               strictMode,
               sceneBeats,
+              beatSheet: providedBeatSheet,
               extraInstruction,
             }),
           },
@@ -96,6 +103,37 @@ export async function POST(request: Request) {
         { error: "VO drifted too far from source script. Please retry or keep Strict Mode ON." },
         { status: 502 }
       );
+    }
+
+    if (providedBeatSheet) {
+      filmPack = {
+        ...filmPack,
+        beatSheet: providedBeatSheet,
+        scenes: filmPack.scenes.map((scene, index) => {
+          const beat = providedBeatSheet[index];
+          if (!beat) return scene;
+
+          return {
+            ...scene,
+            phase: beat.phase,
+            importance: beat.importance,
+            voLine: beat.voLine,
+            shotType:
+              beat.role === "transition"
+                ? "transition B-roll"
+                : beat.role === "broll" &&
+                    !["environment", "symbolic insert", "transition B-roll", "atmospheric insert"].includes(
+                      scene.shotType
+                    )
+                  ? "atmospheric insert"
+                  : scene.shotType,
+            scenePurpose:
+              beat.role === "hero"
+                ? scene.scenePurpose
+                : `${beat.role === "transition" ? "Transition coverage" : "B-roll coverage"}: ${beat.purpose}`,
+          };
+        }),
+      };
     }
 
     return NextResponse.json({ filmPack });

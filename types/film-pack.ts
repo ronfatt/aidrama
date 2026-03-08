@@ -1,6 +1,7 @@
 export type SceneCount = 20 | 22 | 25 | 28 | 30;
 export type SceneCountInput = SceneCount | "auto";
 export type CompanionShotKind = "broll" | "transition";
+export type BeatRole = "hero" | "broll" | "transition";
 
 export type FilmTone =
   | "cinematic documentary"
@@ -32,6 +33,15 @@ export interface UserSettings {
   sceneCount: SceneCountInput;
   style: FilmTone;
   strictMode?: boolean;
+}
+
+export interface BeatItem {
+  beatNumber: number;
+  phase: ScenePhase;
+  role: BeatRole;
+  importance: SceneImportance;
+  voLine: string;
+  purpose: string;
 }
 
 export interface SceneItem {
@@ -72,9 +82,11 @@ export interface FilmPack {
   settingNote: string;
   preservedVoiceOverScript: string;
   characterReferenceGuidance: string;
+  beatSheet?: BeatItem[];
   scenes: SceneItem[];
 }
 
 export interface GenerateFilmPackRequest {
   settings: UserSettings;
+  beatSheet?: BeatItem[];
 }

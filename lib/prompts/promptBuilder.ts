@@ -11,6 +11,14 @@ interface PromptOptions {
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
   strictMode: boolean;
   sceneBeats?: string[];
+  beatSheet?: Array<{
+    beatNumber: number;
+    phase: string;
+    role: string;
+    importance: string;
+    voLine: string;
+    purpose: string;
+  }>;
   extraInstruction?: string;
 }
 
@@ -39,6 +47,7 @@ Additional hard constraints:
 - preservedVoiceOverScript must be a compression/re-phrasing of source lines, not a rewritten new script.
 - If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
 - If scene beats are provided, each scene's voLine must map to the corresponding beat in order.
+- If a beat sheet is provided, each scene must follow the corresponding beat's phase, role, importance, and voLine in order.
 - Scene count must be exactly ${options.sceneCount}.
 - Include a small B-roll layer: about 5 scenes should function as transition/B-roll coverage when scene count is 25 or higher.
 - Scenes must follow 4 story stages in order:
@@ -52,6 +61,7 @@ ${options.extraInstruction ? `Correction instruction:\n${options.extraInstructio
 
 ${options.lockedVoiceOver?.trim() ? `Locked voice over (must be used exactly):\n${options.lockedVoiceOver.trim()}\n` : ""}
 ${options.sceneBeats?.length ? `Scene beat map (must cover all beats in order):\n${options.sceneBeats.map((beat, index) => `${index + 1}. ${beat}`).join("\n")}\n` : ""}
+${options.beatSheet?.length ? `Beat sheet to follow exactly in order:\n${options.beatSheet.map((beat) => `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} vo="${beat.voLine}" purpose="${beat.purpose}"`).join("\n")}\n` : ""}
 
 Script to convert:
 
