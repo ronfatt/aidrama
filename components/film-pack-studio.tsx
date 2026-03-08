@@ -5,13 +5,22 @@ import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
 import {
+  COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
   FILM_STYLES,
   SAMPLE_SCRIPT,
   SCENE_COUNTS,
 } from "@/lib/constants";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
-import type { BeatItem, CompanionShot, FilmPack, FilmTone, SceneCountInput, SceneItem } from "@/types/film-pack";
+import type {
+  BeatItem,
+  ColorGradePreset,
+  CompanionShot,
+  FilmPack,
+  FilmTone,
+  SceneCountInput,
+  SceneItem,
+} from "@/types/film-pack";
 
 interface GenerateResponse {
   filmPack: FilmPack;
@@ -38,16 +47,19 @@ interface SavedFilmPackRecord {
 
 const STORAGE_KEY = "film-pack-studio:saved-packs";
 
-function getStyleColorGradeLock(style: FilmTone): string {
-  switch (style) {
-    case "psychological drama":
-      return "restrained neutral-cool grade, soft cyan shadows, muted warm practicals, no orange-teal swing";
-    case "NGO educational":
-      return "balanced neutral grade, gentle warm practicals, soft natural contrast, no strong temperature swing";
-    case "emotional realism":
-      return "soft warm-neutral grade, natural skin tones, muted shadows, no heavy cool cast";
-    case "cinematic documentary":
+function getColorGradeLock(preset: ColorGradePreset, style: FilmTone): string {
+  switch (preset) {
+    case "neutral-cool restraint":
+      return "restrained neutral-cool grade, soft cyan-gray shadows, muted practical warmth, no orange-teal swing";
+    case "muted realism":
+      return "muted neutral grade, softened saturation, gentle contrast, realistic blacks, no strong warm-cool split";
+    case "soft warm intimacy":
+      return "soft warm intimacy grade, gentle amber practicals, natural skin tones, warm-neutral shadows, no cold cyan cast";
+    case "warm-neutral documentary":
     default:
+      if (style === "psychological drama") {
+        return "grounded warm-neutral base with restrained cool shadows, consistent practical warmth, no abrupt temperature swing";
+      }
       return "grounded warm-neutral documentary grade, controlled cool dusk only in backgrounds, consistent practical warmth, no harsh cyan shift";
   }
 }
@@ -100,6 +112,7 @@ export function FilmPackStudio() {
   const [referenceTag, setReferenceTag] = useState(DEFAULT_REFERENCE_TAG);
   const [sceneCount, setSceneCount] = useState<SceneCountInput>("auto");
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
+  const [colorGradePreset, setColorGradePreset] = useState<ColorGradePreset>("warm-neutral documentary");
   const [strictMode, setStrictMode] = useState(true);
   const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
   const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
@@ -127,10 +140,10 @@ export function FilmPackStudio() {
   const projectColorGradeLock = useMemo(() => {
     const leadSceneLighting = result?.scenes?.[0]?.lightingColor?.trim();
     if (leadSceneLighting) {
-      return `${getStyleColorGradeLock(style)}; anchor to lead scene lighting: ${leadSceneLighting}`;
+      return `${getColorGradeLock(colorGradePreset, style)}; anchor to lead scene lighting: ${leadSceneLighting}`;
     }
-    return getStyleColorGradeLock(style);
-  }, [result, style]);
+    return getColorGradeLock(colorGradePreset, style);
+  }, [colorGradePreset, result, style]);
 
   useEffect(() => {
     try {
@@ -167,6 +180,9 @@ export function FilmPackStudio() {
     const target = savedPacks.find((record) => record.id === id);
     if (target) {
       setResult(target.filmPack);
+      if (target.filmPack.colorGradePreset) {
+        setColorGradePreset(target.filmPack.colorGradePreset);
+      }
       setBeatSheet(target.filmPack.beatSheet || []);
       setBeatSceneCount(target.filmPack.beatSheet?.length || target.filmPack.scenes.length);
       setSceneImages({});
@@ -235,6 +251,7 @@ export function FilmPackStudio() {
             referenceTag,
             sceneCount,
             style,
+            colorGradePreset,
             strictMode,
           },
         }),
@@ -276,6 +293,7 @@ export function FilmPackStudio() {
           useReferenceImage: scene.useReferenceImage,
           referenceTag,
           style,
+          colorGradePreset,
           lightingColor: scene.lightingColor,
           projectColorGradeLock,
           strictMode,
@@ -338,6 +356,7 @@ export function FilmPackStudio() {
           kind,
           title: result.title,
           style: result.style,
+          colorGradePreset,
           settingNote: result.settingNote,
           characterReferenceGuidance: result.characterReferenceGuidance,
           referenceTag,
@@ -404,6 +423,7 @@ export function FilmPackStudio() {
             referenceTag,
             sceneCount,
             style,
+            colorGradePreset,
             strictMode,
           },
           beatSheet: beatResponse.beatSheet,
@@ -623,6 +643,21 @@ export function FilmPackStudio() {
           </label>
         </div>
 
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-zinc-200">Color Grade Preset</span>
+          <select
+            value={colorGradePreset}
+            onChange={(event) => setColorGradePreset(event.target.value as ColorGradePreset)}
+            className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+          >
+            {COLOR_GRADE_PRESETS.map((preset) => (
+              <option key={preset} value={preset}>
+                {preset}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
           <div className="space-y-1">
             <span className="text-sm font-medium text-zinc-100">Strict Mode (API)</span>
@@ -663,6 +698,7 @@ export function FilmPackStudio() {
               <div>
                 <h2 className="text-2xl font-semibold text-zinc-100">{result.title}</h2>
                 <p className="text-sm text-zinc-300">{result.style}</p>
+                <p className="text-xs text-zinc-400">{colorGradePreset}</p>
               </div>
             </div>
 
@@ -718,6 +754,9 @@ export function FilmPackStudio() {
               <p>
                 <span className="font-semibold text-zinc-100">Character Reference Guidance:</span>{" "}
                 {result.characterReferenceGuidance}
+              </p>
+              <p>
+                <span className="font-semibold text-zinc-100">Color Grade Lock:</span> {projectColorGradeLock}
               </p>
               {officialMasterReference ? (
                 <p>

@@ -7,6 +7,7 @@ const generateCompanionShotSchema = z.object({
   kind: z.union([z.literal("broll"), z.literal("transition")]),
   title: z.string().min(1),
   style: z.string().min(1),
+  colorGradePreset: z.string().optional().or(z.literal("")),
   settingNote: z.string().min(1),
   characterReferenceGuidance: z.string().min(1),
   referenceTag: z.string().optional().or(z.literal("")),
@@ -99,6 +100,7 @@ Rules:
 Project:
 - title: ${input.title}
 - style: ${input.style}
+- color grade preset: ${input.colorGradePreset || "(not provided)"}
 - setting: ${input.settingNote}
 - character guidance: ${input.characterReferenceGuidance}
 - reference tag: ${input.referenceTag || "(none)"}

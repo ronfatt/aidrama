@@ -1,4 +1,4 @@
-import type { FilmTone, SceneCountInput } from "@/types/film-pack";
+import type { ColorGradePreset, FilmTone, SceneCountInput } from "@/types/film-pack";
 
 export const SCENE_COUNTS: SceneCountInput[] = ["auto", 20, 22, 25, 28, 30];
 
@@ -7,6 +7,13 @@ export const FILM_STYLES: FilmTone[] = [
   "psychological drama",
   "NGO educational",
   "emotional realism",
+];
+
+export const COLOR_GRADE_PRESETS: ColorGradePreset[] = [
+  "warm-neutral documentary",
+  "neutral-cool restraint",
+  "muted realism",
+  "soft warm intimacy",
 ];
 
 export const RULE_CHECKLIST = [

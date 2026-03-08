@@ -2,6 +2,11 @@ export type SceneCount = 20 | 22 | 25 | 28 | 30;
 export type SceneCountInput = SceneCount | "auto";
 export type CompanionShotKind = "broll" | "transition";
 export type BeatRole = "hero" | "broll" | "transition";
+export type ColorGradePreset =
+  | "warm-neutral documentary"
+  | "neutral-cool restraint"
+  | "muted realism"
+  | "soft warm intimacy";
 
 export type FilmTone =
   | "cinematic documentary"
@@ -32,6 +37,7 @@ export interface UserSettings {
   referenceTag?: string;
   sceneCount: SceneCountInput;
   style: FilmTone;
+  colorGradePreset?: ColorGradePreset;
   strictMode?: boolean;
 }
 
@@ -79,6 +85,7 @@ export interface CompanionShot {
 export interface FilmPack {
   title: string;
   style: FilmTone;
+  colorGradePreset?: ColorGradePreset;
   settingNote: string;
   preservedVoiceOverScript: string;
   characterReferenceGuidance: string;

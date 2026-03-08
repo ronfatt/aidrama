@@ -7,6 +7,7 @@ const generateImageSchema = z.object({
   useReferenceImage: z.boolean(),
   referenceTag: z.string().optional().or(z.literal("")),
   style: z.string().min(1),
+  colorGradePreset: z.string().min(1).max(80).optional(),
   lightingColor: z.string().min(1).max(300).optional(),
   projectColorGradeLock: z.string().min(1).max(300).optional(),
   strictMode: z.boolean().optional(),
@@ -45,6 +46,7 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
   }
 
   const colorNotes = [
+    input.colorGradePreset ? `Color grade preset: ${input.colorGradePreset}` : "",
     input.projectColorGradeLock ? `Project color grade lock: ${input.projectColorGradeLock}` : "",
     input.lightingColor ? `Scene lighting/color target: ${input.lightingColor}` : "",
   ]

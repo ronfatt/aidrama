@@ -16,6 +16,13 @@ const styleSchema = z.union([
   z.literal("emotional realism"),
 ]);
 
+const colorGradePresetSchema = z.union([
+  z.literal("warm-neutral documentary"),
+  z.literal("neutral-cool restraint"),
+  z.literal("muted realism"),
+  z.literal("soft warm intimacy"),
+]);
+
 const phaseSchema = z.union([
   z.literal("Opening - Awareness"),
   z.literal("Understanding - Reframing"),
@@ -48,6 +55,7 @@ export const generateRequestSchema = z.object({
       .or(z.literal("")),
     sceneCount: sceneCountSchema,
     style: styleSchema,
+    colorGradePreset: colorGradePresetSchema.optional(),
     strictMode: z.boolean().optional(),
   }),
   beatSheet: z.array(beatItemSchema).min(20).max(30).optional(),

@@ -9,6 +9,11 @@ interface PromptOptions {
   lockedVoiceOver?: string;
   sceneCount: 20 | 22 | 25 | 28 | 30;
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
+  colorGradePreset?:
+    | "warm-neutral documentary"
+    | "neutral-cool restraint"
+    | "muted realism"
+    | "soft warm intimacy";
   strictMode: boolean;
   sceneBeats?: string[];
   beatSheet?: Array<{
@@ -35,6 +40,7 @@ ${outputSchema}
 Production settings:
 - title: ${options.title?.trim() || "(not provided)"}
 - style: ${options.style}
+- color grade preset: ${options.colorGradePreset || "(not provided)"}
 - scene count: ${options.sceneCount}
 - main reference tag: ${options.referenceTag?.trim() || "(not provided)"}
 - locked voice over provided: ${options.lockedVoiceOver?.trim() ? "YES" : "NO"}

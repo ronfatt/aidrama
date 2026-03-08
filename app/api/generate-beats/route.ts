@@ -56,6 +56,7 @@ function buildBeatPrompt({
   sourceText,
   sceneCount,
   style,
+  colorGradePreset,
   lockedVoiceOver,
   strictMode,
   beatLines,
@@ -63,6 +64,7 @@ function buildBeatPrompt({
   sourceText: string;
   sceneCount: number;
   style: string;
+  colorGradePreset?: string;
   lockedVoiceOver: string;
   strictMode: boolean;
   beatLines?: string[];
@@ -94,6 +96,7 @@ Hard rules:
 - Beat count must be exactly ${sceneCount}.
 - strict mode is ${strictMode ? "ON" : "OFF"}.
 - style is ${style}.
+- color grade preset is ${colorGradePreset || "not provided"}.
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 
@@ -135,6 +138,7 @@ export async function POST(request: Request) {
             sourceText: parsedBody.settings.originalScript,
             sceneCount,
             style: parsedBody.settings.style,
+            colorGradePreset: parsedBody.settings.colorGradePreset,
             lockedVoiceOver,
             strictMode,
             beatLines,

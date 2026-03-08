@@ -46,6 +46,7 @@ export async function POST(request: Request) {
               lockedVoiceOver,
               sceneCount,
               style: parsedBody.settings.style,
+              colorGradePreset: parsedBody.settings.colorGradePreset,
               strictMode,
               sceneBeats,
               beatSheet: providedBeatSheet,
@@ -135,6 +136,11 @@ export async function POST(request: Request) {
         }),
       };
     }
+
+    filmPack = {
+      ...filmPack,
+      colorGradePreset: parsedBody.settings.colorGradePreset,
+    };
 
     return NextResponse.json({ filmPack });
   } catch (error) {
