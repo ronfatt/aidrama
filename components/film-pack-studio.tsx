@@ -38,6 +38,20 @@ interface SavedFilmPackRecord {
 
 const STORAGE_KEY = "film-pack-studio:saved-packs";
 
+function getStyleColorGradeLock(style: FilmTone): string {
+  switch (style) {
+    case "psychological drama":
+      return "restrained neutral-cool grade, soft cyan shadows, muted warm practicals, no orange-teal swing";
+    case "NGO educational":
+      return "balanced neutral grade, gentle warm practicals, soft natural contrast, no strong temperature swing";
+    case "emotional realism":
+      return "soft warm-neutral grade, natural skin tones, muted shadows, no heavy cool cast";
+    case "cinematic documentary":
+    default:
+      return "grounded warm-neutral documentary grade, controlled cool dusk only in backgrounds, consistent practical warmth, no harsh cyan shift";
+  }
+}
+
 function downloadFile(content: string, fileName: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -110,6 +124,13 @@ export function FilmPackStudio() {
     () => (result ? result.scenes.filter((scene) => scene.useReferenceImage).length : 0),
     [result]
   );
+  const projectColorGradeLock = useMemo(() => {
+    const leadSceneLighting = result?.scenes?.[0]?.lightingColor?.trim();
+    if (leadSceneLighting) {
+      return `${getStyleColorGradeLock(style)}; anchor to lead scene lighting: ${leadSceneLighting}`;
+    }
+    return getStyleColorGradeLock(style);
+  }, [result, style]);
 
   useEffect(() => {
     try {
@@ -255,6 +276,8 @@ export function FilmPackStudio() {
           useReferenceImage: scene.useReferenceImage,
           referenceTag,
           style,
+          lightingColor: scene.lightingColor,
+          projectColorGradeLock,
           strictMode,
           continuitySeed: `${result.title}|${referenceTag || "NO_REF"}`,
           masterReferenceImages: effectiveMasterReferences,
@@ -318,6 +341,7 @@ export function FilmPackStudio() {
           settingNote: result.settingNote,
           characterReferenceGuidance: result.characterReferenceGuidance,
           referenceTag,
+          projectColorGradeLock,
           strictMode,
           scene,
         }),

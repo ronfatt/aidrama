@@ -10,6 +10,7 @@ const generateCompanionShotSchema = z.object({
   settingNote: z.string().min(1),
   characterReferenceGuidance: z.string().min(1),
   referenceTag: z.string().optional().or(z.literal("")),
+  projectColorGradeLock: z.string().optional().or(z.literal("")),
   strictMode: z.boolean().optional(),
   scene: z.object({
     sceneNumber: z.number().int().positive(),
@@ -92,6 +93,8 @@ Rules:
 - For transition: focus on bridging motion, space, mood, or time shift.
 - Importance should usually be B or C.
 - Keep prompts concise and cinematic.
+- Keep the same overall color grade family as the base scene and project lock.
+- Do not shift from warm-neutral grading to cool-cyan grading, or the reverse, unless the base scene already does that.
 
 Project:
 - title: ${input.title}
@@ -99,6 +102,7 @@ Project:
 - setting: ${input.settingNote}
 - character guidance: ${input.characterReferenceGuidance}
 - reference tag: ${input.referenceTag || "(none)"}
+- project color grade lock: ${input.projectColorGradeLock || input.scene.lightingColor}
 
 Base scene:
 - scene number: ${input.scene.sceneNumber}

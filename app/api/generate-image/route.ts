@@ -7,6 +7,8 @@ const generateImageSchema = z.object({
   useReferenceImage: z.boolean(),
   referenceTag: z.string().optional().or(z.literal("")),
   style: z.string().min(1),
+  lightingColor: z.string().min(1).max(300).optional(),
+  projectColorGradeLock: z.string().min(1).max(300).optional(),
   strictMode: z.boolean().optional(),
   continuitySeed: z.string().min(1).max(200).optional(),
   masterReferenceImages: z.array(z.string().min(10)).max(8).optional(),
@@ -21,6 +23,8 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     "cinematic photorealistic 35mm still",
     "natural but moody lighting",
     "no western suburban architecture",
+    "keep color grading consistent with the same project palette",
+    "do not swing between cool cyan grading and warm amber grading across scenes unless explicitly required",
   ];
 
   if (input.useReferenceImage && input.referenceTag?.trim()) {
@@ -40,7 +44,16 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     locks.push("must match identity in provided master reference images");
   }
 
-  return `${input.imagePrompt}. Style: ${input.style}. Locks: ${locks.join(", ")}. Output a single best frame.`;
+  const colorNotes = [
+    input.projectColorGradeLock ? `Project color grade lock: ${input.projectColorGradeLock}` : "",
+    input.lightingColor ? `Scene lighting/color target: ${input.lightingColor}` : "",
+  ]
+    .filter(Boolean)
+    .join(". ");
+
+  return `${input.imagePrompt}. Style: ${input.style}. ${colorNotes ? `${colorNotes}. ` : ""}Locks: ${locks.join(
+    ", "
+  )}. Output a single best frame.`;
 }
 
 function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
