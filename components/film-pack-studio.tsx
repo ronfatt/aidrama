@@ -12,10 +12,14 @@ import {
   SCENE_COUNTS,
 } from "@/lib/constants";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
-import type { FilmPack, FilmTone, SceneCountInput } from "@/types/film-pack";
+import type { CompanionShot, FilmPack, FilmTone, SceneCountInput, SceneItem } from "@/types/film-pack";
 
 interface GenerateResponse {
   filmPack: FilmPack;
+}
+
+interface GenerateCompanionShotResponse {
+  shot: CompanionShot;
 }
 
 interface SavedFilmPackRecord {
@@ -84,8 +88,12 @@ export function FilmPackStudio() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FilmPack | null>(null);
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
+  const [companionImages, setCompanionImages] = useState<Record<string, string>>({});
   const [sceneImageLoading, setSceneImageLoading] = useState<Record<number, boolean>>({});
+  const [companionImageLoading, setCompanionImageLoading] = useState<Record<string, boolean>>({});
   const [sceneImageErrors, setSceneImageErrors] = useState<Record<number, string>>({});
+  const [companionImageErrors, setCompanionImageErrors] = useState<Record<string, string>>({});
+  const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
 
   const fullCopy = useMemo(() => (result ? fullOutputCopy(result) : ""), [result]);
@@ -130,8 +138,12 @@ export function FilmPackStudio() {
     if (target) {
       setResult(target.filmPack);
       setSceneImages({});
+      setCompanionImages({});
       setSceneImageLoading({});
+      setCompanionImageLoading({});
       setSceneImageErrors({});
+      setCompanionImageErrors({});
+      setCompanionLoading({});
     }
   };
 
@@ -154,11 +166,18 @@ export function FilmPackStudio() {
     [masterReferenceUrls]
   );
 
-  const generateSceneImage = async (scene: FilmPack["scenes"][number]) => {
+  const generateSceneImage = async (scene: SceneItem | CompanionShot) => {
     if (!result) return;
+    const isCompanion = "id" in scene;
+    const loadingKey = isCompanion ? scene.id : scene.sceneNumber;
 
-    setSceneImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: true }));
-    setSceneImageErrors((prev) => ({ ...prev, [scene.sceneNumber]: "" }));
+    if (isCompanion) {
+      setCompanionImageLoading((prev) => ({ ...prev, [loadingKey]: true }));
+      setCompanionImageErrors((prev) => ({ ...prev, [loadingKey]: "" }));
+    } else {
+      setSceneImageLoading((prev) => ({ ...prev, [loadingKey]: true }));
+      setSceneImageErrors((prev) => ({ ...prev, [loadingKey]: "" }));
+    }
 
     try {
       const response = await fetch("/api/generate-image", {
@@ -166,7 +185,7 @@ export function FilmPackStudio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imagePrompt: scene.imagePrompt,
-          sceneNumber: scene.sceneNumber,
+          sceneNumber: isCompanion ? scene.parentSceneNumber : scene.sceneNumber,
           useReferenceImage: scene.useReferenceImage,
           referenceTag,
           style,
@@ -192,12 +211,72 @@ export function FilmPackStudio() {
         throw new Error(payload.error || "Image generation failed.");
       }
 
-      setSceneImages((prev) => ({ ...prev, [scene.sceneNumber]: payload.imageDataUrl as string }));
+      if (isCompanion) {
+        setCompanionImages((prev) => ({ ...prev, [loadingKey]: payload.imageDataUrl as string }));
+      } else {
+        setSceneImages((prev) => ({ ...prev, [loadingKey]: payload.imageDataUrl as string }));
+      }
     } catch (generationError) {
       const message = generationError instanceof Error ? generationError.message : "Image generation failed.";
-      setSceneImageErrors((prev) => ({ ...prev, [scene.sceneNumber]: message }));
+      if (isCompanion) {
+        setCompanionImageErrors((prev) => ({ ...prev, [loadingKey]: message }));
+      } else {
+        setSceneImageErrors((prev) => ({ ...prev, [loadingKey]: message }));
+      }
     } finally {
-      setSceneImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+      if (isCompanion) {
+        setCompanionImageLoading((prev) => ({ ...prev, [loadingKey]: false }));
+      } else {
+        setSceneImageLoading((prev) => ({ ...prev, [loadingKey]: false }));
+      }
+    }
+  };
+
+  const generateCompanionShot = async (scene: SceneItem, kind: "broll" | "transition") => {
+    if (!result) return;
+
+    setCompanionLoading((prev) => ({ ...prev, [scene.sceneNumber]: kind }));
+    try {
+      const response = await fetch("/api/generate-companion-shot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind,
+          title: result.title,
+          style: result.style,
+          settingNote: result.settingNote,
+          characterReferenceGuidance: result.characterReferenceGuidance,
+          referenceTag,
+          strictMode,
+          scene,
+        }),
+      });
+
+      const payload = (await response.json()) as GenerateCompanionShotResponse & { error?: string };
+      if (!response.ok || !payload.shot) {
+        throw new Error(payload.error || "Failed to generate companion shot.");
+      }
+
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          scenes: prev.scenes.map((item) =>
+            item.sceneNumber === scene.sceneNumber
+              ? {
+                  ...item,
+                  companionShots: [...(item.companionShots || []), payload.shot],
+                }
+              : item
+          ),
+        };
+      });
+    } catch (generationError) {
+      const message =
+        generationError instanceof Error ? generationError.message : "Failed to generate companion shot.";
+      setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-${kind}`]: message }));
+    } finally {
+      setCompanionLoading((prev) => ({ ...prev, [scene.sceneNumber]: null }));
     }
   };
 
@@ -232,8 +311,12 @@ export function FilmPackStudio() {
       const payload = (await response.json()) as GenerateResponse;
       setResult(payload.filmPack);
       setSceneImages({});
+      setCompanionImages({});
       setSceneImageLoading({});
+      setCompanionImageLoading({});
       setSceneImageErrors({});
+      setCompanionImageErrors({});
+      setCompanionLoading({});
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Generation failed.";
       setError(message);
@@ -475,7 +558,16 @@ export function FilmPackStudio() {
                 generatedImageUrl={sceneImages[scene.sceneNumber]}
                 generatingImage={sceneImageLoading[scene.sceneNumber]}
                 imageError={sceneImageErrors[scene.sceneNumber]}
+                companionImageUrls={companionImages}
+                companionImageLoading={companionImageLoading}
+                companionImageErrors={companionImageErrors}
+                generatingCompanionKind={companionLoading[scene.sceneNumber] || null}
+                companionActionError={
+                  companionImageErrors[`scene-${scene.sceneNumber}-broll`] ||
+                  companionImageErrors[`scene-${scene.sceneNumber}-transition`]
+                }
                 onGenerateImage={generateSceneImage}
+                onGenerateCompanion={generateCompanionShot}
               />
             ))}
           </div>

@@ -1,5 +1,6 @@
 export type SceneCount = 20 | 22 | 25 | 28 | 30;
 export type SceneCountInput = SceneCount | "auto";
+export type CompanionShotKind = "broll" | "transition";
 
 export type FilmTone =
   | "cinematic documentary"
@@ -35,6 +36,24 @@ export interface UserSettings {
 
 export interface SceneItem {
   sceneNumber: number;
+  phase: ScenePhase;
+  voLine: string;
+  shotType: SceneType;
+  scenePurpose: string;
+  importance: SceneImportance;
+  useReferenceImage: boolean;
+  imagePrompt: string;
+  videoPrompt: string;
+  camera: string;
+  lightingColor: string;
+  companionShots?: CompanionShot[];
+}
+
+export interface CompanionShot {
+  id: string;
+  parentSceneNumber: number;
+  label: string;
+  kind: CompanionShotKind;
   phase: ScenePhase;
   voLine: string;
   shotType: SceneType;

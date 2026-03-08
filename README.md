@@ -41,6 +41,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
   - Scene video prompt
 - Optional one-click scene image generation via Gemini API
 - Character master reference workflow (upload master refs / paste master ref URLs for stronger identity consistency)
+- Per-scene companion shot generation (`Generate B-roll` / `Generate Transition`) without replacing the main shot
 - Exports:
   - Download `.txt`
   - Download `.md`
