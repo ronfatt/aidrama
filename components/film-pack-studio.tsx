@@ -484,7 +484,7 @@ export function FilmPackStudio() {
               value={referenceTag}
               onChange={(event) => setReferenceTag(event.target.value)}
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
-              placeholder="[DARREN_REF]"
+              placeholder="Leave blank if this story has no main character reference"
             />
           </label>
         </div>
@@ -512,7 +512,7 @@ export function FilmPackStudio() {
         <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
           <p className="text-sm font-medium text-zinc-100">Character Master Reference (for consistency)</p>
           <p className="text-xs text-zinc-400">
-            Choose one official master ref. All per-scene image generation will bind to that ref by default.
+            Optional. Leave this empty for stories with no main character reference. If used, choose one official master ref and scene image generation will bind to it by default.
           </p>
           <label className="grid gap-2">
             <span className="text-xs text-zinc-300">Upload 1-4 master images (best for Gemini)</span>

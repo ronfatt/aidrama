@@ -20,6 +20,7 @@ export async function POST(request: Request) {
 
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const lockedVoiceOver = parsedBody.settings.lockedVoiceOver?.trim() || "";
+    const referenceTag = parsedBody.settings.referenceTag?.trim() || "";
     const sceneCount = resolveSceneCount(parsedBody.settings.sceneCount, {
       lockedVoiceOver,
       originalScript: parsedBody.settings.originalScript,
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
             role: "user",
             content: buildPrompt(parsedBody.settings.originalScript, {
               title: parsedBody.settings.title,
-              referenceTag: parsedBody.settings.referenceTag,
+              referenceTag,
               lockedVoiceOver,
               sceneCount,
               style: parsedBody.settings.style,
@@ -134,6 +135,17 @@ export async function POST(request: Request) {
                 : `${beat.role === "transition" ? "Transition coverage" : "B-roll coverage"}: ${beat.purpose}`,
           };
         }),
+      };
+    }
+
+    if (!referenceTag) {
+      filmPack = {
+        ...filmPack,
+        characterReferenceGuidance: "No character reference workflow is active for this film pack.",
+        scenes: filmPack.scenes.map((scene) => ({
+          ...scene,
+          useReferenceImage: false,
+        })),
       };
     }
 

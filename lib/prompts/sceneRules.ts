@@ -97,6 +97,9 @@ Avoid excessive instructions.
 If the main character appears in a scene,
 assume a reference image will be used.
 
+Only apply that rule when the user actually provided a reference tag or official master reference.
+If no reference input was provided, set reference image = no.
+
 Do not describe detailed facial features again.
 
 Focus on:

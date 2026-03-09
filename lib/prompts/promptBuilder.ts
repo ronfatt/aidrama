@@ -60,7 +60,8 @@ Additional hard constraints:
   Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
 - Every scene must remain in Singapore.
 - Only one clearly visible character per scene.
-- If main character appears, useReferenceImage=true.
+- Only use useReferenceImage=true when the user explicitly provided a reference tag.
+- If no reference tag is provided, set useReferenceImage=false for all scenes and write characterReferenceGuidance to say no reference workflow is active.
 - Keep prompts concise and practical for Kling -> select frame -> image-to-video workflow.
 
 ${options.extraInstruction ? `Correction instruction:\n${options.extraInstruction}\n` : ""}

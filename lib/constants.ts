@@ -22,7 +22,7 @@ export const RULE_CHECKLIST = [
   "Only one clearly visible character per scene.",
   "If interaction is needed, use POV / over-shoulder / back view / silhouette.",
   "Avoid two clear faces in one scene.",
-  "Mark scenes with main character as reference image = yes.",
+  "Only use reference-image workflow if you explicitly provide a character reference tag or master ref.",
   "All scenes in Singapore contexts (HDB, MRT, hawker, void deck, parks).",
   "No western suburban houses or American interiors.",
   "Characters should read as Singapore residents (Chinese / Malay / Indian Singaporean).",
@@ -37,4 +37,4 @@ At first, responses are slow. Then a Malay mother adds rice. A Chinese student a
 
 Darren realizes the story is not about one hero. It is about small actions becoming a shared rhythm. In a city that moves fast, community still grows when people decide to show up.`;
 
-export const DEFAULT_REFERENCE_TAG = "[DARREN_REF]";
+export const DEFAULT_REFERENCE_TAG = "";
