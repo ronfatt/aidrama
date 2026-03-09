@@ -22,6 +22,7 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     "single clearly visible character",
     "Singapore location realism",
     "cinematic photorealistic 35mm still",
+    "16:9 widescreen frame only",
     "natural but moody lighting",
     "no western suburban architecture",
     "keep color grading consistent with the same project palette",
@@ -55,7 +56,7 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
 
   return `${input.imagePrompt}. Style: ${input.style}. ${colorNotes ? `${colorNotes}. ` : ""}Locks: ${locks.join(
     ", "
-  )}. Output a single best frame.`;
+  )}. Output a single best frame in 16:9 widescreen.`;
 }
 
 function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
@@ -244,6 +245,9 @@ async function generateWithGemini(
           contents: [{ role: "user", parts: [{ text: prompt }, ...referenceParts] }],
           generationConfig: {
             responseModalities: ["TEXT", "IMAGE"],
+            imageConfig: {
+              aspectRatio: "16:9",
+            },
           },
         }),
       }
@@ -303,6 +307,7 @@ async function generateWithKling(
       negative_prompt: "",
       image_list: referenceUrls.slice(0, 4).map((image) => ({ image })),
       n: 1,
+      aspect_ratio: "16:9",
       external_task_id: `scene_${payload.sceneNumber}_${seed}`,
       callback_url: "",
     }),

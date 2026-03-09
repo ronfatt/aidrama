@@ -69,6 +69,7 @@ Story phase rules:
 Image prompt guidelines:
 
 Focus on a single cinematic frame.
+Default all image frames to 16:9 widescreen composition.
 
 Describe:
 
@@ -83,6 +84,7 @@ Avoid over describing camera parameters.
 Video prompt guidelines:
 
 Focus on subtle motion.
+Assume the source image frame is 16:9 widescreen.
 
 Include:
 
