@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getModelName, getOpenAIClient } from "@/lib/openai";
+import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
 import type { CompanionShotKind, ScenePhase, SceneType } from "@/types/film-pack";
 
 export const runtime = "nodejs";
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     const client = getOpenAIClient();
     const response = await client.responses.create({
-      model: getModelName(),
+      model: getCompanionModelName(),
       temperature: parsed.strictMode === false ? 0.55 : 0.25,
       input: [{ role: "user", content: buildPrompt(parsed) }],
       text: {

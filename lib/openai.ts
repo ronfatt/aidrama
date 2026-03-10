@@ -1,7 +1,5 @@
 import OpenAI from "openai";
 
-const model = process.env.OPENAI_MODEL || "gpt-5.1";
-
 let client: OpenAI | null = null;
 
 export function getOpenAIClient(): OpenAI {
@@ -17,5 +15,17 @@ export function getOpenAIClient(): OpenAI {
 }
 
 export function getModelName(): string {
-  return model;
+  return process.env.OPENAI_MODEL || "gpt-5.1-mini";
+}
+
+export function getBeatModelName(): string {
+  return process.env.OPENAI_BEAT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+}
+
+export function getFilmPackModelName(): string {
+  return process.env.OPENAI_FILM_PACK_MODEL || process.env.OPENAI_MODEL || "gpt-5.1-mini";
+}
+
+export function getCompanionModelName(): string {
+  return process.env.OPENAI_COMPANION_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 }

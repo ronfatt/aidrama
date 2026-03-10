@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
 import { normalizeBeatSheet, phaseByPosition } from "@/lib/beat-sheet";
-import { getModelName, getOpenAIClient } from "@/lib/openai";
+import { getBeatModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
 
     const client = getOpenAIClient();
     const response = await client.responses.create({
-      model: getModelName(),
+      model: getBeatModelName(),
       temperature: strictMode ? 0.15 : 0.4,
       input: [
         {

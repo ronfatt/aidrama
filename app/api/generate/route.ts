@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { getModelName, getOpenAIClient } from "@/lib/openai";
+import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { normalizeBeatSheet } from "@/lib/beat-sheet";
 import { enforceFilmPackGuardrails } from "@/lib/output-guardrails";
 import { buildPrompt } from "@/lib/prompts/promptBuilder";
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     const generateOnce = async (extraInstruction?: string) => {
       const response = await client.responses.create({
-        model: getModelName(),
+        model: getFilmPackModelName(),
         temperature: strictMode ? 0.18 : 0.55,
         input: [
           {
