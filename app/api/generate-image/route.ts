@@ -22,6 +22,41 @@ const generateImageSchema = z.object({
 type Provider = "gemini" | "kling";
 type KlingTaskStatus = "submitted" | "processing" | "succeeded" | "failed";
 
+async function fetchJsonWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    let data: unknown = {};
+
+    if (text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
+    }
+
+    return { ok: response.ok, status: response.status, data };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Upstream request timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
   const locks = [
     "single clearly visible character",
@@ -190,6 +225,19 @@ function hashToSeed(input: string): number {
   return Math.abs(hash >>> 0) % 2147483647;
 }
 
+function extractNestedErrorMessage(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const candidate = data as Record<string, unknown>;
+  const error = candidate.error;
+  if (error && typeof error === "object") {
+    const message = (error as Record<string, unknown>).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  const topMessage = candidate.message;
+  if (typeof topMessage === "string" && topMessage.trim()) return topMessage;
+  return null;
+}
+
 function extractKlingTaskId(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const root = payload as Record<string, unknown>;
@@ -231,6 +279,7 @@ async function generateWithGemini(
   const apiKey = process.env.GEMINI_API_KEY;
   const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
   const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image";
+  const timeoutMs = Number(process.env.GEMINI_IMAGE_TIMEOUT_MS || 20000);
 
   if (!apiKey) {
     return { ok: false, error: "Missing GEMINI_API_KEY environment variable." };
@@ -245,7 +294,7 @@ async function generateWithGemini(
       .filter((item): item is { mimeType: string; data: string } => Boolean(item))
       .map((item) => ({ inlineData: { mimeType: item.mimeType, data: item.data } }));
 
-    const response = await fetch(
+    const response = await fetchJsonWithTimeout(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
@@ -259,19 +308,19 @@ async function generateWithGemini(
             },
           },
         }),
-      }
+      },
+      timeoutMs
     );
 
-    const data = await response.json();
     if (!response.ok) {
       const message =
-        (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
+        (response.data && typeof response.data === "object" && (response.data as { error?: { message?: string } }).error?.message) ||
         "Gemini image generation failed.";
       lastError = `${lastError} [${model}] ${message}`;
       continue;
     }
 
-    const inline = findInlineImageData(data);
+    const inline = findInlineImageData(response.data);
     if (inline) {
       return { ok: true, imageSrc: `data:${inline.mimeType};base64,${inline.data}`, modelUsed: model };
     }
@@ -295,6 +344,7 @@ async function createKlingTask(
   const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
   const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
   const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
+  const timeoutMs = Number(process.env.KLING_HTTP_TIMEOUT_MS || 15000);
   if (!apiKey) {
     return { ok: false, error: "Missing KLING_API_KEY environment variable." };
   }
@@ -305,29 +355,31 @@ async function createKlingTask(
   const seed = hashToSeed(`${payload.continuitySeed || "seed"}|${payload.sceneNumber}`);
   const referenceUrls = (payload.masterReferenceImages || []).filter((item) => /^https?:\/\//i.test(item));
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      [authHeader]: `${authPrefix} ${apiKey}`,
+  const response = await fetchJsonWithTimeout(
+    endpoint,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [authHeader]: `${authPrefix} ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model_name: model,
+        prompt,
+        negative_prompt: "",
+        image_list: referenceUrls.slice(0, 4).map((image) => ({ image })),
+        n: 1,
+        aspect_ratio: "16:9",
+        external_task_id: `scene_${payload.sceneNumber}_${seed}`,
+        callback_url: "",
+      }),
     },
-    body: JSON.stringify({
-      model_name: model,
-      prompt,
-      negative_prompt: "",
-      image_list: referenceUrls.slice(0, 4).map((image) => ({ image })),
-      n: 1,
-      aspect_ratio: "16:9",
-      external_task_id: `scene_${payload.sceneNumber}_${seed}`,
-      callback_url: "",
-    }),
-  });
+    timeoutMs
+  );
 
-  const data = await response.json().catch(() => ({}));
+  const data = response.data;
   if (!response.ok) {
-    const message =
-      (data && typeof data === "object" && (data.error as { message?: string })?.message) ||
-      "Kling image generation failed.";
+    const message = extractNestedErrorMessage(data) || "Kling image generation failed.";
     return { ok: false, error: message };
   }
 
@@ -360,25 +412,28 @@ async function queryKlingTask(
   const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
   const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
   const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
+  const timeoutMs = Number(process.env.KLING_HTTP_TIMEOUT_MS || 15000);
 
   if (!apiKey) {
     return { ok: false, error: "Missing KLING_API_KEY environment variable." };
   }
 
   const queryUrl = buildKlingQueryUrl(taskId);
-  const taskResponse = await fetch(queryUrl, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      [authHeader]: `${authPrefix} ${apiKey}`,
+  const taskResponse = await fetchJsonWithTimeout(
+    queryUrl,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        [authHeader]: `${authPrefix} ${apiKey}`,
+      },
     },
-  });
+    timeoutMs
+  );
 
-  const taskData = await taskResponse.json().catch(() => ({}));
+  const taskData = taskResponse.data;
   if (!taskResponse.ok) {
-    const message =
-      (taskData && typeof taskData === "object" && (taskData.error as { message?: string })?.message) ||
-      "Kling task query failed.";
+    const message = extractNestedErrorMessage(taskData) || "Kling task query failed.";
     return { ok: false, error: message };
   }
 

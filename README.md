@@ -99,6 +99,8 @@ KLING_POLL_INTERVAL_MS=1500
 `OPENAI_BEAT_MODEL` is optional. Default: `gpt-4.1-mini`.
 `OPENAI_FILM_PACK_MODEL` is optional. Default: `gpt-4.1-mini`.
 `OPENAI_COMPANION_MODEL` is optional. Default: `gpt-4.1-mini`.
+`GEMINI_IMAGE_TIMEOUT_MS` is optional. Default: `20000`.
+`KLING_HTTP_TIMEOUT_MS` is optional. Default: `15000`.
 `GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-3-pro-image-preview`.
 `GEMINI_IMAGE_FALLBACK_MODEL` is optional. If omitted, the app falls back to `gemini-2.5-flash-image` when primary model fails.
 `IMAGE_PROVIDER` controls image backend (`gemini` or `kling`).
