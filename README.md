@@ -44,6 +44,7 @@ Film Pack Studio is a production-ready Next.js web app for rapid AI film pre-pro
   - Scene image prompt
   - Scene video prompt
 - Optional one-click scene image generation via Gemini API
+- Kling image generation uses async task polling to avoid long-running Vercel function timeouts
 - Character master reference workflow (upload master refs / paste master ref URLs for stronger identity consistency)
 - Official master reference selection (choose one canonical character image and bind future scene image generation to it)
 - Per-scene companion shot generation (`Generate B-roll` / `Generate Transition`) without replacing the main shot

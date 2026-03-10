@@ -37,6 +37,13 @@ interface GenerateCompanionShotPayload {
   error?: string;
 }
 
+interface GenerateImageResponse {
+  imageDataUrl?: string;
+  error?: string;
+  taskId?: string;
+  status?: "submitted" | "processing" | "succeeded" | "failed";
+}
+
 interface SavedFilmPackRecord {
   id: string;
   title: string;
@@ -104,6 +111,10 @@ function resizeImageFile(file: File, maxWidth = 900, quality = 0.82): Promise<st
     reader.onerror = () => reject(new Error("Failed to read image file."));
     reader.readAsDataURL(file);
   });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 export function FilmPackStudio() {
@@ -308,9 +319,9 @@ export function FilmPackStudio() {
       });
 
       const raw = await response.text();
-      let payload: { imageDataUrl?: string; error?: string } = {};
+      let payload: GenerateImageResponse = {};
       try {
-        payload = JSON.parse(raw) as { imageDataUrl?: string; error?: string };
+        payload = JSON.parse(raw) as GenerateImageResponse;
       } catch {
         payload = {
           error: raw.includes("Request Entity Too Large")
@@ -319,7 +330,42 @@ export function FilmPackStudio() {
         };
       }
 
-      if (!response.ok || !payload.imageDataUrl) {
+      if (!response.ok) {
+        throw new Error(payload.error || "Image generation failed.");
+      }
+
+      if (payload.taskId) {
+        let resolvedImage: string | null = null;
+        for (let attempt = 0; attempt < 24; attempt += 1) {
+          await sleep(2000);
+
+          const statusResponse = await fetch(`/api/generate-image?taskId=${encodeURIComponent(payload.taskId)}`, {
+            method: "GET",
+          });
+          const statusPayload = (await statusResponse.json().catch(() => null)) as GenerateImageResponse | null;
+
+          if (!statusResponse.ok) {
+            throw new Error(statusPayload?.error || "Image generation status check failed.");
+          }
+
+          if (statusPayload?.imageDataUrl) {
+            resolvedImage = statusPayload.imageDataUrl;
+            break;
+          }
+
+          if (statusPayload?.status === "failed") {
+            throw new Error(statusPayload.error || "Image generation failed.");
+          }
+        }
+
+        if (!resolvedImage) {
+          throw new Error("Image generation is taking too long. Please retry.");
+        }
+
+        payload.imageDataUrl = resolvedImage;
+      }
+
+      if (!payload.imageDataUrl) {
         throw new Error(payload.error || "Image generation failed.");
       }
 

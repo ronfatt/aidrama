@@ -20,6 +20,7 @@ const generateImageSchema = z.object({
 });
 
 type Provider = "gemini" | "kling";
+type KlingTaskStatus = "submitted" | "processing" | "succeeded" | "failed";
 
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
   const locks = [
@@ -189,10 +190,6 @@ function hashToSeed(input: string): number {
   return Math.abs(hash >>> 0) % 2147483647;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function extractKlingTaskId(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const root = payload as Record<string, unknown>;
@@ -207,6 +204,14 @@ function extractKlingTaskStatus(payload: unknown): string {
   const data = (root.data as Record<string, unknown> | undefined) || root;
   const status = data.task_status || data.taskStatus || root.status;
   return typeof status === "string" ? status.toLowerCase() : "";
+}
+
+function extractKlingTaskError(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const data = (root.data as Record<string, unknown> | undefined) || root;
+  const message = data.task_status_msg || root.message;
+  return typeof message === "string" && message.trim() ? message : null;
 }
 
 function buildKlingQueryUrl(taskId: string): string {
@@ -277,18 +282,19 @@ async function generateWithGemini(
   return { ok: false, error: lastError };
 }
 
-async function generateWithKling(
+async function createKlingTask(
   prompt: string,
   payload: z.infer<typeof generateImageSchema>
-): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; imageSrc: string; modelUsed: string }
+  | { ok: true; taskId: string; modelUsed: string; status: KlingTaskStatus }
+  | { ok: false; error: string }
+> {
   const apiKey = process.env.KLING_API_KEY;
   const endpoint = process.env.KLING_IMAGE_ENDPOINT || "https://api-singapore.klingai.com/v1/images/omni-image";
   const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
   const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
   const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
-  const pollAttempts = Number(process.env.KLING_POLL_MAX_ATTEMPTS || 12);
-  const pollIntervalMs = Number(process.env.KLING_POLL_INTERVAL_MS || 1500);
-
   if (!apiKey) {
     return { ok: false, error: "Missing KLING_API_KEY environment variable." };
   }
@@ -340,50 +346,68 @@ async function generateWithKling(
     return { ok: false, error: "Kling create task succeeded but no task_id returned." };
   }
 
-  const queryUrl = buildKlingQueryUrl(taskId);
+  return { ok: true, taskId, modelUsed: model, status: "submitted" };
+}
 
-  for (let attempt = 0; attempt < pollAttempts; attempt += 1) {
-    await sleep(pollIntervalMs);
+async function queryKlingTask(
+  taskId: string
+): Promise<
+  | { ok: true; status: "processing"; modelUsed: string }
+  | { ok: true; status: "succeeded"; imageSrc: string; modelUsed: string }
+  | { ok: false; error: string; status?: "failed" }
+> {
+  const apiKey = process.env.KLING_API_KEY;
+  const authHeader = process.env.KLING_AUTH_HEADER || "Authorization";
+  const authPrefix = process.env.KLING_AUTH_PREFIX || "Bearer";
+  const model = process.env.KLING_IMAGE_MODEL || "kling-v2-1";
 
-    const taskResponse = await fetch(queryUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        [authHeader]: `${authPrefix} ${apiKey}`,
-      },
-    });
-
-    const taskData = await taskResponse.json().catch(() => ({}));
-    if (!taskResponse.ok) {
-      const message =
-        (taskData && typeof taskData === "object" && (taskData.error as { message?: string })?.message) ||
-        "Kling task query failed.";
-      return { ok: false, error: message };
-    }
-
-    const directResultUrl = extractKlingResultUrl(taskData);
-    if (directResultUrl) {
-      return { ok: true, imageSrc: directResultUrl, modelUsed: model };
-    }
-
-    const polledBase64 = findBase64Image(taskData);
-    if (polledBase64) {
-      return { ok: true, imageSrc: `data:${polledBase64.mimeType};base64,${polledBase64.data}`, modelUsed: model };
-    }
-
-    const polledUrl = findStringImageUrl(taskData);
-    if (polledUrl) {
-      return { ok: true, imageSrc: polledUrl, modelUsed: model };
-    }
-
-    const status = extractKlingTaskStatus(taskData);
-    if (status.includes("fail") || status.includes("error")) {
-      return { ok: false, error: `Kling task failed with status: ${status}` };
-    }
+  if (!apiKey) {
+    return { ok: false, error: "Missing KLING_API_KEY environment variable." };
   }
 
-  return { ok: false, error: "Kling task timeout while waiting for image result." };
+  const queryUrl = buildKlingQueryUrl(taskId);
+  const taskResponse = await fetch(queryUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      [authHeader]: `${authPrefix} ${apiKey}`,
+    },
+  });
 
+  const taskData = await taskResponse.json().catch(() => ({}));
+  if (!taskResponse.ok) {
+    const message =
+      (taskData && typeof taskData === "object" && (taskData.error as { message?: string })?.message) ||
+      "Kling task query failed.";
+    return { ok: false, error: message };
+  }
+
+  const directResultUrl = extractKlingResultUrl(taskData);
+  if (directResultUrl) {
+    return { ok: true, status: "succeeded", imageSrc: directResultUrl, modelUsed: model };
+  }
+
+  const polledBase64 = findBase64Image(taskData);
+  if (polledBase64) {
+    return {
+      ok: true,
+      status: "succeeded",
+      imageSrc: `data:${polledBase64.mimeType};base64,${polledBase64.data}`,
+      modelUsed: model,
+    };
+  }
+
+  const polledUrl = findStringImageUrl(taskData);
+  if (polledUrl) {
+    return { ok: true, status: "succeeded", imageSrc: polledUrl, modelUsed: model };
+  }
+
+  const status = extractKlingTaskStatus(taskData);
+  if (status.includes("fail") || status.includes("error")) {
+    return { ok: false, error: extractKlingTaskError(taskData) || `Kling task failed with status: ${status}`, status: "failed" };
+  }
+
+  return { ok: true, status: "processing", modelUsed: model };
 }
 
 function getProvider(): Provider {
@@ -400,9 +424,17 @@ export async function POST(request: Request) {
     const provider = getProvider();
     const refs = payload.masterReferenceImages || [];
 
-    const primary = provider === "kling" ? await generateWithKling(prompt, payload) : await generateWithGemini(prompt, refs);
+    const primary = provider === "kling" ? await createKlingTask(prompt, payload) : await generateWithGemini(prompt, refs);
 
     if (primary.ok) {
+      if ("taskId" in primary) {
+        return NextResponse.json({
+          provider,
+          modelUsed: primary.modelUsed,
+          taskId: primary.taskId,
+          status: primary.status,
+        });
+      }
       return NextResponse.json({ imageDataUrl: primary.imageSrc, modelUsed: primary.modelUsed, provider });
     }
 
@@ -434,5 +466,38 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: "Unexpected image generation error." }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const taskId = searchParams.get("taskId")?.trim() || "";
+
+    if (!taskId) {
+      return NextResponse.json({ error: "Missing taskId." }, { status: 400 });
+    }
+
+    const result = await queryKlingTask(taskId);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error, status: result.status || "failed" }, { status: 502 });
+    }
+
+    if (result.status === "processing") {
+      return NextResponse.json({ status: "processing", modelUsed: result.modelUsed, provider: "kling" });
+    }
+
+    return NextResponse.json({
+      status: "succeeded",
+      imageDataUrl: result.imageSrc,
+      modelUsed: result.modelUsed,
+      provider: "kling",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ error: "Unexpected image status error." }, { status: 500 });
   }
 }
