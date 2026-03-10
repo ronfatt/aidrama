@@ -294,38 +294,45 @@ async function generateWithGemini(
       .filter((item): item is { mimeType: string; data: string } => Boolean(item))
       .map((item) => ({ inlineData: { mimeType: item.mimeType, data: item.data } }));
 
-    const response = await fetchJsonWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }, ...referenceParts] }],
-          generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
-            imageConfig: {
-              aspectRatio: "16:9",
+    try {
+      const response = await fetchJsonWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }, ...referenceParts] }],
+            generationConfig: {
+              responseModalities: ["TEXT", "IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+              },
             },
-          },
-        }),
-      },
-      timeoutMs
-    );
+          }),
+        },
+        timeoutMs
+      );
 
-    if (!response.ok) {
-      const message =
-        (response.data && typeof response.data === "object" && (response.data as { error?: { message?: string } }).error?.message) ||
-        "Gemini image generation failed.";
+      if (!response.ok) {
+        const message =
+          (response.data &&
+            typeof response.data === "object" &&
+            (response.data as { error?: { message?: string } }).error?.message) ||
+          "Gemini image generation failed.";
+        lastError = `${lastError} [${model}] ${message}`;
+        continue;
+      }
+
+      const inline = findInlineImageData(response.data);
+      if (inline) {
+        return { ok: true, imageSrc: `data:${inline.mimeType};base64,${inline.data}`, modelUsed: model };
+      }
+
+      lastError = `${lastError} [${model}] No image returned by Gemini model ${model}.`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gemini image generation failed.";
       lastError = `${lastError} [${model}] ${message}`;
-      continue;
     }
-
-    const inline = findInlineImageData(response.data);
-    if (inline) {
-      return { ok: true, imageSrc: `data:${inline.mimeType};base64,${inline.data}`, modelUsed: model };
-    }
-
-    return { ok: false, error: `No image returned by Gemini model ${model}.` };
   }
 
   return { ok: false, error: lastError };
