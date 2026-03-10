@@ -221,7 +221,7 @@ async function generateWithGemini(
 ): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
-  const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image-preview";
+  const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image";
 
   if (!apiKey) {
     return { ok: false, error: "Missing GEMINI_API_KEY environment variable." };
