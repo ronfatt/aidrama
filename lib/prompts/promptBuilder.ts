@@ -30,6 +30,36 @@ interface PromptOptions {
 }
 
 export function buildPrompt(script: string, options: PromptOptions) {
+  const hasBeatSheet = Boolean(options.beatSheet?.length);
+  const hasLockedVoiceOver = Boolean(options.lockedVoiceOver?.trim());
+  const beatSheetBlock = options.beatSheet?.length
+    ? `Beat sheet to follow exactly in order:\n${options.beatSheet
+        .map(
+          (beat) =>
+            `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} vo="${beat.voLine}" purpose="${beat.purpose}"`
+        )
+        .join("\n")}\n`
+    : "";
+  const sceneBeatBlock =
+    !hasBeatSheet && options.sceneBeats?.length
+      ? `Scene beat map (must cover all beats in order):\n${options.sceneBeats
+          .map((beat, index) => `${index + 1}. ${beat}`)
+          .join("\n")}\n`
+      : "";
+  const lockedVoiceOverBlock =
+    hasLockedVoiceOver && !hasBeatSheet
+      ? `Locked voice over (must be used exactly):\n${options.lockedVoiceOver!.trim()}\n`
+      : "";
+  const sourceBlock = hasBeatSheet
+    ? `Source handling mode: beat-sheet driven expansion.
+
+Use the provided beat sheet as the primary source of truth for scene order, phase, role, importance, and voLine.
+Do not re-interpret the full story or add missing plot details.
+Expand only from the beat sheet into practical scene prompts.`
+    : `Script to convert:
+
+${script.trim()}`;
+
   return `
 ${systemPrompt}
 
@@ -73,12 +103,10 @@ Additional hard constraints:
 
 ${options.extraInstruction ? `Correction instruction:\n${options.extraInstruction}\n` : ""}
 
-${options.lockedVoiceOver?.trim() ? `Locked voice over (must be used exactly):\n${options.lockedVoiceOver.trim()}\n` : ""}
-${options.sceneBeats?.length ? `Scene beat map (must cover all beats in order):\n${options.sceneBeats.map((beat, index) => `${index + 1}. ${beat}`).join("\n")}\n` : ""}
-${options.beatSheet?.length ? `Beat sheet to follow exactly in order:\n${options.beatSheet.map((beat) => `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} vo="${beat.voLine}" purpose="${beat.purpose}"`).join("\n")}\n` : ""}
+${lockedVoiceOverBlock}
+${sceneBeatBlock}
+${beatSheetBlock}
 
-Script to convert:
-
-${script.trim()}
+${sourceBlock}
 `;
 }
