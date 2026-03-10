@@ -273,7 +273,18 @@ export function FilmPackStudio() {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as GenerateBeatSheetResponse & { error?: string } | null;
+      const raw = await response.text();
+      let payload: (GenerateBeatSheetResponse & { error?: string }) | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateBeatSheetResponse & { error?: string };
+      } catch {
+        payload = {
+          error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
+            ? "Vercel function timeout while generating beat sheet."
+            : raw || "Beat sheet generation failed (non-JSON response).",
+        } as GenerateBeatSheetResponse & { error?: string };
+      }
+
       if (!response.ok || !payload?.beatSheet) {
         throw new Error(payload?.error || "Beat sheet generation failed.");
       }
@@ -483,12 +494,22 @@ export function FilmPackStudio() {
         }),
       });
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const raw = await response.text();
+      let payload: (GenerateResponse & { error?: string }) | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateResponse & { error?: string };
+      } catch {
+        payload = {
+          error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
+            ? "Vercel function timeout while generating film pack."
+            : raw || "Generation failed (non-JSON response).",
+        } as GenerateResponse & { error?: string };
+      }
+
+      if (!response.ok || !payload?.filmPack) {
         throw new Error(payload?.error || "Generation failed.");
       }
 
-      const payload = (await response.json()) as GenerateResponse;
       setResult(payload.filmPack);
       setBeatSheet(payload.filmPack.beatSheet || beatResponse.beatSheet);
       setBeatSceneCount(payload.filmPack.beatSheet?.length || beatResponse.sceneCount);
