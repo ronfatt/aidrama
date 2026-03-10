@@ -12,6 +12,7 @@ import {
   SCENE_COUNTS,
 } from "@/lib/constants";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
+import { normalizeReferenceTag } from "@/lib/reference-tag";
 import type {
   BeatItem,
   ColorGradePreset,
@@ -483,6 +484,7 @@ export function FilmPackStudio() {
             <input
               value={referenceTag}
               onChange={(event) => setReferenceTag(event.target.value)}
+              onBlur={(event) => setReferenceTag(normalizeReferenceTag(event.target.value))}
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
               placeholder="Leave blank if this story has no main character reference"
             />

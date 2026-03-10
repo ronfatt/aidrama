@@ -179,8 +179,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ beatSheet, sceneCount });
   } catch (error) {
     if (error instanceof ZodError) {
+      const referenceTagError = error.issues.find((issue) => issue.path.join(".") === "settings.referenceTag")?.message;
       return NextResponse.json(
-        { error: "Invalid beat sheet request or output format.", details: error.flatten() },
+        {
+          error: referenceTagError || "Invalid beat sheet request or output format.",
+          details: error.flatten(),
+        },
         { status: 400 }
       );
     }

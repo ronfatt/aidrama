@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeReferenceTag } from "@/lib/reference-tag";
 
 const sceneCountSchema = z.union([
   z.literal("auto"),
@@ -48,9 +49,9 @@ export const generateRequestSchema = z.object({
     lockedVoiceOver: z.string().trim().min(20).max(10000).optional().or(z.literal("")),
     referenceTag: z
       .string()
-      .trim()
       .max(50)
-      .regex(/^\[[A-Z0-9_]+\]$/i, "Reference tag must look like [DARREN_REF].")
+      .transform((value) => normalizeReferenceTag(value))
+      .refine((value) => value === "" || /^\[[A-Z0-9_]+\]$/.test(value), "Reference tag format is invalid.")
       .optional()
       .or(z.literal("")),
     sceneCount: sceneCountSchema,
