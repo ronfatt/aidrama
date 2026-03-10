@@ -277,8 +277,8 @@ async function generateWithGemini(
   refs: string[]
 ): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
-  const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
-  const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-2.5-flash-image";
+  const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  const fallbackModel = process.env.GEMINI_IMAGE_FALLBACK_MODEL || "gemini-3-pro-image-preview";
   const timeoutMs = Number(process.env.GEMINI_IMAGE_TIMEOUT_MS || 20000);
 
   if (!apiKey) {
