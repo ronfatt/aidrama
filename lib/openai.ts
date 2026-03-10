@@ -19,13 +19,13 @@ export function getModelName(): string {
 }
 
 export function getBeatModelName(): string {
-  return process.env.OPENAI_BEAT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  return process.env.OPENAI_BEAT_MODEL || "gpt-4.1-mini";
 }
 
 export function getFilmPackModelName(): string {
-  return process.env.OPENAI_FILM_PACK_MODEL || process.env.OPENAI_MODEL || "gpt-5.1-mini";
+  return process.env.OPENAI_FILM_PACK_MODEL || "gpt-4.1-mini";
 }
 
 export function getCompanionModelName(): string {
-  return process.env.OPENAI_COMPANION_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  return process.env.OPENAI_COMPANION_MODEL || "gpt-4.1-mini";
 }

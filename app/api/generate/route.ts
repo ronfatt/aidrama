@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       const response = await client.responses.create({
         model: getFilmPackModelName(),
         temperature: strictMode ? 0.18 : 0.55,
+        max_output_tokens: 9000,
         input: [
           {
             role: "user",
@@ -78,13 +79,6 @@ export async function POST(request: Request) {
 
     let filmPack = await generateOnce();
 
-    if (!lockedVoiceOver && !passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
-      filmPack = await generateOnce(
-        "The preservedVoiceOverScript drifted. Regenerate with very high fidelity to source wording. " +
-          "Do not add new claims. Keep narration concise by trimming only redundancy."
-      );
-    }
-
     if (filmPack.scenes.length !== sceneCount) {
       return NextResponse.json(
         {
@@ -105,7 +99,10 @@ export async function POST(request: Request) {
       };
     } else if (!passesVoFidelity(parsedBody.settings.originalScript, filmPack.preservedVoiceOverScript, strictMode)) {
       return NextResponse.json(
-        { error: "VO drifted too far from source script. Please retry or keep Strict Mode ON." },
+        {
+          error:
+            "Film pack generated, but VO drifted too far from source script. Retry with Strict Mode ON or provide Locked VO Script.",
+        },
         { status: 502 }
       );
     }

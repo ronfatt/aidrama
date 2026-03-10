@@ -77,7 +77,7 @@ Copy `.env.example` to `.env.local` and set:
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.1-mini
 OPENAI_BEAT_MODEL=gpt-4.1-mini
-OPENAI_FILM_PACK_MODEL=gpt-5.1-mini
+OPENAI_FILM_PACK_MODEL=gpt-4.1-mini
 OPENAI_COMPANION_MODEL=gpt-4.1-mini
 IMAGE_PROVIDER=gemini
 IMAGE_FALLBACK_PROVIDER=
@@ -95,9 +95,9 @@ KLING_POLL_MAX_ATTEMPTS=12
 KLING_POLL_INTERVAL_MS=1500
 ```
 
-`OPENAI_MODEL` is optional. If omitted, the app defaults to `gpt-5.1-mini`.
+`OPENAI_MODEL` is optional and acts as a general fallback only where a route-specific model is not set.
 `OPENAI_BEAT_MODEL` is optional. Default: `gpt-4.1-mini`.
-`OPENAI_FILM_PACK_MODEL` is optional. Default: `gpt-5.1-mini`.
+`OPENAI_FILM_PACK_MODEL` is optional. Default: `gpt-4.1-mini`.
 `OPENAI_COMPANION_MODEL` is optional. Default: `gpt-4.1-mini`.
 `GEMINI_IMAGE_MODEL` is optional. If omitted, the app defaults to `gemini-3-pro-image-preview`.
 `GEMINI_IMAGE_FALLBACK_MODEL` is optional. If omitted, the app falls back to `gemini-2.5-flash-image` when primary model fails.
