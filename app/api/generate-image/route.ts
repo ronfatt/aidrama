@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 const generateImageSchema = z.object({
   imagePrompt: z.string().min(8).max(4000),
   sceneNumber: z.number().int().positive(),

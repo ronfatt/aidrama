@@ -3,6 +3,10 @@ import { z } from "zod";
 import { getModelName, getOpenAIClient } from "@/lib/openai";
 import type { CompanionShotKind, ScenePhase, SceneType } from "@/types/film-pack";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 const generateCompanionShotSchema = z.object({
   kind: z.union([z.literal("broll"), z.literal("transition")]),
   title: z.string().min(1),
