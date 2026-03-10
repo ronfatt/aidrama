@@ -5,6 +5,8 @@ import { systemPrompt } from "@/lib/prompts/systemPrompt";
 
 interface PromptOptions {
   title?: string;
+  narratorCharacter?: string;
+  onScreenCharacter?: string;
   referenceTag?: string;
   lockedVoiceOver?: string;
   sceneCount: 20 | 22 | 25 | 28 | 30;
@@ -39,6 +41,8 @@ ${outputSchema}
 
 Production settings:
 - title: ${options.title?.trim() || "(not provided)"}
+- narrator / POV character: ${options.narratorCharacter?.trim() || "(not provided)"}
+- primary on-screen character: ${options.onScreenCharacter?.trim() || "(not provided)"}
 - style: ${options.style}
 - color grade preset: ${options.colorGradePreset || "(not provided)"}
 - scene count: ${options.sceneCount}
@@ -60,6 +64,9 @@ Additional hard constraints:
   Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
 - Every scene must remain in Singapore.
 - Only one clearly visible character per scene.
+- If narratorCharacter and onScreenCharacter are both provided and they are different people, prioritize onScreenCharacter as the visual subject in most scenes.
+- In that case, narratorCharacter should appear mainly through POV, over-shoulder, back view, silhouette, or off-screen presence.
+- Do not default to the narrator as the visual subject just because the narration is from their perspective.
 - Only use useReferenceImage=true when the user explicitly provided a reference tag.
 - If no reference tag is provided, set useReferenceImage=false for all scenes and write characterReferenceGuidance to say no reference workflow is active.
 - Keep prompts concise and practical for Kling -> select frame -> image-to-video workflow.

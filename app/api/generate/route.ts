@@ -43,6 +43,8 @@ export async function POST(request: Request) {
             role: "user",
             content: buildPrompt(parsedBody.settings.originalScript, {
               title: parsedBody.settings.title,
+              narratorCharacter: parsedBody.settings.narratorCharacter,
+              onScreenCharacter: parsedBody.settings.onScreenCharacter,
               referenceTag,
               lockedVoiceOver,
               sceneCount,

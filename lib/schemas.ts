@@ -47,6 +47,8 @@ export const generateRequestSchema = z.object({
     title: z.string().trim().max(120).optional(),
     originalScript: z.string().trim().min(20, "Script is too short.").max(10000),
     lockedVoiceOver: z.string().trim().min(20).max(10000).optional().or(z.literal("")),
+    narratorCharacter: z.string().trim().max(80).optional().or(z.literal("")),
+    onScreenCharacter: z.string().trim().max(80).optional().or(z.literal("")),
     referenceTag: z
       .string()
       .max(50)

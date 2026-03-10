@@ -57,6 +57,8 @@ function buildBeatPrompt({
   sceneCount,
   style,
   colorGradePreset,
+  narratorCharacter,
+  onScreenCharacter,
   lockedVoiceOver,
   strictMode,
   beatLines,
@@ -65,6 +67,8 @@ function buildBeatPrompt({
   sceneCount: number;
   style: string;
   colorGradePreset?: string;
+  narratorCharacter?: string;
+  onScreenCharacter?: string;
   lockedVoiceOver: string;
   strictMode: boolean;
   beatLines?: string[];
@@ -97,6 +101,9 @@ Hard rules:
 - strict mode is ${strictMode ? "ON" : "OFF"}.
 - style is ${style}.
 - color grade preset is ${colorGradePreset || "not provided"}.
+- narrator / POV character is ${narratorCharacter || "not provided"}.
+- primary on-screen character is ${onScreenCharacter || "not provided"}.
+- if narrator and on-screen character are different, annotate beats primarily around the on-screen character, not the narrator.
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 
@@ -139,6 +146,8 @@ export async function POST(request: Request) {
             sceneCount,
             style: parsedBody.settings.style,
             colorGradePreset: parsedBody.settings.colorGradePreset,
+            narratorCharacter: parsedBody.settings.narratorCharacter,
+            onScreenCharacter: parsedBody.settings.onScreenCharacter,
             lockedVoiceOver,
             strictMode,
             beatLines,

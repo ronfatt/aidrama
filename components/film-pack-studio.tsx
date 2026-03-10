@@ -110,6 +110,8 @@ export function FilmPackStudio() {
   const [title, setTitle] = useState("Community in Motion");
   const [originalScript, setOriginalScript] = useState(SAMPLE_SCRIPT);
   const [lockedVoiceOver, setLockedVoiceOver] = useState("");
+  const [narratorCharacter, setNarratorCharacter] = useState("");
+  const [onScreenCharacter, setOnScreenCharacter] = useState("");
   const [referenceTag, setReferenceTag] = useState(DEFAULT_REFERENCE_TAG);
   const [sceneCount, setSceneCount] = useState<SceneCountInput>("auto");
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
@@ -249,6 +251,8 @@ export function FilmPackStudio() {
             title,
             originalScript,
             lockedVoiceOver,
+            narratorCharacter,
+            onScreenCharacter,
             referenceTag,
             sceneCount,
             style,
@@ -421,6 +425,8 @@ export function FilmPackStudio() {
             title,
             originalScript,
             lockedVoiceOver,
+            narratorCharacter,
+            onScreenCharacter,
             referenceTag,
             sceneCount,
             style,
@@ -480,6 +486,28 @@ export function FilmPackStudio() {
           </label>
 
           <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Narrator / POV Character</span>
+            <input
+              value={narratorCharacter}
+              onChange={(event) => setNarratorCharacter(event.target.value)}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+              placeholder="e.g. Bryan"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Primary On-Screen Character</span>
+            <input
+              value={onScreenCharacter}
+              onChange={(event) => setOnScreenCharacter(event.target.value)}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+              placeholder="e.g. Samuel"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2">
             <span className="text-sm font-medium text-zinc-200">Optional Character Reference Tag</span>
             <input
               value={referenceTag}
@@ -490,6 +518,11 @@ export function FilmPackStudio() {
             />
           </label>
         </div>
+
+        <p className="text-xs text-zinc-400">
+          Use these two fields when one person narrates about another. Example: narrator = Bryan, on-screen character =
+          Samuel.
+        </p>
 
         <label className="grid gap-2">
           <span className="text-sm font-medium text-zinc-200">Original Script / Story</span>

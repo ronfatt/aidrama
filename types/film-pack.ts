@@ -34,6 +34,8 @@ export interface UserSettings {
   title?: string;
   originalScript: string;
   lockedVoiceOver?: string;
+  narratorCharacter?: string;
+  onScreenCharacter?: string;
   referenceTag?: string;
   sceneCount: SceneCountInput;
   style: FilmTone;
