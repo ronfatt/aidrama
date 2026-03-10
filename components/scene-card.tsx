@@ -7,7 +7,9 @@ interface SceneCardProps {
   generatedImageUrl?: string;
   generatingImage?: boolean;
   imageError?: string;
+  imageMeta?: string;
   companionImageUrls?: Record<string, string>;
+  companionImageMeta?: Record<string, string>;
   companionImageLoading?: Record<string, boolean>;
   companionImageErrors?: Record<string, string>;
   generatingCompanionKind?: "broll" | "transition" | null;
@@ -21,7 +23,9 @@ export function SceneCard({
   generatedImageUrl,
   generatingImage,
   imageError,
+  imageMeta,
   companionImageUrls,
+  companionImageMeta,
   companionImageLoading,
   companionImageErrors,
   generatingCompanionKind,
@@ -136,6 +140,11 @@ export function SceneCard({
                       <CopyButton text={shot.imagePrompt} label="Copy image" />
                     </div>
                     <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">{shot.imagePrompt}</p>
+                    {companionImageMeta?.[shot.id] ? (
+                      <p className="mt-2 text-[11px] uppercase tracking-wide text-cyan-200/80">
+                        Provider: {companionImageMeta[shot.id]}
+                      </p>
+                    ) : null}
                     {companionImageErrors?.[shot.id] ? (
                       <p className="mt-2 text-xs text-rose-300">{companionImageErrors[shot.id]}</p>
                     ) : null}
@@ -181,6 +190,9 @@ export function SceneCard({
             </div>
           </div>
           <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">{scene.imagePrompt}</p>
+          {imageMeta ? (
+            <p className="mt-2 text-[11px] uppercase tracking-wide text-cyan-200/80">Provider: {imageMeta}</p>
+          ) : null}
           {imageError ? <p className="mt-2 text-xs text-rose-300">{imageError}</p> : null}
           {generatedImageUrl ? (
             <div className="mt-3 overflow-hidden rounded-lg border border-white/10">

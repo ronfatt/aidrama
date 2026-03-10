@@ -42,6 +42,9 @@ interface GenerateImageResponse {
   error?: string;
   taskId?: string;
   status?: "submitted" | "processing" | "succeeded" | "failed";
+  provider?: "gemini" | "kling";
+  fallbackFrom?: "gemini" | "kling";
+  modelUsed?: string;
 }
 
 interface SavedFilmPackRecord {
@@ -139,6 +142,8 @@ export function FilmPackStudio() {
   const [result, setResult] = useState<FilmPack | null>(null);
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
   const [companionImages, setCompanionImages] = useState<Record<string, string>>({});
+  const [sceneImageMeta, setSceneImageMeta] = useState<Record<number, string>>({});
+  const [companionImageMeta, setCompanionImageMeta] = useState<Record<string, string>>({});
   const [sceneImageLoading, setSceneImageLoading] = useState<Record<number, boolean>>({});
   const [companionImageLoading, setCompanionImageLoading] = useState<Record<string, boolean>>({});
   const [sceneImageErrors, setSceneImageErrors] = useState<Record<number, string>>({});
@@ -305,9 +310,11 @@ export function FilmPackStudio() {
     if (isCompanion) {
       setCompanionImageLoading((prev) => ({ ...prev, [loadingKey]: true }));
       setCompanionImageErrors((prev) => ({ ...prev, [loadingKey]: "" }));
+      setCompanionImageMeta((prev) => ({ ...prev, [loadingKey]: "" }));
     } else {
       setSceneImageLoading((prev) => ({ ...prev, [loadingKey]: true }));
       setSceneImageErrors((prev) => ({ ...prev, [loadingKey]: "" }));
+      setSceneImageMeta((prev) => ({ ...prev, [loadingKey]: "" }));
     }
 
     try {
@@ -380,10 +387,19 @@ export function FilmPackStudio() {
         throw new Error(payload.error || "Image generation failed.");
       }
 
+      const providerLabel = payload.provider
+        ? payload.fallbackFrom
+          ? `${payload.provider} (fallback from ${payload.fallbackFrom})`
+          : payload.provider
+        : "";
+      const metaLabel = [providerLabel, payload.modelUsed].filter(Boolean).join(" · ");
+
       if (isCompanion) {
         setCompanionImages((prev) => ({ ...prev, [loadingKey]: payload.imageDataUrl as string }));
+        setCompanionImageMeta((prev) => ({ ...prev, [loadingKey]: metaLabel }));
       } else {
         setSceneImages((prev) => ({ ...prev, [loadingKey]: payload.imageDataUrl as string }));
+        setSceneImageMeta((prev) => ({ ...prev, [loadingKey]: metaLabel }));
       }
     } catch (generationError) {
       const message = generationError instanceof Error ? generationError.message : "Image generation failed.";
@@ -877,7 +893,9 @@ export function FilmPackStudio() {
                 generatedImageUrl={sceneImages[scene.sceneNumber]}
                 generatingImage={sceneImageLoading[scene.sceneNumber]}
                 imageError={sceneImageErrors[scene.sceneNumber]}
+                imageMeta={sceneImageMeta[scene.sceneNumber]}
                 companionImageUrls={companionImages}
+                companionImageMeta={companionImageMeta}
                 companionImageLoading={companionImageLoading}
                 companionImageErrors={companionImageErrors}
                 generatingCompanionKind={companionLoading[scene.sceneNumber] || null}
