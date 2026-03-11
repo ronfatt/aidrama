@@ -11,6 +11,7 @@ import {
   SAMPLE_SCRIPT,
   SCENE_COUNTS,
 } from "@/lib/constants";
+import { assembleFilmPackFromScenes } from "@/lib/film-pack-assembly";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
 import { normalizeReferenceTag } from "@/lib/reference-tag";
 import type {
@@ -19,17 +20,19 @@ import type {
   CompanionShot,
   FilmPack,
   FilmTone,
+  SceneMetadata,
   SceneCountInput,
   SceneItem,
 } from "@/types/film-pack";
 
-interface GenerateResponse {
-  filmPack: FilmPack;
-}
-
 interface GenerateBeatSheetResponse {
   beatSheet: BeatItem[];
   sceneCount: number;
+}
+
+interface GenerateScenePayload {
+  scenes?: SceneMetadata[] | SceneItem[];
+  error?: string;
 }
 
 interface GenerateCompanionShotPayload {
@@ -118,6 +121,14 @@ function resizeImageFile(file: File, maxWidth = 900, quality = 0.82): Promise<st
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function chunkScenes<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 export function FilmPackStudio() {
@@ -300,6 +311,108 @@ export function FilmPackStudio() {
     } finally {
       setBeatLoading(false);
     }
+  };
+
+  const generateSceneMetadata = async (sourceBeatSheet: BeatItem[]): Promise<SceneMetadata[]> => {
+    const response = await fetch("/api/generate-scene-metadata", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        settings: {
+          title,
+          originalScript,
+          lockedVoiceOver,
+          narratorCharacter,
+          onScreenCharacter,
+          referenceTag,
+          sceneCount,
+          style,
+          colorGradePreset,
+          strictMode,
+        },
+        beatSheet: sourceBeatSheet,
+      }),
+    });
+
+    const raw = await response.text();
+    let payload: GenerateScenePayload | null = null;
+    try {
+      payload = JSON.parse(raw) as GenerateScenePayload;
+    } catch {
+      payload = {
+        error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
+          ? "Vercel function timeout while generating scene metadata."
+          : raw || "Scene metadata generation failed (non-JSON response).",
+      };
+    }
+
+    if (!response.ok || !payload?.scenes) {
+      throw new Error(payload?.error || "Scene metadata generation failed.");
+    }
+
+    return payload.scenes as SceneMetadata[];
+  };
+
+  const generatePromptBatches = async (sourceScenes: SceneMetadata[]): Promise<SceneItem[]> => {
+    const chunks = chunkScenes(sourceScenes, 8);
+    const merged = new Map<number, SceneItem>();
+
+    for (const chunk of chunks) {
+      const response = await fetch("/api/generate-scene-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            title,
+            style,
+            colorGradePreset,
+            narratorCharacter,
+            onScreenCharacter,
+            referenceTag,
+            strictMode,
+          },
+          scenes: chunk.map((scene) => ({
+            sceneNumber: scene.sceneNumber,
+            phase: scene.phase,
+            voLine: scene.voLine,
+            shotType: scene.shotType,
+            scenePurpose: scene.scenePurpose,
+            importance: scene.importance,
+            useReferenceImage: scene.useReferenceImage,
+            camera: scene.camera,
+            lightingColor: scene.lightingColor,
+          })),
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateScenePayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateScenePayload;
+      } catch {
+        payload = {
+          error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
+            ? "Vercel function timeout while generating scene prompts."
+            : raw || "Scene prompt generation failed (non-JSON response).",
+        };
+      }
+
+      if (!response.ok || !payload?.scenes) {
+        throw new Error(payload?.error || "Scene prompt generation failed.");
+      }
+
+      for (const scene of payload.scenes as SceneItem[]) {
+        merged.set(scene.sceneNumber, scene);
+      }
+    }
+
+    return sourceScenes.map((scene) => {
+      const mergedScene = merged.get(scene.sceneNumber);
+      if (!mergedScene) {
+        throw new Error(`Missing prompt batch result for scene ${scene.sceneNumber}.`);
+      }
+      return mergedScene;
+    });
   };
 
   const generateSceneImage = async (scene: SceneItem | CompanionShot) => {
@@ -490,45 +603,25 @@ export function FilmPackStudio() {
 
     try {
       const beatResponse = await generateBeatSheet();
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: {
-            title,
-            originalScript,
-            lockedVoiceOver,
-            narratorCharacter,
-            onScreenCharacter,
-            referenceTag,
-            sceneCount,
-            style,
-            colorGradePreset,
-            strictMode,
-          },
-          beatSheet: beatResponse.beatSheet,
-        }),
+      const metadataScenes = await generateSceneMetadata(beatResponse.beatSheet);
+      const promptedScenes = await generatePromptBatches(metadataScenes);
+      const assembledFilmPack = assembleFilmPackFromScenes({
+        scenes: promptedScenes,
+        beatSheet: beatResponse.beatSheet,
+        settings: {
+          title,
+          style,
+          colorGradePreset,
+          narratorCharacter,
+          onScreenCharacter,
+        },
+        lockedVoiceOver,
+        referenceTag,
       });
 
-      const raw = await response.text();
-      let payload: (GenerateResponse & { error?: string }) | null = null;
-      try {
-        payload = JSON.parse(raw) as GenerateResponse & { error?: string };
-      } catch {
-        payload = {
-          error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
-            ? "Vercel function timeout while generating film pack."
-            : raw || "Generation failed (non-JSON response).",
-        } as GenerateResponse & { error?: string };
-      }
-
-      if (!response.ok || !payload?.filmPack) {
-        throw new Error(payload?.error || "Generation failed.");
-      }
-
-      setResult(payload.filmPack);
-      setBeatSheet(payload.filmPack.beatSheet || beatResponse.beatSheet);
-      setBeatSceneCount(payload.filmPack.beatSheet?.length || beatResponse.sceneCount);
+      setResult(assembledFilmPack);
+      setBeatSheet(beatResponse.beatSheet);
+      setBeatSceneCount(beatResponse.sceneCount);
       setSceneImages({});
       setCompanionImages({});
       setSceneImageLoading({});

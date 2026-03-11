@@ -69,6 +69,18 @@ export interface SceneItem {
   companionShots?: CompanionShot[];
 }
 
+export interface SceneMetadata {
+  sceneNumber: number;
+  phase: ScenePhase;
+  voLine: string;
+  shotType: SceneType;
+  scenePurpose: string;
+  importance: SceneImportance;
+  useReferenceImage: boolean;
+  camera: string;
+  lightingColor: string;
+}
+
 export interface CompanionShot {
   id: string;
   parentSceneNumber: number;
