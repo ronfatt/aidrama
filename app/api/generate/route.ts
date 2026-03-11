@@ -123,13 +123,17 @@ Hard rules:
 - Maintain a consistent color grade family across the project.
 - If no reference tag is provided, set useReferenceImage=false for all scenes.
 - If a beat role is broll or transition, prefer environment / symbolic insert / transition B-roll / atmospheric insert.
+- Do not repeat the same portrait setup in consecutive scenes.
+- Alternate between portrait, environmental, over-shoulder, back-view, object-detail, reflection, threshold, and negative-space framings.
+- Use beat.visualRole and beat.framingIntent as hard composition instructions.
+- At least 25 percent of scenes must avoid front-facing portrait framing.
 - Scene count must match beat count exactly.
 
 Beat sheet:
 ${beatSheet
   .map(
     (beat) =>
-      `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} vo="${beat.voLine}" purpose="${beat.purpose}"`
+      `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`
   )
   .join("\n")}
 `;

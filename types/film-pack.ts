@@ -50,6 +50,8 @@ export interface BeatItem {
   importance: SceneImportance;
   voLine: string;
   purpose: string;
+  visualRole: string;
+  framingIntent: string;
 }
 
 export interface SceneItem {

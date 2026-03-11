@@ -40,6 +40,8 @@ export const beatItemSchema = z.object({
   importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
   voLine: z.string().min(1),
   purpose: z.string().min(1),
+  visualRole: z.string().min(1),
+  framingIntent: z.string().min(1),
 });
 
 export const generateRequestSchema = z.object({

@@ -9,6 +9,8 @@ const SINGLE_CHARACTER_PATTERN =
 
 const MULTI_CHARACTER_PATTERN =
   /(two-shot|two shot|pair|duo|group shot|two people|both faces|face-to-face conversation|double portrait)/gi;
+const PORTRAIT_PATTERN =
+  /(close-up|close up|portrait|face showing|front-facing|front facing|headshot|medium close-up|medium close up)/i;
 
 const SHOT_TYPE_MAP: Record<string, (typeof ALLOWED_SCENE_TYPES)[number]> = {
   environment: "environment",
@@ -158,6 +160,64 @@ function isBrollShotType(shotType: SceneItem["shotType"]): boolean {
   );
 }
 
+function isPortraitHeavy(scene: SceneItem): boolean {
+  return (
+    scene.shotType === "character close-up" ||
+    (scene.shotType === "behavior shot" && PORTRAIT_PATTERN.test(scene.imagePrompt)) ||
+    PORTRAIT_PATTERN.test(scene.camera) ||
+    PORTRAIT_PATTERN.test(scene.imagePrompt)
+  );
+}
+
+function applyAntiRepetitionVariant(scene: SceneItem, variant: number): SceneItem {
+  const variants: Array<{
+    shotType: SceneItem["shotType"];
+    camera: string;
+    purposePrefix: string;
+    imagePrefix: string;
+    videoSuffix: string;
+  }> = [
+    {
+      shotType: "over-shoulder shot",
+      camera: "over-shoulder framing with restrained drift",
+      purposePrefix: "Witness angle",
+      imagePrefix: "over-shoulder frame, subject seen from behind or three-quarter back,",
+      videoSuffix: "observer perspective, face mostly hidden",
+    },
+    {
+      shotType: "atmospheric insert",
+      camera: "wide negative-space static frame",
+      purposePrefix: "Negative-space coverage",
+      imagePrefix: "wide environmental frame with subject small in composition,",
+      videoSuffix: "negative space, subtle ambient movement",
+    },
+    {
+      shotType: "symbolic insert",
+      camera: "insert framing on hands, reflection, or threshold detail",
+      purposePrefix: "Metaphoric insert",
+      imagePrefix: "symbolic insert, hands / reflection / doorway detail,",
+      videoSuffix: "detail-driven motion, no frontal portrait",
+    },
+    {
+      shotType: "transition B-roll",
+      camera: "back-view moving frame",
+      purposePrefix: "Transition coverage",
+      imagePrefix: "back-view frame, subject moving away through corridor or open space,",
+      videoSuffix: "back view, transitional movement, face turned away",
+    },
+  ];
+
+  const selected = variants[variant % variants.length];
+  return {
+    ...scene,
+    shotType: selected.shotType,
+    camera: selected.camera,
+    scenePurpose: `${selected.purposePrefix}: ${scene.scenePurpose}`,
+    imagePrompt: `${selected.imagePrefix} ${scene.imagePrompt}`.replace(/\s+/g, " ").trim(),
+    videoPrompt: `${scene.videoPrompt}, ${selected.videoSuffix}`.replace(/\s+/g, " ").trim(),
+  };
+}
+
 function rebalanceBrollScenes(scenes: SceneItem[]): SceneItem[] {
   const minimumBroll = scenes.length >= 25 ? 5 : 4;
   const currentBroll = scenes.filter((scene) => isBrollShotType(scene.shotType)).length;
@@ -187,6 +247,27 @@ function rebalanceBrollScenes(scenes: SceneItem[]): SceneItem[] {
   return updated;
 }
 
+function diversifyRepetitivePortraits(scenes: SceneItem[]): SceneItem[] {
+  const updated = [...scenes];
+  let portraitRun = 0;
+
+  for (let index = 0; index < updated.length; index += 1) {
+    const scene = updated[index];
+    if (isPortraitHeavy(scene)) {
+      portraitRun += 1;
+    } else {
+      portraitRun = 0;
+    }
+
+    if (portraitRun >= 2) {
+      updated[index] = applyAntiRepetitionVariant(scene, index);
+      portraitRun = 0;
+    }
+  }
+
+  return updated;
+}
+
 export function enforceFilmPackGuardrails(
   pack: NormalizableFilmPack,
   options?: GuardrailOptions
@@ -199,8 +280,8 @@ export function enforceFilmPackGuardrails(
   return {
     ...pack,
     settingNote,
-    scenes: rebalanceBrollScenes(
-      pack.scenes.map((scene, index) => normalizeScene(scene, strictMode, index, pack.scenes.length))
+    scenes: diversifyRepetitivePortraits(
+      rebalanceBrollScenes(pack.scenes.map((scene, index) => normalizeScene(scene, strictMode, index, pack.scenes.length)))
     ),
   };
 }

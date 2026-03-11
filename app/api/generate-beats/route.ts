@@ -19,6 +19,8 @@ const beatSheetResponseSchema = z.object({
       importance: z.string(),
       voLine: z.string().min(1),
       purpose: z.string().min(1),
+      visualRole: z.string().min(1),
+      framingIntent: z.string().min(1),
     })
   ),
 });
@@ -44,8 +46,10 @@ const beatSheetJsonSchema = {
             importance: { type: "string" },
             voLine: { type: "string" },
             purpose: { type: "string" },
+            visualRole: { type: "string" },
+            framingIntent: { type: "string" },
           },
-          required: ["beatNumber", "phase", "role", "importance", "voLine", "purpose"],
+          required: ["beatNumber", "phase", "role", "importance", "voLine", "purpose", "visualRole", "framingIntent"],
         },
       },
     },
@@ -93,6 +97,7 @@ Goals:
 - importance should usually be A for hero, B for broll, C for transition.
 - Keep Singapore realism and single-character production logic in mind.
 - Use concise purpose lines for each beat.
+- Create visible shot grammar variation across the sequence.
 
 Hard rules:
 - Do not add new facts, events, people, or locations.
@@ -105,6 +110,11 @@ Hard rules:
 - narrator / POV character is ${narratorCharacter || "not provided"}.
 - primary on-screen character is ${onScreenCharacter || "not provided"}.
 - if narrator and on-screen character are different, annotate beats primarily around the on-screen character, not the narrator.
+- Output visualRole and framingIntent for every beat.
+- Do not let consecutive beats repeat the same portrait logic.
+- Avoid runs of static front-facing close portraits.
+- Vary framing using combinations such as intimate close portrait, environmental distance, over-shoulder witness, back-view withdrawal, doorway threshold frame, reflection composition, negative space frame, object detail insert, hands and gesture detail, corridor transition frame, architectural wide.
+- At least 25 percent of beats should avoid front-facing portrait framing.
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 

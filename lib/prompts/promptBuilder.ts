@@ -25,6 +25,8 @@ interface PromptOptions {
     importance: string;
     voLine: string;
     purpose: string;
+    visualRole: string;
+    framingIntent: string;
   }>;
   extraInstruction?: string;
 }
@@ -36,7 +38,7 @@ export function buildPrompt(script: string, options: PromptOptions) {
     ? `Beat sheet to follow exactly in order:\n${options.beatSheet
         .map(
           (beat) =>
-            `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} vo="${beat.voLine}" purpose="${beat.purpose}"`
+            `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`
         )
         .join("\n")}\n`
     : "";
@@ -88,12 +90,14 @@ Additional hard constraints:
 - If locked voice over is provided, set preservedVoiceOverScript exactly to that text with no edits.
 - If scene beats are provided, each scene's voLine must map to the corresponding beat in order.
 - If a beat sheet is provided, each scene must follow the corresponding beat's phase, role, importance, and voLine in order.
+- If a beat sheet is provided, each scene must also follow the beat's visualRole and framingIntent, and avoid repeated portrait setups.
 - Scene count must be exactly ${options.sceneCount}.
 - Include a small B-roll layer: about 5 scenes should function as transition/B-roll coverage when scene count is 25 or higher.
 - Scenes must follow 4 story stages in order:
   Opening - Awareness -> Understanding - Reframing -> Turning Point - Action -> Impact - Closing.
 - Every scene must remain in Singapore.
 - Only one clearly visible character per scene.
+- Do not allow consecutive scenes to repeat the same close portrait / front-facing composition.
 - If narratorCharacter and onScreenCharacter are both provided and they are different people, prioritize onScreenCharacter as the visual subject in most scenes.
 - In that case, narratorCharacter should appear mainly through POV, over-shoulder, back view, silhouette, or off-screen presence.
 - Do not default to the narrator as the visual subject just because the narration is from their perspective.

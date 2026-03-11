@@ -59,6 +59,40 @@ function minimumNonHeroCount(sceneCount: number): number {
   return sceneCount >= 25 ? 5 : 4;
 }
 
+const HERO_VISUAL_ROLES = [
+  "hero portrait",
+  "wide isolation",
+  "over-shoulder witness",
+  "back-view withdrawal",
+  "threshold composition",
+  "reflection frame",
+] as const;
+
+const NON_HERO_VISUAL_ROLES = [
+  "environment bridge",
+  "object metaphor",
+  "negative space pause",
+  "symbolic insert",
+  "architectural transition",
+] as const;
+
+const HERO_FRAMING_INTENTS = [
+  "intimate close portrait",
+  "environmental distance",
+  "observer over-shoulder",
+  "back-view emotional withdrawal",
+  "doorway threshold frame",
+  "reflection composition",
+] as const;
+
+const NON_HERO_FRAMING_INTENTS = [
+  "negative space frame",
+  "object detail insert",
+  "corridor transition frame",
+  "architectural wide",
+  "hands and gesture detail",
+] as const;
+
 function rebalanceBeatRoles(beats: BeatItem[]): BeatItem[] {
   const updated = [...beats];
   const currentNonHero = updated.filter((beat) => beat.role !== "hero").length;
@@ -91,6 +125,33 @@ function rebalanceBeatRoles(beats: BeatItem[]): BeatItem[] {
   return updated;
 }
 
+function deriveVisualRole(role: BeatRole, index: number): string {
+  const source = role === "hero" ? HERO_VISUAL_ROLES : NON_HERO_VISUAL_ROLES;
+  return source[index % source.length];
+}
+
+function deriveFramingIntent(role: BeatRole, index: number): string {
+  const source = role === "hero" ? HERO_FRAMING_INTENTS : NON_HERO_FRAMING_INTENTS;
+  return source[index % source.length];
+}
+
+function diversifyBeatVisuals(beats: BeatItem[]): BeatItem[] {
+  return beats.map((beat, index) => {
+    const previous = index > 0 ? beats[index - 1] : null;
+    let framingIntent = normalizeWhitespace(beat.framingIntent || "") || deriveFramingIntent(beat.role, index);
+
+    if (previous && previous.framingIntent === framingIntent) {
+      framingIntent = deriveFramingIntent(beat.role, index + 1);
+    }
+
+    return {
+      ...beat,
+      visualRole: normalizeWhitespace(beat.visualRole || "") || deriveVisualRole(beat.role, index),
+      framingIntent,
+    };
+  });
+}
+
 export function normalizeBeatSheet(
   rawBeats: Array<{
     beatNumber?: number;
@@ -99,6 +160,8 @@ export function normalizeBeatSheet(
     importance?: string;
     voLine?: string;
     purpose?: string;
+    visualRole?: string;
+    framingIntent?: string;
   }>,
   sceneCount: SceneCount
 ): BeatItem[] {
@@ -111,8 +174,10 @@ export function normalizeBeatSheet(
       importance: normalizeImportance(typeof beat.importance === "string" ? beat.importance : undefined, role),
       voLine: normalizeWhitespace(beat.voLine || ""),
       purpose: normalizeWhitespace(beat.purpose || "Cover this story moment clearly and concisely."),
+      visualRole: normalizeWhitespace(beat.visualRole || "") || deriveVisualRole(role, index),
+      framingIntent: normalizeWhitespace(beat.framingIntent || "") || deriveFramingIntent(role, index),
     };
   });
 
-  return rebalanceBeatRoles(normalized);
+  return diversifyBeatVisuals(rebalanceBeatRoles(normalized));
 }
