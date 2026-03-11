@@ -19,18 +19,28 @@ const generateCompanionShotSchema = z.object({
   strictMode: z.boolean().optional(),
   scene: z.object({
     sceneNumber: z.number().int().positive(),
-    phase: z.string().min(1),
-    voLine: z.string().min(1),
-    shotType: z.string().min(1),
-    scenePurpose: z.string().min(1),
+    phase: z.string().trim().min(1),
+    voLine: z.string().trim().min(1),
+    shotType: z.string().trim().min(1),
+    scenePurpose: z.string().trim().min(1),
     importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
     useReferenceImage: z.boolean(),
-    imagePrompt: z.string().min(1),
-    videoPrompt: z.string().min(1),
-    camera: z.string().min(1),
-    lightingColor: z.string().min(1),
+    imagePrompt: z.string().trim().min(1),
+    videoPrompt: z.string().trim().min(1),
+    camera: z.string().optional().or(z.literal("")),
+    lightingColor: z.string().optional().or(z.literal("")),
   }),
 });
+
+function fallbackCamera(kind: "broll" | "transition", shotType: string): string {
+  if (kind === "transition") return "bridging frame with gentle lateral movement";
+  if (/environment|insert|b-roll/i.test(shotType)) return "wide observational frame with restrained drift";
+  return "controlled observational frame with subtle drift";
+}
+
+function fallbackLightingColor(input?: string) {
+  return input?.trim() || "natural cinematic lighting, warm-neutral tones";
+}
 
 const responseSchema = {
   name: "companion_shot",
@@ -120,8 +130,8 @@ Base scene:
 - reference image: ${input.scene.useReferenceImage ? "yes" : "no"}
 - image prompt: ${input.scene.imagePrompt}
 - video prompt: ${input.scene.videoPrompt}
-- camera: ${input.scene.camera}
-- lighting/color: ${input.scene.lightingColor}
+- camera: ${input.scene.camera?.trim() || fallbackCamera(input.kind, input.scene.shotType)}
+- lighting/color: ${fallbackLightingColor(input.scene.lightingColor)}
 
 Return one JSON object only.`;
 }

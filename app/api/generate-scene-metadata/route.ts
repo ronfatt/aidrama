@@ -13,14 +13,14 @@ const metadataSchema = z.object({
   scenes: z.array(
     z.object({
       sceneNumber: z.number().int().positive(),
-      phase: z.string().min(1),
-      voLine: z.string().min(1),
-      shotType: z.string().min(1),
-      scenePurpose: z.string().min(1),
+      phase: z.string().trim().min(1),
+      voLine: z.string().trim().min(1),
+      shotType: z.string().trim().min(1),
+      scenePurpose: z.string().trim().min(1),
       importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
       useReferenceImage: z.boolean(),
-      camera: z.string().min(1),
-      lightingColor: z.string().min(1),
+      camera: z.string().trim().min(1),
+      lightingColor: z.string().trim().min(1),
     })
   ),
 });

@@ -60,6 +60,29 @@ function normalizeWhitespace(input: string): string {
   return input.replace(/\s+/g, " ").trim();
 }
 
+function fallbackCameraForShotType(shotType: (typeof ALLOWED_SCENE_TYPES)[number]): string {
+  switch (shotType) {
+    case "environment":
+      return "wide observational frame with slow restrained drift";
+    case "character close-up":
+      return "static close framing with subtle push-in";
+    case "behavior shot":
+      return "medium observational frame with controlled handheld restraint";
+    case "symbolic insert":
+      return "insert framing with minimal motion";
+    case "transition B-roll":
+      return "bridging frame with gentle lateral movement";
+    case "atmospheric insert":
+      return "negative-space frame with soft ambient drift";
+    case "POV shot":
+      return "subjective POV framing with subtle natural sway";
+    case "over-shoulder shot":
+      return "over-shoulder framing with restrained drift";
+    default:
+      return "controlled cinematic frame";
+  }
+}
+
 function truncateWords(input: string, maxWords: number): string {
   const words = input.split(" ");
   if (words.length <= maxWords) return input;
@@ -142,12 +165,18 @@ function normalizeScene(
   index: number,
   total: number
 ): SceneItem {
+  const shotType = normalizeShotType(scene.shotType);
+  const camera = normalizeWhitespace(scene.camera || "") || fallbackCameraForShotType(shotType);
+  const lightingColor = normalizeWhitespace(scene.lightingColor || "") || "natural cinematic lighting, warm-neutral tones";
+
   return {
     ...scene,
     phase: normalizePhase(scene.phase, index, total),
-    shotType: normalizeShotType(scene.shotType),
+    shotType,
     imagePrompt: makeConciseCinematicPrompt(scene.imagePrompt, "image", strictMode),
     videoPrompt: makeConciseCinematicPrompt(scene.videoPrompt, "video", strictMode),
+    camera,
+    lightingColor,
   };
 }
 
