@@ -78,6 +78,13 @@ function beatLine(beat: BeatItem) {
   return `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc}" shotGrammarPreset="${beat.shotGrammarPreset}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
 }
 
+function preserveOriginalBeatNumbers(rawBeats: BeatItem[], normalizedBeats: BeatItem[]) {
+  return normalizedBeats.map((beat, index) => ({
+    ...beat,
+    beatNumber: rawBeats[index]?.beatNumber ?? beat.beatNumber,
+  }));
+}
+
 function buildMetadataPrompt({
   beatSheet,
   title,
@@ -344,10 +351,13 @@ export async function POST(request: Request) {
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const referenceTag = parsedBody.settings.referenceTag?.trim() || "";
     const beatSheet = parsedBody.beatSheet
-      ? normalizeBeatSheet(
+      ? preserveOriginalBeatNumbers(
           parsedBody.beatSheet,
-          parsedBody.beatSheet.length as 20 | 22 | 25 | 28 | 30,
-          parsedBody.settings.projectMode || "singapore-realism"
+          normalizeBeatSheet(
+            parsedBody.beatSheet,
+            parsedBody.beatSheet.length as 20 | 22 | 25 | 28 | 30,
+            parsedBody.settings.projectMode || "singapore-realism"
+          )
         )
       : undefined;
 
