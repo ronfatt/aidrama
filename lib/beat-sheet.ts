@@ -1,4 +1,4 @@
-import type { BeatItem, BeatRole, SceneCount, SceneImportance, ScenePhase } from "@/types/film-pack";
+import type { BeatItem, BeatRole, ProjectMode, SceneCount, SceneImportance, ScenePhase } from "@/types/film-pack";
 
 const ROLE_MAP: Record<string, BeatRole> = {
   hero: "hero",
@@ -53,6 +53,23 @@ function normalizeImportance(input: string | undefined, role: BeatRole): SceneIm
 function normalizePhase(phase: string | undefined, index: number, total: number): ScenePhase {
   const normalized = normalizeWhitespace(phase || "").toLowerCase();
   return PHASE_MAP[normalized] || phaseByPosition(index, total);
+}
+
+function storyArcByPosition(index: number, total: number, projectMode: ProjectMode): string {
+  const ratio = total <= 1 ? 1 : index / (total - 1);
+
+  if (projectMode === "coastal-fantasy-drama") {
+    if (ratio < 0.2) return "Ordinary World";
+    if (ratio < 0.4) return "First Sign";
+    if (ratio < 0.65) return "Escalation";
+    if (ratio < 0.85) return "Confrontation";
+    return "Hook Ending";
+  }
+
+  if (ratio < 0.25) return "Grounding";
+  if (ratio < 0.5) return "Recognition";
+  if (ratio < 0.75) return "Movement";
+  return "Resolution";
 }
 
 function minimumNonHeroCount(sceneCount: number): number {
@@ -156,6 +173,7 @@ export function normalizeBeatSheet(
   rawBeats: Array<{
     beatNumber?: number;
     phase?: string;
+    storyArc?: string;
     role?: string;
     importance?: string;
     voLine?: string;
@@ -163,13 +181,15 @@ export function normalizeBeatSheet(
     visualRole?: string;
     framingIntent?: string;
   }>,
-  sceneCount: SceneCount
+  sceneCount: SceneCount,
+  projectMode: ProjectMode = "singapore-realism"
 ): BeatItem[] {
   const normalized = rawBeats.slice(0, sceneCount).map((beat, index): BeatItem => {
     const role = normalizeRole(typeof beat.role === "string" ? beat.role : undefined);
     return {
       beatNumber: index + 1,
       phase: normalizePhase(typeof beat.phase === "string" ? beat.phase : undefined, index, sceneCount),
+      storyArc: normalizeWhitespace(beat.storyArc || "") || storyArcByPosition(index, sceneCount, projectMode),
       role,
       importance: normalizeImportance(typeof beat.importance === "string" ? beat.importance : undefined, role),
       voLine: normalizeWhitespace(beat.voLine || ""),

@@ -60,6 +60,7 @@ export interface FantasyBibleInput {
 export interface BeatItem {
   beatNumber: number;
   phase: ScenePhase;
+  storyArc: string;
   role: BeatRole;
   importance: SceneImportance;
   voLine: string;

@@ -38,6 +38,7 @@ const beatRoleSchema = z.union([z.literal("hero"), z.literal("broll"), z.literal
 export const beatItemSchema = z.object({
   beatNumber: z.number().int().positive(),
   phase: phaseSchema,
+  storyArc: z.string().min(1),
   role: beatRoleSchema,
   importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
   voLine: z.string().min(1),

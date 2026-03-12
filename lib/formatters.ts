@@ -5,7 +5,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
     ? `## Beat Sheet\n${pack.beatSheet
         .map(
           (beat) =>
-            `- Beat ${beat.beatNumber}: [${beat.phase}] role=${beat.role}, importance=${beat.importance}, visualRole=${beat.visualRole}, framingIntent=${beat.framingIntent}, VO=${beat.voLine}, purpose=${beat.purpose}`
+            `- Beat ${beat.beatNumber}: [${beat.phase}] storyArc=${beat.storyArc}, role=${beat.role}, importance=${beat.importance}, visualRole=${beat.visualRole}, framingIntent=${beat.framingIntent}, VO=${beat.voLine}, purpose=${beat.purpose}`
         )
         .join("\n")}\n\n`
     : "";

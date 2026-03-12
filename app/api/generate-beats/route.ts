@@ -16,6 +16,7 @@ const beatSheetResponseSchema = z.object({
     z.object({
       beatNumber: z.number().int().positive(),
       phase: z.string(),
+      storyArc: z.string().min(1),
       role: z.string(),
       importance: z.string(),
       voLine: z.string().min(1),
@@ -43,6 +44,7 @@ const beatSheetJsonSchema = {
           properties: {
             beatNumber: { type: "integer" },
             phase: { type: "string" },
+            storyArc: { type: "string" },
             role: { type: "string" },
             importance: { type: "string" },
             voLine: { type: "string" },
@@ -50,7 +52,7 @@ const beatSheetJsonSchema = {
             visualRole: { type: "string" },
             framingIntent: { type: "string" },
           },
-          required: ["beatNumber", "phase", "role", "importance", "voLine", "purpose", "visualRole", "framingIntent"],
+          required: ["beatNumber", "phase", "storyArc", "role", "importance", "voLine", "purpose", "visualRole", "framingIntent"],
         },
       },
     },
@@ -126,6 +128,7 @@ Goals:
   Understanding - Reframing
   Turning Point - Action
   Impact - Closing
+- Output storyArc for every beat.
 - Include about ${nonHeroTarget} non-hero beats total using role=broll or role=transition.
 - Every other beat should stay role=hero unless there is a clear reason not to.
 - importance should usually be A for hero, B for broll, C for transition.
@@ -133,6 +136,18 @@ Goals:
 - Create visible shot grammar variation across the sequence.
 - project mode is ${projectMode}.
 ${modeRules}
+
+Story arc rules:
+${
+  projectMode === "coastal-fantasy-drama"
+    ? `- Use these exact storyArc labels in order across the beat sheet:
+  Ordinary World
+  First Sign
+  Escalation
+  Confrontation
+  Hook Ending`
+    : `- Use phase-aligned storyArc labels that stay grounded and concise, such as Grounding, Recognition, Movement, and Resolution.`
+}
 
 Hard rules:
 - Do not add new facts, events, people, or locations.
@@ -218,7 +233,7 @@ export async function POST(request: Request) {
     }
 
     const parsed = beatSheetResponseSchema.parse(JSON.parse(raw));
-    let beatSheet = normalizeBeatSheet(parsed.beats, sceneCount);
+    let beatSheet = normalizeBeatSheet(parsed.beats, sceneCount, parsedBody.settings.projectMode || "singapore-realism");
 
     if (beatLines?.length) {
       beatSheet = beatSheet.map((beat, index) => ({

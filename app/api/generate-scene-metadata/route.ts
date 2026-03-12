@@ -69,7 +69,7 @@ const metadataJsonSchema = {
 } as const;
 
 function beatLine(beat: BeatItem) {
-  return `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
+  return `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
 }
 
 function buildMetadataPrompt({
@@ -173,7 +173,13 @@ export async function POST(request: Request) {
     const parsedBody = generateRequestSchema.parse(body);
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const referenceTag = parsedBody.settings.referenceTag?.trim() || "";
-    const beatSheet = parsedBody.beatSheet ? normalizeBeatSheet(parsedBody.beatSheet, parsedBody.beatSheet.length as 20 | 22 | 25 | 28 | 30) : undefined;
+    const beatSheet = parsedBody.beatSheet
+      ? normalizeBeatSheet(
+          parsedBody.beatSheet,
+          parsedBody.beatSheet.length as 20 | 22 | 25 | 28 | 30,
+          parsedBody.settings.projectMode || "singapore-realism"
+        )
+      : undefined;
 
     if (!beatSheet?.length) {
       return NextResponse.json({ error: "Beat sheet is required for scene metadata generation." }, { status: 400 });

@@ -936,6 +936,9 @@ export function FilmPackStudio() {
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-zinc-100">Beat {beat.beatNumber}</span>
                     <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.phase}</span>
+                    <span className="rounded-full border border-sky-400/20 bg-sky-500/[0.06] px-2 py-0.5 text-sky-200">
+                      {beat.storyArc}
+                    </span>
                     <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.role}</span>
                     <span className="rounded-full border border-white/15 px-2 py-0.5">{beat.importance}</span>
                   </div>
