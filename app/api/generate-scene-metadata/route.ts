@@ -190,6 +190,88 @@ function parseMetadataPayload(raw: string) {
   }
 }
 
+function fallbackShotTypeFromBeat(beat: BeatItem): SceneMetadata["shotType"] {
+  const grammar = beat.shotGrammarPreset.toLowerCase();
+  const visualRole = beat.visualRole.toLowerCase();
+  const framingIntent = beat.framingIntent.toLowerCase();
+
+  if (beat.role === "transition") return "transition B-roll";
+  if (beat.role === "broll") {
+    if (grammar.includes("insert") || visualRole.includes("object")) return "symbolic insert";
+    return "atmospheric insert";
+  }
+  if (framingIntent.includes("over-shoulder") || visualRole.includes("over-shoulder")) return "over-shoulder shot";
+  if (framingIntent.includes("witness") && grammar.includes("frame")) return "behavior shot";
+  if (framingIntent.includes("close") || visualRole.includes("portrait")) return "character close-up";
+  if (framingIntent.includes("distance") || visualRole.includes("wide")) return "environment";
+  if (framingIntent.includes("reflection") || grammar.includes("omen") || grammar.includes("silhouette")) {
+    return "symbolic insert";
+  }
+  return "behavior shot";
+}
+
+function fallbackCameraFromBeat(beat: BeatItem): string {
+  const grammar = beat.shotGrammarPreset.toLowerCase();
+  const framingIntent = beat.framingIntent.toLowerCase();
+  if (beat.role === "transition") return "slow drifting transitional move";
+  if (beat.role === "broll") return "measured observational glide";
+  if (grammar.includes("power reveal")) return "subtle push-in as tension builds";
+  if (grammar.includes("enemy reveal") || grammar.includes("threat")) return "slow creeping advance with held tension";
+  if (framingIntent.includes("close")) return "controlled close push-in";
+  if (framingIntent.includes("distance") || framingIntent.includes("wide")) return "slow wide hold with minimal drift";
+  if (framingIntent.includes("over-shoulder")) return "steady over-shoulder hold";
+  return "controlled cinematic hold";
+}
+
+function fallbackLightingFromBeat(beat: BeatItem, projectMode: ProjectMode, colorGradePreset?: string): string {
+  if (projectMode === "coastal-fantasy-drama") {
+    switch (colorGradePreset) {
+      case "storm-blue mythic":
+        return "storm-blue mythic grade, sea-cooled shadows, controlled highlight contrast";
+      case "moonlit coastal tension":
+        return "moonlit coastal tension, silver-blue reflections, wet shadow detail";
+      case "sunset awakening":
+        return "sunset awakening tones, ember-gold edge light, teal sea contrast";
+      case "tidal supernatural realism":
+        return "tidal supernatural realism, grounded marine neutrals, subtle water glow";
+      default:
+        return "oceanic fantasy realism, controlled cool shadows, practical highlights";
+    }
+  }
+
+  switch (colorGradePreset) {
+    case "neutral-cool restraint":
+      return "neutral-cool restraint, soft cyan-gray shadows, muted practical warmth";
+    case "muted realism":
+      return "muted realism, softened saturation, gentle neutral contrast";
+    case "soft warm intimacy":
+      return "soft warm intimacy, amber practical light, gentle warm-neutral shadows";
+    case "warm-neutral documentary":
+    default:
+      return "warm-neutral documentary light, natural practical warmth, grounded contrast";
+  }
+}
+
+function fallbackMetadataFromBeat(
+  beat: BeatItem,
+  projectMode: ProjectMode,
+  colorGradePreset?: string,
+  hasReferenceTag?: boolean
+): SceneMetadata {
+  return {
+    sceneNumber: beat.beatNumber,
+    phase: beat.phase,
+    voLine: beat.voLine,
+    shotType: fallbackShotTypeFromBeat(beat),
+    shotGrammarPreset: beat.shotGrammarPreset,
+    scenePurpose: beat.purpose,
+    importance: beat.importance,
+    useReferenceImage: hasReferenceTag ? beat.role === "hero" : false,
+    camera: fallbackCameraFromBeat(beat),
+    lightingColor: fallbackLightingFromBeat(beat, projectMode, colorGradePreset),
+  };
+}
+
 function alignMetadataScenesToBeatSheet(scenes: SceneMetadata[], beatSheet: BeatItem[]) {
   const expectedNumbers = beatSheet.map((beat) => beat.beatNumber);
   const actualNumbers = scenes.map((scene) => scene.sceneNumber);
@@ -320,10 +402,15 @@ export async function POST(request: Request) {
 
     const scenes = beatSheet.map((beat) => {
       const scene = byScene.get(beat.beatNumber);
-      if (!scene) {
-        throw new Error(`Missing metadata for scene ${beat.beatNumber}.`);
+      if (scene) {
+        return scene;
       }
-      return scene;
+      return fallbackMetadataFromBeat(
+        beat,
+        parsedBody.settings.projectMode || "singapore-realism",
+        parsedBody.settings.colorGradePreset,
+        Boolean(referenceTag)
+      );
     });
 
     return NextResponse.json({ scenes });
