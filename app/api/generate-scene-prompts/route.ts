@@ -196,7 +196,14 @@ async function generatePromptBatch(
     throw new Error("No scene prompts returned from model.");
   }
 
-  return promptResponseSchema.parse(JSON.parse(raw));
+  try {
+    return promptResponseSchema.parse(JSON.parse(raw));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error("Scene prompt model response was malformed JSON.");
+    }
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
@@ -204,12 +211,30 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = promptRequestSchema.parse(body);
     const client = getOpenAIClient();
-    const firstPass = await generatePromptBatch(client, parsed, parsed.scenes);
+    let firstPass;
+    try {
+      firstPass = await generatePromptBatch(client, parsed, parsed.scenes);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Scene prompt model response was malformed JSON.") {
+        firstPass = await generatePromptBatch(client, parsed, parsed.scenes);
+      } else {
+        throw error;
+      }
+    }
     const byScene = new Map(firstPass.scenes.map((scene) => [scene.sceneNumber, scene]));
     const missingScenes = parsed.scenes.filter((scene) => !byScene.has(scene.sceneNumber));
 
     if (missingScenes.length > 0) {
-      const retryPass = await generatePromptBatch(client, parsed, missingScenes);
+      let retryPass;
+      try {
+        retryPass = await generatePromptBatch(client, parsed, missingScenes);
+      } catch (error) {
+        if (error instanceof Error && error.message === "Scene prompt model response was malformed JSON.") {
+          retryPass = await generatePromptBatch(client, parsed, missingScenes);
+        } else {
+          throw error;
+        }
+      }
       for (const scene of retryPass.scenes) {
         byScene.set(scene.sceneNumber, scene);
       }

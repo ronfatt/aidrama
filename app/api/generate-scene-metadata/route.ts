@@ -179,6 +179,51 @@ ${beatSheet.map(beatLine).join("\n")}
 `;
 }
 
+function parseMetadataPayload(raw: string) {
+  try {
+    return metadataSchema.parse(JSON.parse(raw));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error("Scene metadata model response was malformed JSON.");
+    }
+    throw error;
+  }
+}
+
+async function generateMetadataBatch(
+  client: ReturnType<typeof getOpenAIClient>,
+  input: Parameters<typeof buildMetadataPrompt>[0],
+  beatSheet: BeatItem[]
+) {
+  const response = await client.responses.create({
+    model: getFilmPackModelName(),
+    temperature: input.strictMode ? 0.15 : 0.35,
+    max_output_tokens: Math.min(2200, 500 + beatSheet.length * 220),
+    input: [
+      {
+        role: "user",
+        content: buildMetadataPrompt({
+          ...input,
+          beatSheet,
+        }),
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        ...buildMetadataJsonSchema(beatSheet.length),
+      },
+    },
+  });
+
+  const raw = response.output_text;
+  if (!raw) {
+    throw new Error("No scene metadata returned from model.");
+  }
+
+  return parseMetadataPayload(raw);
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -198,41 +243,30 @@ export async function POST(request: Request) {
     }
 
     const client = getOpenAIClient();
-    const response = await client.responses.create({
-      model: getFilmPackModelName(),
-      temperature: strictMode ? 0.15 : 0.35,
-      max_output_tokens: Math.min(2200, 500 + beatSheet.length * 220),
-      input: [
-        {
-          role: "user",
-          content: buildMetadataPrompt({
-            beatSheet,
-            title: parsedBody.settings.title,
-            style: parsedBody.settings.style,
-            colorGradePreset: parsedBody.settings.colorGradePreset,
-            projectMode: parsedBody.settings.projectMode || "singapore-realism",
-            fantasyBible: parsedBody.settings.fantasyBible,
-            narratorCharacter: parsedBody.settings.narratorCharacter,
-            onScreenCharacter: parsedBody.settings.onScreenCharacter,
-            referenceTag,
-            strictMode,
-          }),
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          ...buildMetadataJsonSchema(beatSheet.length),
-        },
-      },
-    });
+    const generationInput = {
+      beatSheet,
+      title: parsedBody.settings.title,
+      style: parsedBody.settings.style,
+      colorGradePreset: parsedBody.settings.colorGradePreset,
+      projectMode: parsedBody.settings.projectMode || "singapore-realism",
+      fantasyBible: parsedBody.settings.fantasyBible,
+      narratorCharacter: parsedBody.settings.narratorCharacter,
+      onScreenCharacter: parsedBody.settings.onScreenCharacter,
+      referenceTag,
+      strictMode,
+    } satisfies Parameters<typeof buildMetadataPrompt>[0];
 
-    const raw = response.output_text;
-    if (!raw) {
-      throw new Error("No scene metadata returned from model.");
+    let parsed;
+    try {
+      parsed = await generateMetadataBatch(client, generationInput, beatSheet);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Scene metadata model response was malformed JSON.") {
+        parsed = await generateMetadataBatch(client, generationInput, beatSheet);
+      } else {
+        throw error;
+      }
     }
 
-    const parsed = metadataSchema.parse(JSON.parse(raw));
     const scenes = parsed.scenes as SceneMetadata[];
 
     return NextResponse.json({ scenes });
