@@ -22,6 +22,7 @@ const generateCompanionShotSchema = z.object({
     phase: z.string().trim().min(1),
     voLine: z.string().trim().min(1),
     shotType: z.string().trim().min(1),
+    shotGrammarPreset: z.string().optional().or(z.literal("")),
     scenePurpose: z.string().trim().min(1),
     importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
     useReferenceImage: z.boolean(),
@@ -72,6 +73,7 @@ const responseSchema = {
           "over-shoulder shot",
         ],
       },
+      shotGrammarPreset: { type: "string" },
       scenePurpose: { type: "string" },
       importance: { type: "string", enum: ["A", "B", "C"] },
       useReferenceImage: { type: "boolean" },
@@ -84,6 +86,7 @@ const responseSchema = {
       "phase",
       "voLine",
       "shotType",
+      "shotGrammarPreset",
       "scenePurpose",
       "importance",
       "useReferenceImage",
@@ -106,6 +109,7 @@ Rules:
 - If possible, reduce frontal face dependency.
 - For broll: prefer environment, atmospheric insert, symbolic insert, transition B-roll.
 - For transition: focus on bridging motion, space, mood, or time shift.
+- Keep a related shot grammar family to the base scene, but shift it into a supporting angle rather than repeating the exact same frame.
 - Importance should usually be B or C.
 - Keep prompts concise and cinematic.
 - Keep the same overall color grade family as the base scene and project lock.
@@ -125,6 +129,7 @@ Base scene:
 - phase: ${input.scene.phase}
 - vo line: ${input.scene.voLine}
 - shot type: ${input.scene.shotType}
+- shot grammar preset: ${input.scene.shotGrammarPreset || "(not provided)"}
 - purpose: ${input.scene.scenePurpose}
 - importance: ${input.scene.importance}
 - reference image: ${input.scene.useReferenceImage ? "yes" : "no"}
@@ -163,6 +168,7 @@ export async function POST(request: Request) {
       phase: ScenePhase;
       voLine: string;
       shotType: SceneType;
+      shotGrammarPreset: string;
       scenePurpose: string;
       importance: "A" | "B" | "C";
       useReferenceImage: boolean;

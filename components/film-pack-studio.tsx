@@ -487,6 +487,7 @@ export function FilmPackStudio() {
             phase: scene.phase,
             voLine: scene.voLine,
             shotType: scene.shotType,
+            shotGrammarPreset: scene.shotGrammarPreset,
             scenePurpose: scene.scenePurpose,
             importance: scene.importance,
             useReferenceImage: scene.useReferenceImage,

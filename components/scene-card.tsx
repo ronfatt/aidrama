@@ -55,6 +55,11 @@ export function SceneCard({
         <p>
           <span className="font-semibold text-zinc-100">Shot type:</span> {scene.shotType}
         </p>
+        {scene.shotGrammarPreset ? (
+          <p>
+            <span className="font-semibold text-zinc-100">Shot grammar:</span> {scene.shotGrammarPreset}
+          </p>
+        ) : null}
         <p>
           <span className="font-semibold text-zinc-100">Purpose:</span> {scene.scenePurpose}
         </p>
@@ -123,6 +128,11 @@ export function SceneCard({
                   <p>
                     <span className="font-semibold text-zinc-100">Shot type:</span> {shot.shotType}
                   </p>
+                  {shot.shotGrammarPreset ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">Shot grammar:</span> {shot.shotGrammarPreset}
+                    </p>
+                  ) : null}
                   <p>
                     <span className="font-semibold text-zinc-100">Purpose:</span> {shot.scenePurpose}
                   </p>

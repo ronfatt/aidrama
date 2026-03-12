@@ -16,6 +16,7 @@ const metadataSchema = z.object({
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
       shotType: z.string().trim().min(1),
+      shotGrammarPreset: z.string().trim().min(1),
       scenePurpose: z.string().trim().min(1),
       importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
       useReferenceImage: z.boolean(),
@@ -44,6 +45,7 @@ const metadataJsonSchema = {
             phase: { type: "string" },
             voLine: { type: "string" },
             shotType: { type: "string" },
+            shotGrammarPreset: { type: "string" },
             scenePurpose: { type: "string" },
             importance: { type: "string", enum: ["A", "B", "C"] },
             useReferenceImage: { type: "boolean" },
@@ -55,6 +57,7 @@ const metadataJsonSchema = {
             "phase",
             "voLine",
             "shotType",
+            "shotGrammarPreset",
             "scenePurpose",
             "importance",
             "useReferenceImage",
@@ -69,7 +72,7 @@ const metadataJsonSchema = {
 } as const;
 
 function beatLine(beat: BeatItem) {
-  return `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
+  return `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc}" shotGrammarPreset="${beat.shotGrammarPreset}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
 }
 
 function buildMetadataPrompt({
@@ -133,6 +136,7 @@ Return valid JSON only:
       "phase": "string",
       "voLine": "string",
       "shotType": "string",
+      "shotGrammarPreset": "string",
       "scenePurpose": "string",
       "importance": "A | B | C",
       "useReferenceImage": true,
@@ -147,11 +151,13 @@ Rules:
 - Only one clearly visible character per scene.
 - No new facts, events, places, or people.
 - Use beat.visualRole and beat.framingIntent as hard composition instructions.
+- Use beat.shotGrammarPreset as a hard visual-template instruction.
 - Do not repeat the same portrait setup in consecutive scenes.
 - At least 25 percent of scenes must avoid front-facing portrait framing.
 - If no reference tag is provided, set useReferenceImage=false for all scenes.
 - If narrator and on-screen character differ, prioritize the on-screen character visually.
 - Keep metadata concise and practical.
+- Do not leave shotGrammarPreset empty.
 - style: ${style}
 - color grade preset: ${colorGradePreset || "(not provided)"}
 - narrator / POV character: ${narratorCharacter?.trim() || "(not provided)"}

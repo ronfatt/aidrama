@@ -68,6 +68,7 @@ export interface BeatItem {
   beatNumber: number;
   phase: ScenePhase;
   storyArc: string;
+  shotGrammarPreset: string;
   role: BeatRole;
   importance: SceneImportance;
   voLine: string;
@@ -81,6 +82,7 @@ export interface SceneItem {
   phase: ScenePhase;
   voLine: string;
   shotType: SceneType;
+  shotGrammarPreset?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;
@@ -96,6 +98,7 @@ export interface SceneMetadata {
   phase: ScenePhase;
   voLine: string;
   shotType: SceneType;
+  shotGrammarPreset?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;
@@ -111,6 +114,7 @@ export interface CompanionShot {
   phase: ScenePhase;
   voLine: string;
   shotType: SceneType;
+  shotGrammarPreset?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;

@@ -17,6 +17,7 @@ const beatSheetResponseSchema = z.object({
       beatNumber: z.number().int().positive(),
       phase: z.string(),
       storyArc: z.string().min(1),
+      shotGrammarPreset: z.string().min(1),
       role: z.string(),
       importance: z.string(),
       voLine: z.string().min(1),
@@ -45,6 +46,7 @@ const beatSheetJsonSchema = {
             beatNumber: { type: "integer" },
             phase: { type: "string" },
             storyArc: { type: "string" },
+            shotGrammarPreset: { type: "string" },
             role: { type: "string" },
             importance: { type: "string" },
             voLine: { type: "string" },
@@ -52,7 +54,7 @@ const beatSheetJsonSchema = {
             visualRole: { type: "string" },
             framingIntent: { type: "string" },
           },
-          required: ["beatNumber", "phase", "storyArc", "role", "importance", "voLine", "purpose", "visualRole", "framingIntent"],
+          required: ["beatNumber", "phase", "storyArc", "shotGrammarPreset", "role", "importance", "voLine", "purpose", "visualRole", "framingIntent"],
         },
       },
     },
@@ -129,6 +131,7 @@ Goals:
   Turning Point - Action
   Impact - Closing
 - Output storyArc for every beat.
+- Output shotGrammarPreset for every beat.
 - Include about ${nonHeroTarget} non-hero beats total using role=broll or role=transition.
 - Every other beat should stay role=hero unless there is a clear reason not to.
 - importance should usually be A for hero, B for broll, C for transition.
@@ -161,10 +164,34 @@ Hard rules:
 - primary on-screen character is ${onScreenCharacter || "not provided"}.
 - if narrator and on-screen character are different, annotate beats primarily around the on-screen character, not the narrator.
 - Output visualRole and framingIntent for every beat.
+- Use shotGrammarPreset as a concrete visual grammar label for the beat's intended reveal style.
 - Do not let consecutive beats repeat the same portrait logic.
 - Avoid runs of static front-facing close portraits.
 - Vary framing using combinations such as intimate close portrait, environmental distance, over-shoulder witness, back-view withdrawal, doorway threshold frame, reflection composition, negative space frame, object detail insert, hands and gesture detail, corridor transition frame, architectural wide.
 - At least 25 percent of beats should avoid front-facing portrait framing.
+${
+  projectMode === "coastal-fantasy-drama"
+    ? `
+- Use fantasy-oriented shotGrammarPreset labels such as:
+  grounded witness frame
+  power reveal detail
+  water omen reveal
+  unstable power frame
+  charged pursuit frame
+  enemy reveal silhouette
+  impact backlash frame
+  mythic aftermath frame
+  threat-on-horizon frame
+  coastal omen insert`
+    : `
+- Use grounded shotGrammarPreset labels such as:
+  intimate witness frame
+  threshold observation frame
+  environmental distance frame
+  reflection realism frame
+  observational bridge frame
+  symbolic detail insert`
+}
 
 ${fantasyBibleBlock}
 

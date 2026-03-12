@@ -35,6 +35,7 @@ const promptRequestSchema = z.object({
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
       shotType: z.string().trim().min(1),
+      shotGrammarPreset: z.string().trim().min(1).optional(),
       scenePurpose: z.string().trim().min(1),
       importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
       useReferenceImage: z.boolean(),
@@ -131,6 +132,7 @@ Rules:
 - project mode: ${projectMode}
 - Only one clearly visible character per scene.
 - Respect shotType, scenePurpose, camera, and lightingColor exactly.
+- Respect shotGrammarPreset as a concrete visual-template instruction.
 - Do not turn all scenes into front-facing portraits.
 - Preserve shot diversity.
 - If useReferenceImage=true, avoid re-describing facial identity.
@@ -150,7 +152,7 @@ Scenes:
 ${input.scenes
   .map(
     (scene) =>
-      `${scene.sceneNumber}. [${scene.phase}] shotType=${scene.shotType} importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
+      `${scene.sceneNumber}. [${scene.phase}] shotType=${scene.shotType} shotGrammarPreset="${scene.shotGrammarPreset || ""}" importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
   )
   .join("\n")}
 `;

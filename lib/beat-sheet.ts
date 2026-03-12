@@ -72,6 +72,53 @@ function storyArcByPosition(index: number, total: number, projectMode: ProjectMo
   return "Resolution";
 }
 
+function shotGrammarByStoryArc(storyArc: string, role: BeatRole, index: number, projectMode: ProjectMode): string {
+  if (projectMode === "coastal-fantasy-drama") {
+    if (role !== "hero") {
+      const nonHeroFantasy = [
+        "coastal omen insert",
+        "threat-carrying transition frame",
+        "mythic environmental bridge",
+        "reflection warning insert",
+      ] as const;
+      return nonHeroFantasy[index % nonHeroFantasy.length];
+    }
+
+    switch (storyArc) {
+      case "Ordinary World":
+        return "grounded witness frame";
+      case "First Sign":
+        return index % 2 === 0 ? "power reveal detail" : "water omen reveal";
+      case "Escalation":
+        return index % 2 === 0 ? "unstable power frame" : "charged pursuit frame";
+      case "Confrontation":
+        return index % 2 === 0 ? "enemy reveal silhouette" : "impact backlash frame";
+      case "Hook Ending":
+        return index % 2 === 0 ? "mythic aftermath frame" : "threat-on-horizon frame";
+      default:
+        return "mythic character frame";
+    }
+  }
+
+  if (role !== "hero") {
+    const nonHeroRealism = [
+      "observational bridge frame",
+      "symbolic detail insert",
+      "negative-space transition frame",
+      "architectural witness frame",
+    ] as const;
+    return nonHeroRealism[index % nonHeroRealism.length];
+  }
+
+  const heroRealism = [
+    "intimate witness frame",
+    "threshold observation frame",
+    "environmental distance frame",
+    "reflection realism frame",
+  ] as const;
+  return heroRealism[index % heroRealism.length];
+}
+
 function minimumNonHeroCount(sceneCount: number): number {
   return sceneCount >= 25 ? 5 : 4;
 }
@@ -174,6 +221,7 @@ export function normalizeBeatSheet(
     beatNumber?: number;
     phase?: string;
     storyArc?: string;
+    shotGrammarPreset?: string;
     role?: string;
     importance?: string;
     voLine?: string;
@@ -186,10 +234,13 @@ export function normalizeBeatSheet(
 ): BeatItem[] {
   const normalized = rawBeats.slice(0, sceneCount).map((beat, index): BeatItem => {
     const role = normalizeRole(typeof beat.role === "string" ? beat.role : undefined);
+    const storyArc = normalizeWhitespace(beat.storyArc || "") || storyArcByPosition(index, sceneCount, projectMode);
     return {
       beatNumber: index + 1,
       phase: normalizePhase(typeof beat.phase === "string" ? beat.phase : undefined, index, sceneCount),
-      storyArc: normalizeWhitespace(beat.storyArc || "") || storyArcByPosition(index, sceneCount, projectMode),
+      storyArc,
+      shotGrammarPreset:
+        normalizeWhitespace(beat.shotGrammarPreset || "") || shotGrammarByStoryArc(storyArc, role, index, projectMode),
       role,
       importance: normalizeImportance(typeof beat.importance === "string" ? beat.importance : undefined, role),
       voLine: normalizeWhitespace(beat.voLine || ""),

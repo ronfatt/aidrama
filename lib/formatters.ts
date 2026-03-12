@@ -5,7 +5,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
     ? `## Beat Sheet\n${pack.beatSheet
         .map(
           (beat) =>
-            `- Beat ${beat.beatNumber}: [${beat.phase}] storyArc=${beat.storyArc}, role=${beat.role}, importance=${beat.importance}, visualRole=${beat.visualRole}, framingIntent=${beat.framingIntent}, VO=${beat.voLine}, purpose=${beat.purpose}`
+            `- Beat ${beat.beatNumber}: [${beat.phase}] storyArc=${beat.storyArc}, shotGrammarPreset=${beat.shotGrammarPreset}, role=${beat.role}, importance=${beat.importance}, visualRole=${beat.visualRole}, framingIntent=${beat.framingIntent}, VO=${beat.voLine}, purpose=${beat.purpose}`
         )
         .join("\n")}\n\n`
     : "";
@@ -23,7 +23,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
             .join("\n")}`
         : "";
 
-      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${companionBlock}`;
+      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Shot grammar: ${scene.shotGrammarPreset || "(not specified)"}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${companionBlock}`;
     })
     .join("\n\n");
 
