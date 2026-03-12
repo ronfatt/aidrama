@@ -29,6 +29,7 @@ import type {
   FilmTone,
   ProjectMode,
   SceneMetadata,
+  SceneType,
   SceneCountInput,
   SceneItem,
 } from "@/types/film-pack";
@@ -152,6 +153,95 @@ function normalizeStageError(raw: string, fallback: string): string {
   if (raw.includes("FUNCTION_INVOCATION_TIMEOUT")) return "Vercel function timeout.";
   if (raw.trim() === "terminated") return "The server process terminated mid-generation. Please retry.";
   return raw;
+}
+
+function fallbackShotTypeFromBeat(beat: BeatItem): SceneType {
+  const grammar = beat.shotGrammarPreset.toLowerCase();
+  const visualRole = beat.visualRole.toLowerCase();
+  const framingIntent = beat.framingIntent.toLowerCase();
+
+  if (beat.role === "transition") return "transition B-roll";
+  if (beat.role === "broll") {
+    if (grammar.includes("insert") || visualRole.includes("object")) return "symbolic insert";
+    return "atmospheric insert";
+  }
+  if (framingIntent.includes("over-shoulder") || visualRole.includes("over-shoulder")) return "over-shoulder shot";
+  if (framingIntent.includes("close") || visualRole.includes("portrait")) return "character close-up";
+  if (framingIntent.includes("distance") || visualRole.includes("wide")) return "environment";
+  if (grammar.includes("omen") || grammar.includes("silhouette") || framingIntent.includes("reflection")) {
+    return "symbolic insert";
+  }
+  return "behavior shot";
+}
+
+function fallbackCameraFromBeat(beat: BeatItem): string {
+  const grammar = beat.shotGrammarPreset.toLowerCase();
+  const framingIntent = beat.framingIntent.toLowerCase();
+  if (beat.role === "transition") return "slow drifting transitional move";
+  if (beat.role === "broll") return "measured observational glide";
+  if (grammar.includes("power reveal")) return "subtle push-in as tension builds";
+  if (grammar.includes("enemy reveal") || grammar.includes("threat")) return "slow creeping advance with held tension";
+  if (framingIntent.includes("close")) return "controlled close push-in";
+  if (framingIntent.includes("distance") || framingIntent.includes("wide")) return "slow wide hold with minimal drift";
+  if (framingIntent.includes("over-shoulder")) return "steady over-shoulder hold";
+  return "controlled cinematic hold";
+}
+
+function fallbackLightingFromBeat(
+  beat: BeatItem,
+  mode: ProjectMode,
+  preset: ColorGradePreset,
+  tone: FilmTone
+): string {
+  if (mode === "coastal-fantasy-drama") {
+    switch (preset) {
+      case "storm-blue mythic":
+        return "storm-blue mythic grade, sea-cooled shadows, controlled highlight contrast";
+      case "moonlit coastal tension":
+        return "moonlit coastal tension, silver-blue reflections, wet shadow detail";
+      case "sunset awakening":
+        return "sunset awakening tones, ember-gold edge light, teal sea contrast";
+      case "tidal supernatural realism":
+        return "tidal supernatural realism, grounded marine neutrals, subtle water glow";
+      default:
+        return "oceanic fantasy realism, controlled cool shadows, practical highlights";
+    }
+  }
+
+  if (preset === "neutral-cool restraint") {
+    return "neutral-cool restraint, soft cyan-gray shadows, muted practical warmth";
+  }
+  if (preset === "muted realism") {
+    return "muted realism, softened saturation, gentle neutral contrast";
+  }
+  if (preset === "soft warm intimacy") {
+    return "soft warm intimacy, amber practical light, gentle warm-neutral shadows";
+  }
+  if (tone === "psychological drama") {
+    return "grounded warm-neutral base with restrained cool shadows, consistent practical warmth";
+  }
+  return "warm-neutral documentary light, natural practical warmth, grounded contrast";
+}
+
+function fallbackSceneMetadataFromBeat(
+  beat: BeatItem,
+  mode: ProjectMode,
+  preset: ColorGradePreset,
+  tone: FilmTone,
+  normalizedReferenceTag: string
+): SceneMetadata {
+  return {
+    sceneNumber: beat.beatNumber,
+    phase: beat.phase,
+    voLine: beat.voLine,
+    shotType: fallbackShotTypeFromBeat(beat),
+    shotGrammarPreset: beat.shotGrammarPreset,
+    scenePurpose: beat.purpose,
+    importance: beat.importance,
+    useReferenceImage: Boolean(normalizedReferenceTag) && beat.role === "hero",
+    camera: fallbackCameraFromBeat(beat),
+    lightingColor: fallbackLightingFromBeat(beat, mode, preset, tone),
+  };
 }
 
 export function FilmPackStudio() {
@@ -502,10 +592,8 @@ export function FilmPackStudio() {
 
     return sourceBeatSheet.map((beat) => {
       const scene = merged.get(beat.beatNumber);
-      if (!scene) {
-        throw new Error(`Missing metadata for scene ${beat.beatNumber}.`);
-      }
-      return scene;
+      if (scene) return scene;
+      return fallbackSceneMetadataFromBeat(beat, projectMode, colorGradePreset, style, referenceTag);
     });
   };
 
