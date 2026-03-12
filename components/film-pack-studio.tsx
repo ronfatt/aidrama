@@ -8,6 +8,9 @@ import {
   COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
   FANTASY_COLOR_GRADE_PRESETS,
+  FANTASY_SAMPLE_BIBLE,
+  FANTASY_SAMPLE_SCRIPT,
+  FANTASY_SAMPLE_VO,
   FILM_STYLES,
   PROJECT_MODES,
   SAMPLE_SCRIPT,
@@ -262,6 +265,60 @@ export function FilmPackStudio() {
 
   const deleteSavedPack = (id: string) => {
     persistSavedPacks(savedPacks.filter((record) => record.id !== id));
+  };
+
+  const resetGeneratedState = () => {
+    setBeatSheet([]);
+    setBeatSceneCount(null);
+    setResult(null);
+    setError(null);
+    setSceneImages({});
+    setCompanionImages({});
+    setSceneImageLoading({});
+    setCompanionImageLoading({});
+    setSceneImageErrors({});
+    setCompanionImageErrors({});
+    setCompanionLoading({});
+    setSceneImageMeta({});
+    setCompanionImageMeta({});
+  };
+
+  const loadProjectModeSample = (mode: ProjectMode) => {
+    resetGeneratedState();
+    setProjectMode(mode);
+
+    if (mode === "coastal-fantasy-drama") {
+      setTitle("Tidebound");
+      setOriginalScript(FANTASY_SAMPLE_SCRIPT);
+      setLockedVoiceOver(FANTASY_SAMPLE_VO);
+      setNarratorCharacter("");
+      setOnScreenCharacter("Kai");
+      setReferenceTag("[KAI_REF]");
+      setStyle("psychological drama");
+      setColorGradePreset("storm-blue mythic");
+      setSceneCount(30);
+      setFantasyBible(FANTASY_SAMPLE_BIBLE);
+      return;
+    }
+
+    setTitle("Community in Motion");
+    setOriginalScript(SAMPLE_SCRIPT);
+    setLockedVoiceOver("");
+    setNarratorCharacter("");
+    setOnScreenCharacter("");
+    setReferenceTag(DEFAULT_REFERENCE_TAG);
+    setStyle("cinematic documentary");
+    setColorGradePreset("warm-neutral documentary");
+    setSceneCount("auto");
+    setFantasyBible({
+      corePremise: "",
+      heroName: "",
+      powerType: "",
+      powerLimits: "",
+      enemyType: "",
+      worldTone: "",
+      endingHook: "",
+    });
   };
 
   const onUploadMasterRefs = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -699,6 +756,22 @@ export function FilmPackStudio() {
             <p className="text-xs text-zinc-400">
               Keep the existing Singapore realism workflow, or prepare a separate fantasy-drama setup without changing the old mode.
             </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => loadProjectModeSample("singapore-realism")}
+              className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-zinc-200 transition hover:bg-white/[0.04]"
+            >
+              Load realism sample
+            </button>
+            <button
+              type="button"
+              onClick={() => loadProjectModeSample("coastal-fantasy-drama")}
+              className="rounded-lg border border-sky-400/20 bg-sky-500/[0.06] px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-500/[0.12]"
+            >
+              Load fantasy sample
+            </button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {PROJECT_MODES.map((mode) => {

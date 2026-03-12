@@ -1,4 +1,4 @@
-import type { ColorGradePreset, FilmTone, ProjectMode, SceneCountInput } from "@/types/film-pack";
+import type { ColorGradePreset, FantasyBibleInput, FilmTone, ProjectMode, SceneCountInput } from "@/types/film-pack";
 
 export const PROJECT_MODES: Array<{ value: ProjectMode; label: string; description: string }> = [
   {
@@ -58,3 +58,36 @@ At first, responses are slow. Then a Malay mother adds rice. A Chinese student a
 Darren realizes the story is not about one hero. It is about small actions becoming a shared rhythm. In a city that moves fast, community still grows when people decide to show up.`;
 
 export const DEFAULT_REFERENCE_TAG = "";
+
+export const FANTASY_SAMPLE_SCRIPT = `Kai has spent his whole life near Singapore's eastern shoreline, always hearing the sea before anyone else notices it. One stormy evening, he sees a child slip near the breakwater and reaches out on instinct. The water rises around his arm like it is answering him. He pulls the child back, but the tide does not settle. It circles his feet as if it recognizes him.
+
+Over the next few days, strange things keep happening. Bowls of water tremble when his emotions spike. Rain gathers against the wind. Saltwater creeps across concrete drains and up stairwells without touching anyone else. Kai realizes this is not luck. Something in him is connected to the sea.
+
+But every time he uses the power, it costs him. His body weakens. His breathing turns shallow. And at night, he begins seeing a dark figure watching from the shoreline, always just beyond the spray. Someone, or something, knows what he is becoming.
+
+When the figure finally attacks near an abandoned jetty, Kai pushes back with the tide for the first time. The water shields him, then surges forward with frightening force. He wins the moment, but the sea does not calm. Far out in the darkness, a larger wave begins to rise on its own, as if answering a call.`;
+
+export const FANTASY_SAMPLE_VO = `Kai always felt the sea before he understood it.
+
+One night, when danger struck, the water answered him back.
+
+What began as instinct became something impossible to ignore.
+
+Every use of the power pulled more out of him.
+
+And something in the dark was already watching.
+
+When he finally fought back, he survived the first attack.
+
+But the ocean had only just begun to wake.`;
+
+export const FANTASY_SAMPLE_BIBLE: FantasyBibleInput = {
+  corePremise:
+    "A young Singaporean man discovers he can command the sea, but every use of his power weakens him and draws enemy forces closer to the coast.",
+  heroName: "Kai",
+  powerType: "control over sea currents, tidal force, and water pressure",
+  powerLimits: "stronger near open water, drains stamina, unstable under fear, difficult to sustain inland",
+  enemyType: "a shadowy shoreline rival tied to an older oceanic force",
+  worldTone: "grounded Southeast Asian coastal fantasy with mythic ocean tension",
+  endingHook: "Kai survives the first fight, but a larger force in the sea answers back and marks the start of a bigger war.",
+};
