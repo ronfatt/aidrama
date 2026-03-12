@@ -29,6 +29,13 @@ export const COLOR_GRADE_PRESETS: ColorGradePreset[] = [
   "soft warm intimacy",
 ];
 
+export const FANTASY_COLOR_GRADE_PRESETS: ColorGradePreset[] = [
+  "storm-blue mythic",
+  "moonlit coastal tension",
+  "sunset awakening",
+  "tidal supernatural realism",
+];
+
 export const RULE_CHECKLIST = [
   "Preserve original meaning and keep narration around 80–90 seconds.",
   "Generate exactly selected scene count (Auto / 20 / 22 / 25 / 28 / 30).",

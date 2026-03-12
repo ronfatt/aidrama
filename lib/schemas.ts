@@ -24,6 +24,10 @@ const colorGradePresetSchema = z.union([
   z.literal("neutral-cool restraint"),
   z.literal("muted realism"),
   z.literal("soft warm intimacy"),
+  z.literal("storm-blue mythic"),
+  z.literal("moonlit coastal tension"),
+  z.literal("sunset awakening"),
+  z.literal("tidal supernatural realism"),
 ]);
 
 const phaseSchema = z.union([

@@ -1,9 +1,11 @@
+import type { ColorGradePreset, FantasyBibleInput, ProjectMode } from "@/types/film-pack";
 import { outputSchema } from "@/lib/prompts/outputSchema";
 import { sceneRules } from "@/lib/prompts/sceneRules";
 import { stylePrompt } from "@/lib/prompts/stylePrompt";
 import { systemPrompt } from "@/lib/prompts/systemPrompt";
 
 interface PromptOptions {
+  projectMode?: ProjectMode;
   title?: string;
   narratorCharacter?: string;
   onScreenCharacter?: string;
@@ -11,16 +13,14 @@ interface PromptOptions {
   lockedVoiceOver?: string;
   sceneCount: 20 | 22 | 25 | 28 | 30;
   style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
-  colorGradePreset?:
-    | "warm-neutral documentary"
-    | "neutral-cool restraint"
-    | "muted realism"
-    | "soft warm intimacy";
+  colorGradePreset?: ColorGradePreset;
   strictMode: boolean;
+  fantasyBible?: FantasyBibleInput;
   sceneBeats?: string[];
   beatSheet?: Array<{
     beatNumber: number;
     phase: string;
+    storyArc?: string;
     role: string;
     importance: string;
     voLine: string;
@@ -38,7 +38,7 @@ export function buildPrompt(script: string, options: PromptOptions) {
     ? `Beat sheet to follow exactly in order:\n${options.beatSheet
         .map(
           (beat) =>
-            `${beat.beatNumber}. [${beat.phase}] role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`
+            `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc || ""}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`
         )
         .join("\n")}\n`
     : "";
@@ -73,6 +73,7 @@ ${outputSchema}
 
 Production settings:
 - title: ${options.title?.trim() || "(not provided)"}
+- project mode: ${options.projectMode || "singapore-realism"}
 - narrator / POV character: ${options.narratorCharacter?.trim() || "(not provided)"}
 - primary on-screen character: ${options.onScreenCharacter?.trim() || "(not provided)"}
 - style: ${options.style}
@@ -104,6 +105,7 @@ Additional hard constraints:
 - Only use useReferenceImage=true when the user explicitly provided a reference tag.
 - If no reference tag is provided, set useReferenceImage=false for all scenes and write characterReferenceGuidance to say no reference workflow is active.
 - Keep prompts concise and practical for Kling -> select frame -> image-to-video workflow.
+- If project mode is coastal-fantasy-drama, allow grounded coastal fantasy atmosphere, ocean-linked power language, enemy implication through shadow/reflection/wake, and a 2-minute dramatic hook structure without breaking the single-visible-character rule.
 
 ${options.extraInstruction ? `Correction instruction:\n${options.extraInstruction}\n` : ""}
 

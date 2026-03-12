@@ -231,6 +231,7 @@ export async function POST(request: Request) {
             role: "user",
             content: buildPrompt(parsedBody.settings.originalScript, {
               title: parsedBody.settings.title,
+              projectMode: parsedBody.settings.projectMode,
               narratorCharacter: parsedBody.settings.narratorCharacter,
               onScreenCharacter: parsedBody.settings.onScreenCharacter,
               referenceTag,
@@ -238,6 +239,7 @@ export async function POST(request: Request) {
               sceneCount,
               style: parsedBody.settings.style,
               colorGradePreset: parsedBody.settings.colorGradePreset,
+              fantasyBible: parsedBody.settings.fantasyBible,
               strictMode,
               sceneBeats,
               beatSheet: providedBeatSheet,

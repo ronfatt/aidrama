@@ -6,7 +6,11 @@ export type ColorGradePreset =
   | "warm-neutral documentary"
   | "neutral-cool restraint"
   | "muted realism"
-  | "soft warm intimacy";
+  | "soft warm intimacy"
+  | "storm-blue mythic"
+  | "moonlit coastal tension"
+  | "sunset awakening"
+  | "tidal supernatural realism";
 
 export type ProjectMode = "singapore-realism" | "coastal-fantasy-drama";
 

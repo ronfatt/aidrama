@@ -7,6 +7,7 @@ import { SceneCard } from "@/components/scene-card";
 import {
   COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
+  FANTASY_COLOR_GRADE_PRESETS,
   FILM_STYLES,
   PROJECT_MODES,
   SAMPLE_SCRIPT,
@@ -66,6 +67,14 @@ const STORAGE_KEY = "film-pack-studio:saved-packs";
 
 function getColorGradeLock(preset: ColorGradePreset, style: FilmTone): string {
   switch (preset) {
+    case "storm-blue mythic":
+      return "storm-blue mythic grade, steel-blue shadows, sea-storm atmosphere, restrained cyan energy, luminous highlights, no warm domestic flattening";
+    case "moonlit coastal tension":
+      return "moonlit coastal tension grade, silver-blue moonlight, wet reflections, deep marine shadows, controlled contrast, no warm sitcom softness";
+    case "sunset awakening":
+      return "sunset awakening grade, ember-gold horizon light, teal-blue sea contrast, charged atmosphere, radiant highlights, no flat neutral wash";
+    case "tidal supernatural realism":
+      return "tidal supernatural realism grade, grounded oceanic neutrals, saline gray-blue depth, realistic skin tones, subtle supernatural glow in water interaction";
     case "neutral-cool restraint":
       return "restrained neutral-cool grade, soft cyan-gray shadows, muted practical warmth, no orange-teal swing";
     case "muted realism":
@@ -174,6 +183,10 @@ export function FilmPackStudio() {
   const [companionImageErrors, setCompanionImageErrors] = useState<Record<string, string>>({});
   const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
+  const availableColorPresets = useMemo(
+    () => (projectMode === "coastal-fantasy-drama" ? FANTASY_COLOR_GRADE_PRESETS : COLOR_GRADE_PRESETS),
+    [projectMode]
+  );
 
   const fullCopy = useMemo(() => (result ? fullOutputCopy(result) : ""), [result]);
   const referenceSceneCount = useMemo(
@@ -200,6 +213,15 @@ export function FilmPackStudio() {
       setSavedPacks([]);
     }
   }, []);
+
+  useEffect(() => {
+    const nextDefault =
+      projectMode === "coastal-fantasy-drama" ? "storm-blue mythic" : "warm-neutral documentary";
+
+    if (!availableColorPresets.includes(colorGradePreset)) {
+      setColorGradePreset(nextDefault);
+    }
+  }, [availableColorPresets, colorGradePreset, projectMode]);
 
   const persistSavedPacks = (records: SavedFilmPackRecord[]) => {
     setSavedPacks(records);
@@ -988,14 +1010,14 @@ export function FilmPackStudio() {
         <label className="grid gap-2">
           <span className="text-sm font-medium text-zinc-200">Color Grade Preset</span>
           <select
-            value={colorGradePreset}
-            onChange={(event) => setColorGradePreset(event.target.value as ColorGradePreset)}
-            className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
-          >
-            {COLOR_GRADE_PRESETS.map((preset) => (
-              <option key={preset} value={preset}>
-                {preset}
-              </option>
+              value={colorGradePreset}
+              onChange={(event) => setColorGradePreset(event.target.value as ColorGradePreset)}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+            >
+              {availableColorPresets.map((preset) => (
+                <option key={preset} value={preset}>
+                  {preset}
+                </option>
             ))}
           </select>
         </label>
