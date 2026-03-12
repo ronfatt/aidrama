@@ -17,6 +17,9 @@ const styleSchema = z.union([
   z.literal("psychological drama"),
   z.literal("NGO educational"),
   z.literal("emotional realism"),
+  z.literal("epic cinematic fantasy"),
+  z.literal("mythic supernatural drama"),
+  z.literal("coastal dark fantasy"),
 ]);
 
 const colorGradePresetSchema = z.union([

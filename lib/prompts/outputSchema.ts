@@ -7,7 +7,7 @@ Use this exact structure and key names:
 
 {
   "title": "string",
-  "style": "cinematic documentary | psychological drama | NGO educational | emotional realism",
+  "style": "cinematic documentary | psychological drama | NGO educational | emotional realism | epic cinematic fantasy | mythic supernatural drama | coastal dark fantasy",
   "settingNote": "string",
   "preservedVoiceOverScript": "string",
   "characterReferenceGuidance": "string",
@@ -44,6 +44,9 @@ export const filmPackJsonSchema = {
           "psychological drama",
           "NGO educational",
           "emotional realism",
+          "epic cinematic fantasy",
+          "mythic supernatural drama",
+          "coastal dark fantasy",
         ],
       },
       settingNote: { type: "string" },

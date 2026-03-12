@@ -8,6 +8,7 @@ import {
   COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
   FANTASY_COLOR_GRADE_PRESETS,
+  FANTASY_FILM_STYLES,
   FANTASY_SAMPLE_BIBLE,
   FANTASY_SAMPLE_SCRIPT,
   FANTASY_SAMPLE_VO,
@@ -186,6 +187,10 @@ export function FilmPackStudio() {
   const [companionImageErrors, setCompanionImageErrors] = useState<Record<string, string>>({});
   const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
+  const availableFilmStyles = useMemo(
+    () => (projectMode === "coastal-fantasy-drama" ? FANTASY_FILM_STYLES : FILM_STYLES),
+    [projectMode]
+  );
   const availableColorPresets = useMemo(
     () => (projectMode === "coastal-fantasy-drama" ? FANTASY_COLOR_GRADE_PRESETS : COLOR_GRADE_PRESETS),
     [projectMode]
@@ -225,6 +230,14 @@ export function FilmPackStudio() {
       setColorGradePreset(nextDefault);
     }
   }, [availableColorPresets, colorGradePreset, projectMode]);
+
+  useEffect(() => {
+    const nextDefault = projectMode === "coastal-fantasy-drama" ? "epic cinematic fantasy" : "cinematic documentary";
+
+    if (!availableFilmStyles.includes(style)) {
+      setStyle(nextDefault);
+    }
+  }, [availableFilmStyles, projectMode, style]);
 
   const persistSavedPacks = (records: SavedFilmPackRecord[]) => {
     setSavedPacks(records);
@@ -294,7 +307,7 @@ export function FilmPackStudio() {
       setNarratorCharacter("");
       setOnScreenCharacter("Kai");
       setReferenceTag("[KAI_REF]");
-      setStyle("psychological drama");
+      setStyle("epic cinematic fantasy");
       setColorGradePreset("storm-blue mythic");
       setSceneCount(30);
       setFantasyBible(FANTASY_SAMPLE_BIBLE);
@@ -1071,7 +1084,7 @@ export function FilmPackStudio() {
               onChange={(event) => setStyle(event.target.value as FilmTone)}
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
             >
-              {FILM_STYLES.map((tone) => (
+              {availableFilmStyles.map((tone) => (
                 <option key={tone} value={tone}>
                   {tone}
                 </option>

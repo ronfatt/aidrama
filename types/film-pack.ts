@@ -18,7 +18,10 @@ export type FilmTone =
   | "cinematic documentary"
   | "psychological drama"
   | "NGO educational"
-  | "emotional realism";
+  | "emotional realism"
+  | "epic cinematic fantasy"
+  | "mythic supernatural drama"
+  | "coastal dark fantasy";
 
 export type SceneImportance = "A" | "B" | "C";
 export type ScenePhase =

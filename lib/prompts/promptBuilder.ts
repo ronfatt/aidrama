@@ -1,4 +1,4 @@
-import type { ColorGradePreset, FantasyBibleInput, ProjectMode } from "@/types/film-pack";
+import type { ColorGradePreset, FantasyBibleInput, FilmTone, ProjectMode } from "@/types/film-pack";
 import { outputSchema } from "@/lib/prompts/outputSchema";
 import { sceneRules } from "@/lib/prompts/sceneRules";
 import { stylePrompt } from "@/lib/prompts/stylePrompt";
@@ -12,7 +12,7 @@ interface PromptOptions {
   referenceTag?: string;
   lockedVoiceOver?: string;
   sceneCount: 20 | 22 | 25 | 28 | 30;
-  style: "cinematic documentary" | "psychological drama" | "NGO educational" | "emotional realism";
+  style: FilmTone;
   colorGradePreset?: ColorGradePreset;
   strictMode: boolean;
   fantasyBible?: FantasyBibleInput;

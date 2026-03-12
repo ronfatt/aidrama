@@ -22,6 +22,12 @@ export const FILM_STYLES: FilmTone[] = [
   "emotional realism",
 ];
 
+export const FANTASY_FILM_STYLES: FilmTone[] = [
+  "epic cinematic fantasy",
+  "mythic supernatural drama",
+  "coastal dark fantasy",
+];
+
 export const COLOR_GRADE_PRESETS: ColorGradePreset[] = [
   "warm-neutral documentary",
   "neutral-cool restraint",
