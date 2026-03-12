@@ -56,32 +56,34 @@ const promptResponseSchema = z.object({
   ),
 });
 
-const promptsJsonSchema = {
-  name: "scene_prompts",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      scenes: {
-        type: "array",
-        minItems: 1,
-        maxItems: 10,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            sceneNumber: { type: "integer" },
-            imagePrompt: { type: "string" },
-            videoPrompt: { type: "string" },
+function buildPromptsJsonSchema(sceneCount: number) {
+  return {
+    name: "scene_prompts",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        scenes: {
+          type: "array",
+          minItems: sceneCount,
+          maxItems: sceneCount,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              sceneNumber: { type: "integer" },
+              imagePrompt: { type: "string" },
+              videoPrompt: { type: "string" },
+            },
+            required: ["sceneNumber", "imagePrompt", "videoPrompt"],
           },
-          required: ["sceneNumber", "imagePrompt", "videoPrompt"],
         },
       },
+      required: ["scenes"],
     },
-    required: ["scenes"],
-  },
-} as const;
+  } as const;
+}
 
 function buildPromptExpansionPrompt(input: z.infer<typeof promptRequestSchema>) {
   const projectMode = (input.settings.projectMode || "singapore-realism") as ProjectMode;
@@ -162,39 +164,68 @@ ${input.scenes
 `;
 }
 
+async function generatePromptBatch(
+  client: ReturnType<typeof getOpenAIClient>,
+  parsed: z.infer<typeof promptRequestSchema>,
+  scenes: z.infer<typeof promptRequestSchema>["scenes"]
+) {
+  const strictMode = parsed.settings.strictMode ?? true;
+  const response = await client.responses.create({
+    model: getCompanionModelName(),
+    temperature: strictMode ? 0.18 : 0.45,
+    max_output_tokens: Math.min(3000, 500 + scenes.length * 280),
+    input: [
+      {
+        role: "user",
+        content: buildPromptExpansionPrompt({
+          ...parsed,
+          scenes,
+        }),
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        ...buildPromptsJsonSchema(scenes.length),
+      },
+    },
+  });
+
+  const raw = response.output_text;
+  if (!raw) {
+    throw new Error("No scene prompts returned from model.");
+  }
+
+  return promptResponseSchema.parse(JSON.parse(raw));
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = promptRequestSchema.parse(body);
     const client = getOpenAIClient();
-    const strictMode = parsed.settings.strictMode ?? true;
+    const firstPass = await generatePromptBatch(client, parsed, parsed.scenes);
+    const byScene = new Map(firstPass.scenes.map((scene) => [scene.sceneNumber, scene]));
+    const missingScenes = parsed.scenes.filter((scene) => !byScene.has(scene.sceneNumber));
 
-    const response = await client.responses.create({
-      model: getCompanionModelName(),
-      temperature: strictMode ? 0.18 : 0.45,
-      max_output_tokens: 3000,
-      input: [{ role: "user", content: buildPromptExpansionPrompt(parsed) }],
-      text: {
-        format: {
-          type: "json_schema",
-          ...promptsJsonSchema,
-        },
-      },
-    });
-
-    const raw = response.output_text;
-    if (!raw) {
-      throw new Error("No scene prompts returned from model.");
+    if (missingScenes.length > 0) {
+      const retryPass = await generatePromptBatch(client, parsed, missingScenes);
+      for (const scene of retryPass.scenes) {
+        byScene.set(scene.sceneNumber, scene);
+      }
     }
 
-    const promptPayload = promptResponseSchema.parse(JSON.parse(raw));
-    const byScene = new Map(promptPayload.scenes.map((scene) => [scene.sceneNumber, scene]));
-    const scenes: SceneItem[] = (parsed.scenes as SceneMetadata[]).map((scene) => {
-      const prompts = byScene.get(scene.sceneNumber);
-      if (!prompts) {
-        throw new Error(`Missing prompts for scene ${scene.sceneNumber}.`);
-      }
+    const stillMissing = parsed.scenes.filter((scene) => !byScene.has(scene.sceneNumber));
+    if (stillMissing.length > 0) {
+      throw new Error(
+        `Prompt generation returned incomplete scene coverage. Missing scene numbers: ${stillMissing
+          .map((scene) => scene.sceneNumber)
+          .join(", ")}.`
+      );
+    }
 
+    const scenes: SceneItem[] = (parsed.scenes as SceneMetadata[]).map((scene) => {
+      const prompts = byScene.get(scene.sceneNumber)!;
       return {
         ...scene,
         imagePrompt: prompts.imagePrompt,

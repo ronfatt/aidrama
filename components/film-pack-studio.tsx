@@ -147,6 +147,13 @@ function chunkScenes<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+function normalizeStageError(raw: string, fallback: string): string {
+  if (!raw) return fallback;
+  if (raw.includes("FUNCTION_INVOCATION_TIMEOUT")) return "Vercel function timeout.";
+  if (raw.trim() === "terminated") return "The server process terminated mid-generation. Please retry.";
+  return raw;
+}
+
 export function FilmPackStudio() {
   const [projectMode, setProjectMode] = useState<ProjectMode>("singapore-realism");
   const [title, setTitle] = useState("Community in Motion");
@@ -463,7 +470,8 @@ export function FilmPackStudio() {
   };
 
   const generatePromptBatches = async (sourceScenes: SceneMetadata[]): Promise<SceneItem[]> => {
-    const chunks = chunkScenes(sourceScenes, 8);
+    const chunkSize = projectMode === "coastal-fantasy-drama" ? 4 : 8;
+    const chunks = chunkScenes(sourceScenes, chunkSize);
     const merged = new Map<number, SceneItem>();
 
     for (const chunk of chunks) {
@@ -503,9 +511,7 @@ export function FilmPackStudio() {
         payload = JSON.parse(raw) as GenerateScenePayload;
       } catch {
         payload = {
-          error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
-            ? "Vercel function timeout while generating scene prompts."
-            : raw || "Scene prompt generation failed (non-JSON response).",
+          error: normalizeStageError(raw, "Scene prompt generation failed (non-JSON response)."),
         };
       }
 
