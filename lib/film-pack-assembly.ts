@@ -1,6 +1,12 @@
-import type { BeatItem, FilmPack, SceneItem } from "@/types/film-pack";
+import type { BeatItem, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
 
-export function buildSettingNote(style: string) {
+export function buildSettingNote(style: string, projectMode: ProjectMode, fantasyBible?: FantasyBibleInput) {
+  if (projectMode === "coastal-fantasy-drama") {
+    const worldTone = fantasyBible?.worldTone?.trim() || "grounded coastal fantasy";
+    const powerType = fantasyBible?.powerType?.trim() || "ocean-linked supernatural force";
+    return `All scenes are set in a modern Southeast Asian coastal fantasy world with grounded urban textures, wet concrete, sea-facing edges, and controlled mythic atmosphere. Visual tone is ${style}, shaped by ${worldTone} and a restrained cinematic treatment of ${powerType}.`;
+  }
+
   return `All scenes are set in contemporary Singapore heartland spaces: HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood parks and small apartments. Visual tone is ${style}, grounded in local textures and documentary realism.`;
 }
 
@@ -8,10 +14,14 @@ export function buildCharacterReferenceGuidance({
   referenceTag,
   onScreenCharacter,
   narratorCharacter,
+  projectMode,
+  fantasyBible,
 }: {
   referenceTag: string;
   onScreenCharacter?: string;
   narratorCharacter?: string;
+  projectMode: ProjectMode;
+  fantasyBible?: FantasyBibleInput;
 }) {
   if (!referenceTag) {
     return "No character reference workflow is active for this film pack.";
@@ -22,8 +32,12 @@ export function buildCharacterReferenceGuidance({
     narratorCharacter?.trim() && narratorCharacter.trim() !== subject
       ? ` Keep ${narratorCharacter.trim()} mainly as POV, over-shoulder, back view, silhouette, or off-screen presence when needed.`
       : "";
+  const fantasyNote =
+    projectMode === "coastal-fantasy-drama"
+      ? ` Keep ${subject} consistent across ordinary-life scenes, power-awakening scenes, and threat-response scenes. Reflect ${fantasyBible?.powerType?.trim() || "the hero's powers"} through pose, water interaction, wardrobe continuity, atmosphere, and lighting rather than changing facial identity.`
+      : "";
 
-  return `Use ${referenceTag} consistently whenever ${subject} appears. Do not redefine facial identity; focus on pose, framing, environment, wardrobe variation, mood, and lighting.${narratorNote}`;
+  return `Use ${referenceTag} consistently whenever ${subject} appears. Do not redefine facial identity; focus on pose, framing, environment, wardrobe variation, mood, and lighting.${fantasyNote}${narratorNote}`;
 }
 
 export function assembleFilmPackFromScenes({
@@ -36,25 +50,30 @@ export function assembleFilmPackFromScenes({
   scenes: SceneItem[];
   beatSheet: BeatItem[];
   settings: {
+    projectMode?: ProjectMode;
     title?: string;
     style: FilmPack["style"];
     colorGradePreset?: FilmPack["colorGradePreset"];
     narratorCharacter?: string;
     onScreenCharacter?: string;
+    fantasyBible?: FantasyBibleInput;
   };
   lockedVoiceOver: string;
   referenceTag: string;
 }): FilmPack {
+  const projectMode = settings.projectMode || "singapore-realism";
   return {
     title: settings.title?.trim() || "Untitled Film Pack",
     style: settings.style,
     colorGradePreset: settings.colorGradePreset,
-    settingNote: buildSettingNote(settings.style),
+    settingNote: buildSettingNote(settings.style, projectMode, settings.fantasyBible),
     preservedVoiceOverScript: lockedVoiceOver || beatSheet.map((beat) => beat.voLine).join(" "),
     characterReferenceGuidance: buildCharacterReferenceGuidance({
       referenceTag,
       onScreenCharacter: settings.onScreenCharacter,
       narratorCharacter: settings.narratorCharacter,
+      projectMode,
+      fantasyBible: settings.fantasyBible,
     }),
     beatSheet,
     scenes,

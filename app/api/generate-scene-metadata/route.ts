@@ -3,7 +3,7 @@ import { z } from "zod";
 import { normalizeBeatSheet } from "@/lib/beat-sheet";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
-import type { BeatItem, SceneMetadata } from "@/types/film-pack";
+import type { BeatItem, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +77,8 @@ function buildMetadataPrompt({
   title,
   style,
   colorGradePreset,
+  projectMode,
+  fantasyBible,
   narratorCharacter,
   onScreenCharacter,
   referenceTag,
@@ -86,11 +88,40 @@ function buildMetadataPrompt({
   title?: string;
   style: string;
   colorGradePreset?: string;
+  projectMode: ProjectMode;
+  fantasyBible?: FantasyBibleInput;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   referenceTag?: string;
   strictMode: boolean;
 }) {
+  const modeRules =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+- Build metadata for a coastal fantasy short drama with one hero and implied enemy pressure.
+- Keep the world grounded but mythic: modern Southeast Asian coastal city edges, wet concrete, shoreline housing, jetties, breakwaters, sea walls, harbours, storm drains, and rooftops facing water.
+- Let scenes move between ordinary life, first supernatural sign, power escalation, threat awareness, confrontation, and hook-ending fallout.
+- Show enemies indirectly unless they are the single visible character in that scene.
+- Use the fantasy bible as a hard constraint for hero identity, power language, enemy logic, and ending hook.
+`
+      : `
+- Keep metadata grounded in contemporary Singapore realism.
+- Use real Singapore heartland spaces: HDB flats, corridors, void decks, MRT stations, hawker centres, neighbourhood streets, parks, and small apartments.
+- Maintain documentary-emotional realism rather than fantasy spectacle.
+`;
+  const fantasyBibleBlock =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+Fantasy bible:
+- core premise: ${fantasyBible?.corePremise?.trim() || "(not provided)"}
+- hero name: ${fantasyBible?.heroName?.trim() || onScreenCharacter?.trim() || "(not provided)"}
+- power type: ${fantasyBible?.powerType?.trim() || "(not provided)"}
+- power limits: ${fantasyBible?.powerLimits?.trim() || "(not provided)"}
+- enemy type: ${fantasyBible?.enemyType?.trim() || "(not provided)"}
+- world tone: ${fantasyBible?.worldTone?.trim() || "(not provided)"}
+- ending hook: ${fantasyBible?.endingHook?.trim() || "(not provided)"}
+`
+      : "";
   return `
 Generate scene metadata only from this beat sheet.
 
@@ -112,7 +143,7 @@ Return valid JSON only:
 }
 
 Rules:
-- Keep all scenes in Singapore.
+- project mode: ${projectMode}
 - Only one clearly visible character per scene.
 - No new facts, events, places, or people.
 - Use beat.visualRole and beat.framingIntent as hard composition instructions.
@@ -128,6 +159,8 @@ Rules:
 - reference tag: ${referenceTag?.trim() || "(not provided)"}
 - strict mode: ${strictMode ? "ON" : "OFF"}
 - title: ${title?.trim() || "(not provided)"}
+${modeRules}
+${fantasyBibleBlock}
 
 Beat sheet:
 ${beatSheet.map(beatLine).join("\n")}
@@ -159,6 +192,8 @@ export async function POST(request: Request) {
             title: parsedBody.settings.title,
             style: parsedBody.settings.style,
             colorGradePreset: parsedBody.settings.colorGradePreset,
+            projectMode: parsedBody.settings.projectMode || "singapore-realism",
+            fantasyBible: parsedBody.settings.fantasyBible,
             narratorCharacter: parsedBody.settings.narratorCharacter,
             onScreenCharacter: parsedBody.settings.onScreenCharacter,
             referenceTag,

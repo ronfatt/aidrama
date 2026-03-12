@@ -628,11 +628,13 @@ export function FilmPackStudio() {
         scenes: promptedScenes,
         beatSheet: beatResponse.beatSheet,
         settings: {
+          projectMode,
           title,
           style,
           colorGradePreset,
           narratorCharacter,
           onScreenCharacter,
+          fantasyBible,
         },
         lockedVoiceOver,
         referenceTag,

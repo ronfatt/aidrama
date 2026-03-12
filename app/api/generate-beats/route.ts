@@ -5,6 +5,7 @@ import { getBeatModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
+import type { FantasyBibleInput, ProjectMode } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +63,8 @@ function buildBeatPrompt({
   sceneCount,
   style,
   colorGradePreset,
+  projectMode,
+  fantasyBible,
   narratorCharacter,
   onScreenCharacter,
   lockedVoiceOver,
@@ -72,6 +75,8 @@ function buildBeatPrompt({
   sceneCount: number;
   style: string;
   colorGradePreset?: string;
+  projectMode: ProjectMode;
+  fantasyBible?: FantasyBibleInput;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   lockedVoiceOver: string;
@@ -79,6 +84,35 @@ function buildBeatPrompt({
   beatLines?: string[];
 }) {
   const nonHeroTarget = sceneCount >= 25 ? "5" : "4";
+  const modeRules =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+- Build a 2-minute coastal fantasy drama progression: ordinary life, first sign, rising threat, confrontation, and hook ending.
+- Keep the world grounded in a modern Southeast Asian coastal city while allowing supernatural ocean power imagery.
+- Use the fantasy bible as a hard anchor for hero identity, power language, power limits, enemy logic, world tone, and ending hook.
+- Mix intimate character beats with atmospheric coastal beats, reflective water motifs, threshold frames, enemy-presence hints, and controlled power emergence.
+- Not every beat should show spectacle. Include anticipation, fear, aftermath, restraint, and awe.
+- Allow settings like shoreline estates, breakwaters, jetties, harbours, storm drains, sea-facing rooftops, and wet urban edges.
+- Maintain single-character staging even when enemies are implied; show threat through shadow, wake, reflection, silhouette, spray, or aftermath rather than two visible faces.
+`
+      : `
+- Keep Singapore realism and single-character production logic in mind.
+- Use grounded Singapore heartland spaces such as HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood streets, parks, and small apartments.
+- Preserve documentary-emotional realism rather than fantasy spectacle.
+`;
+  const fantasyBibleBlock =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+Fantasy bible:
+- core premise: ${fantasyBible?.corePremise?.trim() || "not provided"}
+- hero name: ${fantasyBible?.heroName?.trim() || onScreenCharacter || "not provided"}
+- power type: ${fantasyBible?.powerType?.trim() || "not provided"}
+- power limits: ${fantasyBible?.powerLimits?.trim() || "not provided"}
+- enemy type: ${fantasyBible?.enemyType?.trim() || "not provided"}
+- world tone: ${fantasyBible?.worldTone?.trim() || "not provided"}
+- ending hook: ${fantasyBible?.endingHook?.trim() || "not provided"}
+`
+      : "";
 
   return `
 You are building a beat sheet for a short cinematic film pack.
@@ -95,9 +129,10 @@ Goals:
 - Include about ${nonHeroTarget} non-hero beats total using role=broll or role=transition.
 - Every other beat should stay role=hero unless there is a clear reason not to.
 - importance should usually be A for hero, B for broll, C for transition.
-- Keep Singapore realism and single-character production logic in mind.
 - Use concise purpose lines for each beat.
 - Create visible shot grammar variation across the sequence.
+- project mode is ${projectMode}.
+${modeRules}
 
 Hard rules:
 - Do not add new facts, events, people, or locations.
@@ -115,6 +150,8 @@ Hard rules:
 - Avoid runs of static front-facing close portraits.
 - Vary framing using combinations such as intimate close portrait, environmental distance, over-shoulder witness, back-view withdrawal, doorway threshold frame, reflection composition, negative space frame, object detail insert, hands and gesture detail, corridor transition frame, architectural wide.
 - At least 25 percent of beats should avoid front-facing portrait framing.
+
+${fantasyBibleBlock}
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 
@@ -157,6 +194,8 @@ export async function POST(request: Request) {
             sceneCount,
             style: parsedBody.settings.style,
             colorGradePreset: parsedBody.settings.colorGradePreset,
+            projectMode: parsedBody.settings.projectMode || "singapore-realism",
+            fantasyBible: parsedBody.settings.fantasyBible,
             narratorCharacter: parsedBody.settings.narratorCharacter,
             onScreenCharacter: parsedBody.settings.onScreenCharacter,
             lockedVoiceOver,

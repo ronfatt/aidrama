@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { FantasyBibleInput, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const maxDuration = 60;
 
 const promptRequestSchema = z.object({
   settings: z.object({
+    projectMode: z.union([z.literal("singapore-realism"), z.literal("coastal-fantasy-drama")]).optional(),
     title: z.string().optional(),
     style: z.string().min(1),
     colorGradePreset: z.string().optional(),
@@ -16,6 +17,17 @@ const promptRequestSchema = z.object({
     onScreenCharacter: z.string().optional(),
     referenceTag: z.string().optional(),
     strictMode: z.boolean().optional(),
+    fantasyBible: z
+      .object({
+        corePremise: z.string().optional(),
+        heroName: z.string().optional(),
+        powerType: z.string().optional(),
+        powerLimits: z.string().optional(),
+        enemyType: z.string().optional(),
+        worldTone: z.string().optional(),
+        endingHook: z.string().optional(),
+      })
+      .optional(),
   }),
   scenes: z.array(
     z.object({
@@ -70,6 +82,36 @@ const promptsJsonSchema = {
 } as const;
 
 function buildPromptExpansionPrompt(input: z.infer<typeof promptRequestSchema>) {
+  const projectMode = (input.settings.projectMode || "singapore-realism") as ProjectMode;
+  const fantasyBible = input.settings.fantasyBible as FantasyBibleInput | undefined;
+  const modeRules =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+- Treat this as coastal fantasy drama, not documentary-only realism.
+- Keep the hero and world grounded in a modern Southeast Asian coastal city context.
+- Use oceanic atmosphere, wet textures, reflections, salt-air haze, shoreline architecture, storm drains, breakwaters, harbours, rooftops facing sea wind, and controlled elemental motion where relevant.
+- Show power emergence through water tension, droplets, mist, reflections, tides, spray, pressure, or aftermath rather than generic superhero spectacle.
+- Enemies should usually be implied through silhouette, wake, reflection, shadow, damaged space, or threatening environmental movement unless the scene metadata clearly makes them the single visible subject.
+- Mix intimate character frames with wide isolation, threshold compositions, back views, over-shoulder witness frames, reflection shots, object-detail inserts, and negative-space coastal frames.
+`
+      : `
+- Keep all scenes in Singapore heartland reality with grounded local textures.
+- Preserve cinematic documentary realism over fantasy spectacle.
+- Use HDB, corridors, void decks, MRT, hawker centres, neighbourhood streets, parks, and small apartments where relevant.
+`;
+  const fantasyBibleBlock =
+    projectMode === "coastal-fantasy-drama"
+      ? `
+Fantasy bible:
+- core premise: ${fantasyBible?.corePremise?.trim() || "(not provided)"}
+- hero name: ${fantasyBible?.heroName?.trim() || input.settings.onScreenCharacter?.trim() || "(not provided)"}
+- power type: ${fantasyBible?.powerType?.trim() || "(not provided)"}
+- power limits: ${fantasyBible?.powerLimits?.trim() || "(not provided)"}
+- enemy type: ${fantasyBible?.enemyType?.trim() || "(not provided)"}
+- world tone: ${fantasyBible?.worldTone?.trim() || "(not provided)"}
+- ending hook: ${fantasyBible?.endingHook?.trim() || "(not provided)"}
+`
+      : "";
   return `
 Generate concise cinematic image and video prompts for these scene metadata items.
 
@@ -86,7 +128,7 @@ Return valid JSON only:
 
 Rules:
 - Keep prompts practical for still-image generation and image-to-video.
-- Keep all scenes in Singapore.
+- project mode: ${projectMode}
 - Only one clearly visible character per scene.
 - Respect shotType, scenePurpose, camera, and lightingColor exactly.
 - Do not turn all scenes into front-facing portraits.
@@ -101,6 +143,8 @@ Rules:
 - reference tag: ${input.settings.referenceTag?.trim() || "(not provided)"}
 - strict mode: ${input.settings.strictMode === false ? "OFF" : "ON"}
 - title: ${input.settings.title?.trim() || "(not provided)"}
+${modeRules}
+${fantasyBibleBlock}
 
 Scenes:
 ${input.scenes
