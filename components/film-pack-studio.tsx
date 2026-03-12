@@ -8,6 +8,7 @@ import {
   COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
   FILM_STYLES,
+  PROJECT_MODES,
   SAMPLE_SCRIPT,
   SCENE_COUNTS,
 } from "@/lib/constants";
@@ -18,8 +19,10 @@ import type {
   BeatItem,
   ColorGradePreset,
   CompanionShot,
+  FantasyBibleInput,
   FilmPack,
   FilmTone,
+  ProjectMode,
   SceneMetadata,
   SceneCountInput,
   SceneItem,
@@ -132,6 +135,7 @@ function chunkScenes<T>(items: T[], size: number): T[][] {
 }
 
 export function FilmPackStudio() {
+  const [projectMode, setProjectMode] = useState<ProjectMode>("singapore-realism");
   const [title, setTitle] = useState("Community in Motion");
   const [originalScript, setOriginalScript] = useState(SAMPLE_SCRIPT);
   const [lockedVoiceOver, setLockedVoiceOver] = useState("");
@@ -142,6 +146,15 @@ export function FilmPackStudio() {
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
   const [colorGradePreset, setColorGradePreset] = useState<ColorGradePreset>("warm-neutral documentary");
   const [strictMode, setStrictMode] = useState(true);
+  const [fantasyBible, setFantasyBible] = useState<FantasyBibleInput>({
+    corePremise: "",
+    heroName: "",
+    powerType: "",
+    powerLimits: "",
+    enemyType: "",
+    worldTone: "",
+    endingHook: "",
+  });
   const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
   const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
   const [officialMasterReference, setOfficialMasterReference] = useState<string | null>(null);
@@ -275,6 +288,7 @@ export function FilmPackStudio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           settings: {
+            projectMode,
             title,
             originalScript,
             lockedVoiceOver,
@@ -285,6 +299,7 @@ export function FilmPackStudio() {
             style,
             colorGradePreset,
             strictMode,
+            fantasyBible,
           },
         }),
       });
@@ -319,6 +334,7 @@ export function FilmPackStudio() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         settings: {
+          projectMode,
           title,
           originalScript,
           lockedVoiceOver,
@@ -329,6 +345,7 @@ export function FilmPackStudio() {
           style,
           colorGradePreset,
           strictMode,
+          fantasyBible,
         },
         beatSheet: sourceBeatSheet,
       }),
@@ -370,6 +387,8 @@ export function FilmPackStudio() {
             onScreenCharacter,
             referenceTag,
             strictMode,
+            projectMode,
+            fantasyBible,
           },
           scenes: chunk.map((scene) => ({
             sceneNumber: scene.sceneNumber,
@@ -650,6 +669,35 @@ export function FilmPackStudio() {
       </section>
 
       <form onSubmit={onGenerate} className="space-y-5 rounded-2xl border border-white/10 bg-zinc-900/80 p-5 sm:p-6">
+        <section className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div>
+            <p className="text-sm font-medium text-zinc-100">Project Mode</p>
+            <p className="text-xs text-zinc-400">
+              Keep the existing Singapore realism workflow, or prepare a separate fantasy-drama setup without changing the old mode.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PROJECT_MODES.map((mode) => {
+              const active = projectMode === mode.value;
+              return (
+                <button
+                  key={mode.value}
+                  type="button"
+                  onClick={() => setProjectMode(mode.value)}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    active
+                      ? "border-cyan-300/60 bg-cyan-500/10 text-cyan-100"
+                      : "border-white/10 bg-black/20 text-zinc-200 hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <div className="text-sm font-medium">{mode.label}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{mode.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-zinc-200">Optional Title</span>
@@ -699,6 +747,84 @@ export function FilmPackStudio() {
           Use these two fields when one person narrates about another. Example: narrator = Bryan, on-screen character =
           Samuel.
         </p>
+
+        {projectMode === "coastal-fantasy-drama" ? (
+          <section className="space-y-4 rounded-xl border border-sky-400/20 bg-sky-500/[0.04] p-4">
+            <div>
+              <p className="text-sm font-medium text-zinc-100">Fantasy Bible</p>
+              <p className="text-xs text-zinc-400">
+                This block prepares the new fantasy-drama mode. We are saving and sending these fields now, so we can wire them into prompt logic next without touching the Singapore realism setup.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">Hero Name</span>
+                <input
+                  value={fantasyBible.heroName || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, heroName: event.target.value }))}
+                  className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="e.g. Kai"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">Power Type</span>
+                <input
+                  value={fantasyBible.powerType || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, powerType: event.target.value }))}
+                  className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="e.g. control over sea currents and tidal force"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">Enemy Type</span>
+                <input
+                  value={fantasyBible.enemyType || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, enemyType: event.target.value }))}
+                  className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="e.g. sea-born hunters, rival wielders, harbor cult"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">World Tone</span>
+                <input
+                  value={fantasyBible.worldTone || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, worldTone: event.target.value }))}
+                  className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="e.g. grounded coastal fantasy, mythic but modern"
+                />
+              </label>
+            </div>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Core Premise</span>
+              <textarea
+                value={fantasyBible.corePremise || ""}
+                onChange={(event) => setFantasyBible((prev) => ({ ...prev, corePremise: event.target.value }))}
+                className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="A young man discovers he can command the sea, but every use of his power draws stronger enemies toward the coast."
+              />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">Power Limits</span>
+                <textarea
+                  value={fantasyBible.powerLimits || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, powerLimits: event.target.value }))}
+                  className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="Stronger near the sea, drains stamina, unstable under fear or anger."
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-zinc-200">Ending Hook</span>
+                <textarea
+                  value={fantasyBible.endingHook || ""}
+                  onChange={(event) => setFantasyBible((prev) => ({ ...prev, endingHook: event.target.value }))}
+                  className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                  placeholder="He wins the first fight, but the tide answers back and reveals a far greater enemy."
+                />
+              </label>
+            </div>
+          </section>
+        ) : null}
 
         <label className="grid gap-2">
           <span className="text-sm font-medium text-zinc-200">Original Script / Story</span>

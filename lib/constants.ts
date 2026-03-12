@@ -1,4 +1,17 @@
-import type { ColorGradePreset, FilmTone, SceneCountInput } from "@/types/film-pack";
+import type { ColorGradePreset, FilmTone, ProjectMode, SceneCountInput } from "@/types/film-pack";
+
+export const PROJECT_MODES: Array<{ value: ProjectMode; label: string; description: string }> = [
+  {
+    value: "singapore-realism",
+    label: "Singapore Realism",
+    description: "Grounded Singapore short-form realism, documentary-adjacent visual language.",
+  },
+  {
+    value: "coastal-fantasy-drama",
+    label: "Coastal Fantasy Drama",
+    description: "Single-hero short drama with powers, mythic atmosphere, and enemy conflict.",
+  },
+];
 
 export const SCENE_COUNTS: SceneCountInput[] = ["auto", 20, 22, 25, 28, 30];
 

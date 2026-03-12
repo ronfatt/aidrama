@@ -8,6 +8,8 @@ export type ColorGradePreset =
   | "muted realism"
   | "soft warm intimacy";
 
+export type ProjectMode = "singapore-realism" | "coastal-fantasy-drama";
+
 export type FilmTone =
   | "cinematic documentary"
   | "psychological drama"
@@ -31,6 +33,7 @@ export type SceneType =
   | "over-shoulder shot";
 
 export interface UserSettings {
+  projectMode?: ProjectMode;
   title?: string;
   originalScript: string;
   lockedVoiceOver?: string;
@@ -41,6 +44,17 @@ export interface UserSettings {
   style: FilmTone;
   colorGradePreset?: ColorGradePreset;
   strictMode?: boolean;
+  fantasyBible?: FantasyBibleInput;
+}
+
+export interface FantasyBibleInput {
+  corePremise?: string;
+  heroName?: string;
+  powerType?: string;
+  powerLimits?: string;
+  enemyType?: string;
+  worldTone?: string;
+  endingHook?: string;
 }
 
 export interface BeatItem {

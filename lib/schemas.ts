@@ -10,6 +10,8 @@ const sceneCountSchema = z.union([
   z.literal(30),
 ]);
 
+const projectModeSchema = z.union([z.literal("singapore-realism"), z.literal("coastal-fantasy-drama")]);
+
 const styleSchema = z.union([
   z.literal("cinematic documentary"),
   z.literal("psychological drama"),
@@ -46,6 +48,7 @@ export const beatItemSchema = z.object({
 
 export const generateRequestSchema = z.object({
   settings: z.object({
+    projectMode: projectModeSchema.optional(),
     title: z.string().trim().max(120).optional(),
     originalScript: z.string().trim().min(20, "Script is too short.").max(10000),
     lockedVoiceOver: z.string().trim().min(20).max(10000).optional().or(z.literal("")),
@@ -62,6 +65,17 @@ export const generateRequestSchema = z.object({
     style: styleSchema,
     colorGradePreset: colorGradePresetSchema.optional(),
     strictMode: z.boolean().optional(),
+    fantasyBible: z
+      .object({
+        corePremise: z.string().trim().max(1000).optional().or(z.literal("")),
+        heroName: z.string().trim().max(120).optional().or(z.literal("")),
+        powerType: z.string().trim().max(300).optional().or(z.literal("")),
+        powerLimits: z.string().trim().max(500).optional().or(z.literal("")),
+        enemyType: z.string().trim().max(300).optional().or(z.literal("")),
+        worldTone: z.string().trim().max(300).optional().or(z.literal("")),
+        endingHook: z.string().trim().max(500).optional().or(z.literal("")),
+      })
+      .optional(),
   }),
   beatSheet: z.array(beatItemSchema).min(20).max(30).optional(),
   strict_mode: z.boolean().optional(),
