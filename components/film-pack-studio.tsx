@@ -428,45 +428,59 @@ export function FilmPackStudio() {
   };
 
   const generateSceneMetadata = async (sourceBeatSheet: BeatItem[]): Promise<SceneMetadata[]> => {
-    const response = await fetch("/api/generate-scene-metadata", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        settings: {
-          projectMode,
-          title,
-          originalScript,
-          lockedVoiceOver,
-          narratorCharacter,
-          onScreenCharacter,
-          referenceTag,
-          sceneCount,
-          style,
-          colorGradePreset,
-          strictMode,
-          fantasyBible,
-        },
-        beatSheet: sourceBeatSheet,
-      }),
+    const chunkSize = projectMode === "coastal-fantasy-drama" ? 4 : 8;
+    const chunks = chunkScenes(sourceBeatSheet, chunkSize);
+    const merged = new Map<number, SceneMetadata>();
+
+    for (const chunk of chunks) {
+      const response = await fetch("/api/generate-scene-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            projectMode,
+            title,
+            originalScript,
+            lockedVoiceOver,
+            narratorCharacter,
+            onScreenCharacter,
+            referenceTag,
+            sceneCount,
+            style,
+            colorGradePreset,
+            strictMode,
+            fantasyBible,
+          },
+          beatSheet: chunk,
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateScenePayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateScenePayload;
+      } catch {
+        payload = {
+          error: normalizeStageError(raw, "Scene metadata generation failed (non-JSON response)."),
+        };
+      }
+
+      if (!response.ok || !payload?.scenes) {
+        throw new Error(payload?.error || "Scene metadata generation failed.");
+      }
+
+      for (const scene of payload.scenes as SceneMetadata[]) {
+        merged.set(scene.sceneNumber, scene);
+      }
+    }
+
+    return sourceBeatSheet.map((beat) => {
+      const scene = merged.get(beat.beatNumber);
+      if (!scene) {
+        throw new Error(`Missing metadata for scene ${beat.beatNumber}.`);
+      }
+      return scene;
     });
-
-    const raw = await response.text();
-    let payload: GenerateScenePayload | null = null;
-    try {
-      payload = JSON.parse(raw) as GenerateScenePayload;
-    } catch {
-      payload = {
-        error: raw.includes("FUNCTION_INVOCATION_TIMEOUT")
-          ? "Vercel function timeout while generating scene metadata."
-          : raw || "Scene metadata generation failed (non-JSON response).",
-      };
-    }
-
-    if (!response.ok || !payload?.scenes) {
-      throw new Error(payload?.error || "Scene metadata generation failed.");
-    }
-
-    return payload.scenes as SceneMetadata[];
   };
 
   const generatePromptBatches = async (sourceScenes: SceneMetadata[]): Promise<SceneItem[]> => {

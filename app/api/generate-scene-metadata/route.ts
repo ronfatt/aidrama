@@ -27,50 +27,52 @@ const metadataSchema = z.object({
   ),
 });
 
-const metadataJsonSchema = {
-  name: "scene_metadata",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      scenes: {
-        type: "array",
-        minItems: 20,
-        maxItems: 30,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            sceneNumber: { type: "integer" },
-            phase: { type: "string" },
-            voLine: { type: "string" },
-            shotType: { type: "string" },
-            shotGrammarPreset: { type: "string" },
-            scenePurpose: { type: "string" },
-            importance: { type: "string", enum: ["A", "B", "C"] },
-            useReferenceImage: { type: "boolean" },
-            camera: { type: "string" },
-            lightingColor: { type: "string" },
+function buildMetadataJsonSchema(sceneCount: number) {
+  return {
+    name: "scene_metadata",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        scenes: {
+          type: "array",
+          minItems: sceneCount,
+          maxItems: sceneCount,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              sceneNumber: { type: "integer" },
+              phase: { type: "string" },
+              voLine: { type: "string" },
+              shotType: { type: "string" },
+              shotGrammarPreset: { type: "string" },
+              scenePurpose: { type: "string" },
+              importance: { type: "string", enum: ["A", "B", "C"] },
+              useReferenceImage: { type: "boolean" },
+              camera: { type: "string" },
+              lightingColor: { type: "string" },
+            },
+            required: [
+              "sceneNumber",
+              "phase",
+              "voLine",
+              "shotType",
+              "shotGrammarPreset",
+              "scenePurpose",
+              "importance",
+              "useReferenceImage",
+              "camera",
+              "lightingColor",
+            ],
           },
-          required: [
-            "sceneNumber",
-            "phase",
-            "voLine",
-            "shotType",
-            "shotGrammarPreset",
-            "scenePurpose",
-            "importance",
-            "useReferenceImage",
-            "camera",
-            "lightingColor",
-          ],
         },
       },
+      required: ["scenes"],
     },
-    required: ["scenes"],
-  },
-} as const;
+  } as const;
+}
 
 function beatLine(beat: BeatItem) {
   return `${beat.beatNumber}. [${beat.phase}] storyArc="${beat.storyArc}" shotGrammarPreset="${beat.shotGrammarPreset}" role=${beat.role} importance=${beat.importance} visualRole="${beat.visualRole}" framingIntent="${beat.framingIntent}" vo="${beat.voLine}" purpose="${beat.purpose}"`;
@@ -199,7 +201,7 @@ export async function POST(request: Request) {
     const response = await client.responses.create({
       model: getFilmPackModelName(),
       temperature: strictMode ? 0.15 : 0.35,
-      max_output_tokens: 4500,
+      max_output_tokens: Math.min(2200, 500 + beatSheet.length * 220),
       input: [
         {
           role: "user",
@@ -220,7 +222,7 @@ export async function POST(request: Request) {
       text: {
         format: {
           type: "json_schema",
-          ...metadataJsonSchema,
+          ...buildMetadataJsonSchema(beatSheet.length),
         },
       },
     });

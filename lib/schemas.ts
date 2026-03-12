@@ -86,7 +86,7 @@ export const generateRequestSchema = z.object({
       })
       .optional(),
   }),
-  beatSheet: z.array(beatItemSchema).min(20).max(30).optional(),
+  beatSheet: z.array(beatItemSchema).min(1).max(30).optional(),
   strict_mode: z.boolean().optional(),
 });
 
