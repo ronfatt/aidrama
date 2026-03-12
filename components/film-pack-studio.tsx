@@ -432,7 +432,7 @@ export function FilmPackStudio() {
     const chunks = chunkScenes(sourceBeatSheet, chunkSize);
     const merged = new Map<number, SceneMetadata>();
 
-    for (const chunk of chunks) {
+    const requestMetadataChunk = async (chunk: BeatItem[]): Promise<SceneMetadata[]> => {
       const response = await fetch("/api/generate-scene-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -469,7 +469,33 @@ export function FilmPackStudio() {
         throw new Error(payload?.error || "Scene metadata generation failed.");
       }
 
-      for (const scene of payload.scenes as SceneMetadata[]) {
+      return payload.scenes as SceneMetadata[];
+    };
+
+    for (const chunk of chunks) {
+      try {
+        const chunkScenesResult = await requestMetadataChunk(chunk);
+        for (const scene of chunkScenesResult) {
+          merged.set(scene.sceneNumber, scene);
+        }
+      } catch (chunkError) {
+        if (chunk.length === 1) {
+          throw chunkError;
+        }
+
+        for (const beat of chunk) {
+          const singleSceneResult = await requestMetadataChunk([beat]);
+          for (const scene of singleSceneResult) {
+            merged.set(scene.sceneNumber, scene);
+          }
+        }
+      }
+    }
+
+    const missingBeats = sourceBeatSheet.filter((beat) => !merged.has(beat.beatNumber));
+    for (const beat of missingBeats) {
+      const singleSceneResult = await requestMetadataChunk([beat]);
+      for (const scene of singleSceneResult) {
         merged.set(scene.sceneNumber, scene);
       }
     }
@@ -488,7 +514,7 @@ export function FilmPackStudio() {
     const chunks = chunkScenes(sourceScenes, chunkSize);
     const merged = new Map<number, SceneItem>();
 
-    for (const chunk of chunks) {
+    const requestPromptChunk = async (chunk: SceneMetadata[]): Promise<SceneItem[]> => {
       const response = await fetch("/api/generate-scene-prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -533,8 +559,34 @@ export function FilmPackStudio() {
         throw new Error(payload?.error || "Scene prompt generation failed.");
       }
 
-      for (const scene of payload.scenes as SceneItem[]) {
-        merged.set(scene.sceneNumber, scene);
+      return payload.scenes as SceneItem[];
+    };
+
+    for (const chunk of chunks) {
+      try {
+        const chunkScenesResult = await requestPromptChunk(chunk);
+        for (const scene of chunkScenesResult) {
+          merged.set(scene.sceneNumber, scene);
+        }
+      } catch (chunkError) {
+        if (chunk.length === 1) {
+          throw chunkError;
+        }
+
+        for (const scene of chunk) {
+          const singlePromptResult = await requestPromptChunk([scene]);
+          for (const promptScene of singlePromptResult) {
+            merged.set(promptScene.sceneNumber, promptScene);
+          }
+        }
+      }
+    }
+
+    const missingScenes = sourceScenes.filter((scene) => !merged.has(scene.sceneNumber));
+    for (const scene of missingScenes) {
+      const singlePromptResult = await requestPromptChunk([scene]);
+      for (const promptScene of singlePromptResult) {
+        merged.set(promptScene.sceneNumber, promptScene);
       }
     }
 
