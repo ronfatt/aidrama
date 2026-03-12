@@ -190,6 +190,34 @@ function parseMetadataPayload(raw: string) {
   }
 }
 
+function alignMetadataScenesToBeatSheet(scenes: SceneMetadata[], beatSheet: BeatItem[]) {
+  const expectedNumbers = beatSheet.map((beat) => beat.beatNumber);
+  const actualNumbers = scenes.map((scene) => scene.sceneNumber);
+  const actualSet = new Set(actualNumbers);
+
+  const exactCoverage =
+    scenes.length === beatSheet.length && expectedNumbers.every((sceneNumber) => actualSet.has(sceneNumber));
+
+  if (exactCoverage) {
+    return scenes;
+  }
+
+  const looksLikeOrdinalChunk =
+    scenes.length === beatSheet.length &&
+    actualNumbers.every((sceneNumber, index) => sceneNumber === index + 1) &&
+    !expectedNumbers.every((sceneNumber, index) => sceneNumber === index + 1);
+
+  if (looksLikeOrdinalChunk) {
+    return scenes.map((scene, index) => ({
+      ...scene,
+      sceneNumber: beatSheet[index].beatNumber,
+    }));
+  }
+
+  const missingSceneNumbers = expectedNumbers.filter((sceneNumber) => !actualSet.has(sceneNumber));
+  throw new Error(`Scene metadata returned incomplete scene coverage. Missing scene numbers: ${missingSceneNumbers.join(", ")}.`);
+}
+
 async function generateMetadataBatch(
   client: ReturnType<typeof getOpenAIClient>,
   input: Parameters<typeof buildMetadataPrompt>[0],
@@ -221,7 +249,10 @@ async function generateMetadataBatch(
     throw new Error("No scene metadata returned from model.");
   }
 
-  return parseMetadataPayload(raw);
+  const parsed = parseMetadataPayload(raw);
+  return {
+    scenes: alignMetadataScenesToBeatSheet(parsed.scenes as SceneMetadata[], beatSheet),
+  };
 }
 
 export async function POST(request: Request) {
@@ -267,7 +298,33 @@ export async function POST(request: Request) {
       }
     }
 
-    const scenes = parsed.scenes as SceneMetadata[];
+    const byScene = new Map((parsed.scenes as SceneMetadata[]).map((scene) => [scene.sceneNumber, scene]));
+    const missingBeats = beatSheet.filter((beat) => !byScene.has(beat.beatNumber));
+
+    if (missingBeats.length > 0) {
+      let retryParsed;
+      try {
+        retryParsed = await generateMetadataBatch(client, generationInput, missingBeats);
+      } catch (error) {
+        if (error instanceof Error && error.message === "Scene metadata model response was malformed JSON.") {
+          retryParsed = await generateMetadataBatch(client, generationInput, missingBeats);
+        } else {
+          throw error;
+        }
+      }
+
+      for (const scene of retryParsed.scenes as SceneMetadata[]) {
+        byScene.set(scene.sceneNumber, scene);
+      }
+    }
+
+    const scenes = beatSheet.map((beat) => {
+      const scene = byScene.get(beat.beatNumber);
+      if (!scene) {
+        throw new Error(`Missing metadata for scene ${beat.beatNumber}.`);
+      }
+      return scene;
+    });
 
     return NextResponse.json({ scenes });
   } catch (error) {
