@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
 import type { FantasyBibleInput, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
@@ -111,6 +112,9 @@ Fantasy bible:
 - enemy type: ${fantasyBible?.enemyType?.trim() || "(not provided)"}
 - world tone: ${fantasyBible?.worldTone?.trim() || "(not provided)"}
 - ending hook: ${fantasyBible?.endingHook?.trim() || "(not provided)"}
+
+Preferred location vocabulary:
+${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
       : "";
   return `

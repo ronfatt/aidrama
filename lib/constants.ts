@@ -42,6 +42,19 @@ export const FANTASY_COLOR_GRADE_PRESETS: ColorGradePreset[] = [
   "tidal supernatural realism",
 ];
 
+export const FANTASY_LOCATION_VOCABULARY = [
+  "breakwater walkway",
+  "abandoned jetty",
+  "shoreline rooftop",
+  "storm drain channel",
+  "harbour edge",
+  "seawall walkway",
+  "container-port horizon",
+  "flooded alley",
+  "rain-slick coastal underpass",
+  "sea-facing housing block corridor",
+] as const;
+
 export const RULE_CHECKLIST = [
   "Preserve original meaning and keep narration around 80–90 seconds.",
   "Generate exactly selected scene count (Auto / 20 / 22 / 25 / 28 / 30).",

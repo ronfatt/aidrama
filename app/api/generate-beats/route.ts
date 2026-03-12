@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
 import { normalizeBeatSheet, phaseByPosition } from "@/lib/beat-sheet";
 import { getBeatModelName, getOpenAIClient } from "@/lib/openai";
+import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
@@ -115,6 +116,9 @@ Fantasy bible:
 - enemy type: ${fantasyBible?.enemyType?.trim() || "not provided"}
 - world tone: ${fantasyBible?.worldTone?.trim() || "not provided"}
 - ending hook: ${fantasyBible?.endingHook?.trim() || "not provided"}
+
+Preferred location vocabulary:
+${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
       : "";
 

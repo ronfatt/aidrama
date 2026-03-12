@@ -1,10 +1,11 @@
+import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
 import type { BeatItem, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
 
 export function buildSettingNote(style: string, projectMode: ProjectMode, fantasyBible?: FantasyBibleInput) {
   if (projectMode === "coastal-fantasy-drama") {
     const worldTone = fantasyBible?.worldTone?.trim() || "grounded coastal fantasy";
     const powerType = fantasyBible?.powerType?.trim() || "ocean-linked supernatural force";
-    return `All scenes are set in a modern Southeast Asian coastal fantasy world with grounded urban textures, wet concrete, sea-facing edges, and controlled mythic atmosphere. Visual tone is ${style}, shaped by ${worldTone} and a restrained cinematic treatment of ${powerType}.`;
+    return `All scenes are set in a modern Southeast Asian coastal fantasy world with grounded urban textures, wet concrete, sea-facing edges, and controlled mythic atmosphere. Use a recurring coastal location family such as ${FANTASY_LOCATION_VOCABULARY.slice(0, 6).join(", ")}. Visual tone is ${style}, shaped by ${worldTone} and a restrained cinematic treatment of ${powerType}.`;
   }
 
   return `All scenes are set in contemporary Singapore heartland spaces: HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood parks and small apartments. Visual tone is ${style}, grounded in local textures and documentary realism.`;
