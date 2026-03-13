@@ -16,6 +16,8 @@ import {
   PROJECT_MODES,
   SAMPLE_SCRIPT,
   SCENE_COUNTS,
+  TAWAU_SAMPLE_SCRIPT,
+  TAWAU_SAMPLE_VO,
 } from "@/lib/constants";
 import { assembleFilmPackFromScenes } from "@/lib/film-pack-assembly";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
@@ -411,6 +413,28 @@ export function FilmPackStudio() {
       return;
     }
 
+    if (mode === "tawau-sabah-realism") {
+      setTitle("Tawau AI Smart Aduan - From Complaint to Action");
+      setOriginalScript(TAWAU_SAMPLE_SCRIPT);
+      setLockedVoiceOver(TAWAU_SAMPLE_VO);
+      setNarratorCharacter("Municipal Officer");
+      setOnScreenCharacter("Local Citizen");
+      setReferenceTag("[CITIZEN_REPORTER]");
+      setStyle("cinematic documentary");
+      setColorGradePreset("warm-neutral documentary");
+      setSceneCount("auto");
+      setFantasyBible({
+        corePremise: "",
+        heroName: "",
+        powerType: "",
+        powerLimits: "",
+        enemyType: "",
+        worldTone: "",
+        endingHook: "",
+      });
+      return;
+    }
+
     setTitle("Community in Motion");
     setOriginalScript(SAMPLE_SCRIPT);
     setLockedVoiceOver("");
@@ -709,6 +733,7 @@ export function FilmPackStudio() {
         body: JSON.stringify({
           imagePrompt: scene.imagePrompt,
           sceneNumber: isCompanion ? scene.parentSceneNumber : scene.sceneNumber,
+          projectMode,
           useReferenceImage: scene.useReferenceImage,
           referenceTag,
           style,
@@ -928,7 +953,7 @@ export function FilmPackStudio() {
           <div>
             <p className="text-sm font-medium text-zinc-100">Project Mode</p>
             <p className="text-xs text-zinc-400">
-              Keep the existing Singapore realism workflow, or prepare a separate fantasy-drama setup without changing the old mode.
+              Keep the existing realism workflow, or prepare separate Tawau / Sabah and fantasy-drama setups without changing the old mode.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -945,6 +970,13 @@ export function FilmPackStudio() {
               className="rounded-lg border border-sky-400/20 bg-sky-500/[0.06] px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-500/[0.12]"
             >
               Load fantasy sample
+            </button>
+            <button
+              type="button"
+              onClick={() => loadProjectModeSample("tawau-sabah-realism")}
+              className="rounded-lg border border-emerald-400/20 bg-emerald-500/[0.06] px-3 py-2 text-xs text-emerald-100 transition hover:bg-emerald-500/[0.12]"
+            >
+              Load Tawau sample
             </button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1289,7 +1321,7 @@ export function FilmPackStudio() {
           </button>
         </label>
 
-        <RulesPanel />
+        <RulesPanel key={projectMode} projectMode={projectMode} />
 
         <button
           type="submit"
@@ -1357,7 +1389,10 @@ export function FilmPackStudio() {
 
             <div className="space-y-3 text-sm text-zinc-300">
               <p>
-                <span className="font-semibold text-zinc-100">Singapore setting note:</span> {result.settingNote}
+                <span className="font-semibold text-zinc-100">
+                  {projectMode === "tawau-sabah-realism" ? "Tawau / Sabah setting note:" : projectMode === "coastal-fantasy-drama" ? "Fantasy setting note:" : "Singapore setting note:"}
+                </span>{" "}
+                {result.settingNote}
               </p>
               <p>
                 <span className="font-semibold text-zinc-100">Preserved VO:</span> {result.preservedVoiceOverScript}

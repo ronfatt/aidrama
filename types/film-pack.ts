@@ -12,7 +12,7 @@ export type ColorGradePreset =
   | "sunset awakening"
   | "tidal supernatural realism";
 
-export type ProjectMode = "singapore-realism" | "coastal-fantasy-drama";
+export type ProjectMode = "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama";
 
 export type FilmTone =
   | "cinematic documentary"

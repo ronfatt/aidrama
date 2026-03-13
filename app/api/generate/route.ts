@@ -67,6 +67,7 @@ function buildScenesOnlyPrompt({
   title,
   style,
   colorGradePreset,
+  projectMode,
   narratorCharacter,
   onScreenCharacter,
   referenceTag,
@@ -76,6 +77,7 @@ function buildScenesOnlyPrompt({
   title?: string;
   style: string;
   colorGradePreset?: string;
+  projectMode?: "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama";
   narratorCharacter?: string;
   onScreenCharacter?: string;
   referenceTag?: string;
@@ -111,11 +113,14 @@ Production settings:
 - primary on-screen character: ${onScreenCharacter?.trim() || "(not provided)"}
 - main reference tag: ${referenceTag?.trim() || "(not provided)"}
 - strict mode: ${strictMode ? "ON" : "OFF"}
+- project mode: ${projectMode || "singapore-realism"}
 
 Hard rules:
 - Use the beat sheet as the only story source of truth.
 - Do not add new facts, events, places, or people.
-- Keep all scenes in Singapore.
+- Keep all scenes in ${
+    projectMode === "tawau-sabah-realism" ? "Tawau, Sabah" : projectMode === "coastal-fantasy-drama" ? "a Southeast Asian coastal fantasy world" : "Singapore"
+  }.
 - Only one clearly visible character per scene.
 - If narrator and on-screen character differ, prioritize the on-screen character visually.
 - Use POV / over-shoulder / back view / silhouette when narrator presence is needed.
@@ -139,7 +144,10 @@ ${beatSheet
 `;
 }
 
-function buildSettingNote(style: string) {
+function buildSettingNote(style: string, projectMode: "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama" = "singapore-realism") {
+  if (projectMode === "tawau-sabah-realism") {
+    return `All scenes are set in Tawau, Sabah civic and neighborhood spaces: municipal offices, shoplots, roadsides, jetties, kampung air walkways, wet markets, schools, clinics, housing areas, and local service depots. Visual tone is ${style}, grounded in local textures and documentary realism.`;
+  }
   return `All scenes are set in contemporary Singapore heartland spaces: HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood parks and small apartments. Visual tone is ${style}, grounded in local textures and documentary realism.`;
 }
 
@@ -176,6 +184,7 @@ function assembleFilmPackFromScenes({
   beatSheet: BeatItem[];
   settings: {
     title?: string;
+    projectMode?: "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama";
     style: FilmPack["style"];
     colorGradePreset?: FilmPack["colorGradePreset"];
     narratorCharacter?: string;
@@ -188,7 +197,7 @@ function assembleFilmPackFromScenes({
     title: settings.title?.trim() || "Untitled Film Pack",
     style: settings.style,
     colorGradePreset: settings.colorGradePreset,
-    settingNote: buildSettingNote(settings.style),
+    settingNote: buildSettingNote(settings.style, settings.projectMode || "singapore-realism"),
     preservedVoiceOverScript: lockedVoiceOver || beatSheet.map((beat) => beat.voLine).join(" "),
     characterReferenceGuidance: buildCharacterReferenceGuidance({
       referenceTag,
@@ -277,6 +286,7 @@ export async function POST(request: Request) {
             content: buildScenesOnlyPrompt({
               beatSheet: providedBeatSheet,
               title: parsedBody.settings.title,
+              projectMode: parsedBody.settings.projectMode,
               style: parsedBody.settings.style,
               colorGradePreset: parsedBody.settings.colorGradePreset,
               narratorCharacter: parsedBody.settings.narratorCharacter,
@@ -305,9 +315,10 @@ export async function POST(request: Request) {
         assembleFilmPackFromScenes({
           scenes: parsedScenes,
           beatSheet: providedBeatSheet,
-          settings: {
-            title: parsedBody.settings.title,
-            style: parsedBody.settings.style,
+        settings: {
+          title: parsedBody.settings.title,
+          projectMode: parsedBody.settings.projectMode,
+          style: parsedBody.settings.style,
             colorGradePreset: parsedBody.settings.colorGradePreset,
             narratorCharacter: parsedBody.settings.narratorCharacter,
             onScreenCharacter: parsedBody.settings.onScreenCharacter,

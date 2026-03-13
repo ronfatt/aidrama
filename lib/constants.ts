@@ -7,6 +7,11 @@ export const PROJECT_MODES: Array<{ value: ProjectMode; label: string; descripti
     description: "Grounded Singapore short-form realism, documentary-adjacent visual language.",
   },
   {
+    value: "tawau-sabah-realism",
+    label: "Sabah / Tawau Realism",
+    description: "Grounded Tawau, Sabah short-form realism with local civic, coastal, and town textures.",
+  },
+  {
     value: "coastal-fantasy-drama",
     label: "Coastal Fantasy Drama",
     description: "Single-hero short drama with powers, mythic atmosphere, and enemy conflict.",
@@ -55,18 +60,47 @@ export const FANTASY_LOCATION_VOCABULARY = [
   "sea-facing housing block corridor",
 ] as const;
 
-export const RULE_CHECKLIST = [
-  "Preserve original meaning and keep narration around 80–90 seconds.",
-  "Generate exactly selected scene count (Auto / 20 / 22 / 25 / 28 / 30).",
-  "Only one clearly visible character per scene.",
-  "If interaction is needed, use POV / over-shoulder / back view / silhouette.",
-  "Avoid two clear faces in one scene.",
-  "Only use reference-image workflow if you explicitly provide a character reference tag or master ref.",
-  "All scenes in Singapore contexts (HDB, MRT, hawker, void deck, parks).",
-  "No western suburban houses or American interiors.",
-  "Characters should read as Singapore residents (Chinese / Malay / Indian Singaporean).",
-  "Image/video prompts optimized for Kling O1 and image-to-video workflow.",
-];
+export const TAWAU_LOCATION_VOCABULARY = [
+  "Tawau municipal office",
+  "Sabah town shoplots",
+  "Tawau wet market",
+  "coastal roadside in Tawau",
+  "public jetty edge",
+  "kampung air walkway",
+  "government service counter",
+  "public works depot",
+  "district housing area",
+  "school or clinic frontage",
+] as const;
+
+export function getRuleChecklist(projectMode: ProjectMode) {
+  const locationRule =
+    projectMode === "tawau-sabah-realism"
+      ? "All scenes in Tawau / Sabah contexts (municipal offices, shoplots, kampung air, jetties, roadsides, housing areas, schools, clinics)."
+      : projectMode === "coastal-fantasy-drama"
+        ? "Use a grounded Southeast Asian coastal setting family with shoreline walkways, jetties, storm drains, harbours and sea-facing housing."
+        : "All scenes in Singapore contexts (HDB, MRT, hawker, void deck, parks).";
+
+  const characterRule =
+    projectMode === "tawau-sabah-realism"
+      ? "Characters should read as Sabah / Malaysian residents with grounded local appearance and environments."
+      : projectMode === "coastal-fantasy-drama"
+        ? "Keep character identity grounded in a Southeast Asian coastal world, with one clearly visible subject per scene."
+        : "Characters should read as Singapore residents (Chinese / Malay / Indian Singaporean).";
+
+  return [
+    "Preserve original meaning and keep narration around 80–90 seconds.",
+    "Generate exactly selected scene count (Auto / 20 / 22 / 25 / 28 / 30).",
+    "Only one clearly visible character per scene.",
+    "If interaction is needed, use POV / over-shoulder / back view / silhouette.",
+    "Avoid two clear faces in one scene.",
+    "Only use reference-image workflow if you explicitly provide a character reference tag or master ref.",
+    locationRule,
+    "No western suburban houses or American interiors.",
+    characterRule,
+    "Image/video prompts optimized for Kling O1 and image-to-video workflow.",
+  ];
+}
 
 export const SAMPLE_SCRIPT = `Late evening in Toa Payoh. Darren returns from work and walks through the HDB void deck where he grew up. He notices an old notice board announcing a neighborhood food drive, but very few names are signed up. On the way home, he passes an elderly uncle carrying heavy grocery bags up a staircase because the lift is under maintenance. Darren helps him.
 
@@ -77,6 +111,24 @@ At first, responses are slow. Then a Malay mother adds rice. A Chinese student a
 Darren realizes the story is not about one hero. It is about small actions becoming a shared rhythm. In a city that moves fast, community still grows when people decide to show up.`;
 
 export const DEFAULT_REFERENCE_TAG = "";
+
+export const TAWAU_SAMPLE_SCRIPT = `At the Tawau Municipal Council operations office, a citizen report enters the AI Smart Aduan dashboard within seconds. A damaged roadside bridge and drainage break are flagged from a local submission, and the system classifies the issue as urgent infrastructure damage.
+
+An officer reviews the report, confirms the location, and sends the case to the Public Works unit. A field crew leaves the depot and travels through town roads toward the site.
+
+Soon after, workers arrive, secure the area, and begin repairs while residents watch the response unfold in real time. The original complaint is no longer just a message on a phone. It becomes coordinated action.
+
+Through AI Smart Aduan, local reports turn into usable civic data, helping Tawau respond faster and more transparently. What starts in Tawau can grow into a smarter public service model for Sabah and eventually other cities across Malaysia.`;
+
+export const TAWAU_SAMPLE_VO = `A local report enters the Tawau AI Smart Aduan system instantly.
+
+The issue is identified, categorized, and sent to the right department.
+
+Municipal teams respond faster and more efficiently.
+
+From complaint to action.
+
+From Tawau toward smarter public service in Malaysia.`;
 
 export const FANTASY_SAMPLE_SCRIPT = `Kai has spent his whole life near Singapore's eastern shoreline, always hearing the sea before anyone else notices it. One stormy evening, he sees a child slip near the breakwater and reaches out on instinct. The water rises around his arm like it is answering him. He pulls the child back, but the tide does not settle. It circles his feet as if it recognizes him.
 

@@ -104,7 +104,7 @@ function buildPrompt(input: z.infer<typeof generateCompanionShotSchema>): string
 Rules:
 - Keep the same story phase and same VO segment.
 - Do not replace the main scene. This is an extra companion shot.
-- Keep Singapore realism.
+- Keep the same regional realism or fantasy context already established by the base scene setting note.
 - Only one clearly visible character.
 - If possible, reduce frontal face dependency.
 - For broll: prefer environment, atmospheric insert, symbolic insert, transition B-roll.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
+import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
 import type { FantasyBibleInput, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
@@ -10,7 +10,7 @@ export const maxDuration = 60;
 
 const promptRequestSchema = z.object({
   settings: z.object({
-    projectMode: z.union([z.literal("singapore-realism"), z.literal("coastal-fantasy-drama")]).optional(),
+    projectMode: z.union([z.literal("singapore-realism"), z.literal("tawau-sabah-realism"), z.literal("coastal-fantasy-drama")]).optional(),
     title: z.string().optional(),
     style: z.string().min(1),
     colorGradePreset: z.string().optional(),
@@ -98,7 +98,13 @@ function buildPromptExpansionPrompt(input: z.infer<typeof promptRequestSchema>) 
 - Enemies should usually be implied through silhouette, wake, reflection, shadow, damaged space, or threatening environmental movement unless the scene metadata clearly makes them the single visible subject.
 - Mix intimate character frames with wide isolation, threshold compositions, back views, over-shoulder witness frames, reflection shots, object-detail inserts, and negative-space coastal frames.
 `
-      : `
+      : projectMode === "tawau-sabah-realism"
+        ? `
+- Keep all scenes in Tawau, Sabah realism with grounded civic and coastal-town textures.
+- Preserve cinematic documentary realism over fantasy spectacle.
+- Use municipal offices, public counters, shoplots, kampung air walkways, roadsides, jetties, wet markets, schools, clinics, local depots, and neighborhood housing where relevant.
+`
+        : `
 - Keep all scenes in Singapore heartland reality with grounded local textures.
 - Preserve cinematic documentary realism over fantasy spectacle.
 - Use HDB, corridors, void decks, MRT, hawker centres, neighbourhood streets, parks, and small apartments where relevant.
@@ -118,7 +124,12 @@ Fantasy bible:
 Preferred location vocabulary:
 ${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
-      : "";
+      : projectMode === "tawau-sabah-realism"
+        ? `
+Preferred location vocabulary:
+${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
+`
+        : "";
   return `
 Generate concise cinematic image and video prompts for these scene metadata items.
 

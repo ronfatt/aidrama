@@ -10,7 +10,11 @@ const sceneCountSchema = z.union([
   z.literal(30),
 ]);
 
-const projectModeSchema = z.union([z.literal("singapore-realism"), z.literal("coastal-fantasy-drama")]);
+const projectModeSchema = z.union([
+  z.literal("singapore-realism"),
+  z.literal("tawau-sabah-realism"),
+  z.literal("coastal-fantasy-drama"),
+]);
 
 const styleSchema = z.union([
   z.literal("cinematic documentary"),

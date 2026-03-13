@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizeBeatSheet } from "@/lib/beat-sheet";
-import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
+import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
 import type { BeatItem, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
@@ -117,7 +117,13 @@ function buildMetadataPrompt({
 - Show enemies indirectly unless they are the single visible character in that scene.
 - Use the fantasy bible as a hard constraint for hero identity, power language, enemy logic, and ending hook.
 `
-      : `
+      : projectMode === "tawau-sabah-realism"
+        ? `
+- Keep metadata grounded in Tawau, Sabah realism.
+- Use real Tawau and Sabah civic and neighborhood spaces: municipal offices, service counters, shoplots, roadsides, jetties, kampung air walkways, wet markets, schools, clinics, public works depots, and housing areas.
+- Maintain local civic-documentary realism rather than fantasy spectacle.
+`
+        : `
 - Keep metadata grounded in contemporary Singapore realism.
 - Use real Singapore heartland spaces: HDB flats, corridors, void decks, MRT stations, hawker centres, neighbourhood streets, parks, and small apartments.
 - Maintain documentary-emotional realism rather than fantasy spectacle.
@@ -137,7 +143,12 @@ Fantasy bible:
 Preferred location vocabulary:
 ${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
-      : "";
+      : projectMode === "tawau-sabah-realism"
+        ? `
+Preferred location vocabulary:
+${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
+`
+        : "";
   return `
 Generate scene metadata only from this beat sheet.
 
@@ -244,6 +255,10 @@ function fallbackLightingFromBeat(beat: BeatItem, projectMode: ProjectMode, colo
       default:
         return "oceanic fantasy realism, controlled cool shadows, practical highlights";
     }
+  }
+
+  if (projectMode === "tawau-sabah-realism") {
+    return `Tawau / Sabah realism, grounded public-service and coastal-town textures, practical daylight and humid tropical atmosphere`;
   }
 
   switch (colorGradePreset) {

@@ -8,6 +8,7 @@ export const maxDuration = 60;
 const generateImageSchema = z.object({
   imagePrompt: z.string().min(8).max(4000),
   sceneNumber: z.number().int().positive(),
+  projectMode: z.string().optional().or(z.literal("")),
   useReferenceImage: z.boolean(),
   referenceTag: z.string().optional().or(z.literal("")),
   style: z.string().min(1),
@@ -58,9 +59,15 @@ async function fetchJsonWithTimeout(
 }
 
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
+  const locationLock =
+    input.projectMode === "tawau-sabah-realism"
+      ? "Tawau Sabah location realism"
+      : input.projectMode === "coastal-fantasy-drama"
+        ? "Southeast Asian coastal fantasy realism"
+        : "Singapore location realism";
   const locks = [
     "single clearly visible character",
-    "Singapore location realism",
+    locationLock,
     "cinematic photorealistic 35mm still",
     "16:9 widescreen frame only",
     "natural but moody lighting",

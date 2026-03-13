@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError, z } from "zod";
 import { normalizeBeatSheet, phaseByPosition } from "@/lib/beat-sheet";
 import { getBeatModelName, getOpenAIClient } from "@/lib/openai";
-import { FANTASY_LOCATION_VOCABULARY } from "@/lib/constants";
+import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
@@ -100,7 +100,13 @@ function buildBeatPrompt({
 - Allow settings like shoreline estates, breakwaters, jetties, harbours, storm drains, sea-facing rooftops, and wet urban edges.
 - Maintain single-character staging even when enemies are implied; show threat through shadow, wake, reflection, silhouette, spray, or aftermath rather than two visible faces.
 `
-      : `
+      : projectMode === "tawau-sabah-realism"
+        ? `
+- Keep Tawau, Sabah realism and single-character production logic in mind.
+- Use grounded Tawau and Sabah spaces such as municipal offices, government counters, shoplots, coastal roads, jetties, kampung air walkways, wet markets, district housing areas, schools, clinics, and public works depots.
+- Preserve civic, public-service, and coastal-town realism rather than fantasy spectacle.
+`
+        : `
 - Keep Singapore realism and single-character production logic in mind.
 - Use grounded Singapore heartland spaces such as HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood streets, parks, and small apartments.
 - Preserve documentary-emotional realism rather than fantasy spectacle.
@@ -120,7 +126,12 @@ Fantasy bible:
 Preferred location vocabulary:
 ${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
-      : "";
+      : projectMode === "tawau-sabah-realism"
+        ? `
+Preferred location vocabulary:
+${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
+`
+        : "";
 
   return `
 You are building a beat sheet for a short cinematic film pack.
