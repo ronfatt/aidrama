@@ -103,6 +103,14 @@ export interface SceneItem {
   impactBeat?: string;
   enemyResponse?: string;
   aftermathShot?: string;
+  establishingBeat?: string;
+  cutawayPrompt?: string;
+  atmosphereNote?: string;
+  transitionBeat?: string;
+  microTensionPrompt?: string;
+  silenceBeat?: string;
+  eyeLineShiftPrompt?: string;
+  pullAwayShot?: string;
   companionShots?: CompanionShot[];
 }
 
@@ -151,6 +159,14 @@ export interface CompanionShot {
   impactBeat?: string;
   enemyResponse?: string;
   aftermathShot?: string;
+  establishingBeat?: string;
+  cutawayPrompt?: string;
+  atmosphereNote?: string;
+  transitionBeat?: string;
+  microTensionPrompt?: string;
+  silenceBeat?: string;
+  eyeLineShiftPrompt?: string;
+  pullAwayShot?: string;
 }
 
 export interface FilmPack {

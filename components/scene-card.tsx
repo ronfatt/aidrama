@@ -337,6 +337,94 @@ export function SceneCard({
           </div>
         ) : null}
 
+        {scene.sceneType === "environment" ? (
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.04] p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-200">Environment Director Pack</p>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Establishing Beat</p>
+                  <CopyButton text={scene.establishingBeat || ""} label="Copy establish" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.establishingBeat || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Cutaway Prompt</p>
+                  <CopyButton text={scene.cutawayPrompt || ""} label="Copy cutaway" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.cutawayPrompt || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Atmosphere Note</p>
+                  <CopyButton text={scene.atmosphereNote || ""} label="Copy atmosphere" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.atmosphereNote || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Transition Beat</p>
+                  <CopyButton text={scene.transitionBeat || ""} label="Copy transition" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.transitionBeat || "(not provided)"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {scene.sceneType === "emotional" ? (
+          <div className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/[0.04] p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-fuchsia-200">Emotional Director Pack</p>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Micro Tension</p>
+                  <CopyButton text={scene.microTensionPrompt || ""} label="Copy tension" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.microTensionPrompt || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Silence Beat</p>
+                  <CopyButton text={scene.silenceBeat || ""} label="Copy silence" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.silenceBeat || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Eye-line Shift</p>
+                  <CopyButton text={scene.eyeLineShiftPrompt || ""} label="Copy eyeline" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.eyeLineShiftPrompt || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Pull-away Shot</p>
+                  <CopyButton text={scene.pullAwayShot || ""} label="Copy pull-away" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.pullAwayShot || "(not provided)"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
       </div>
     </article>
   );

@@ -119,6 +119,14 @@ export const sceneItemSchema = z.object({
   impactBeat: z.string().optional().or(z.literal("")),
   enemyResponse: z.string().optional().or(z.literal("")),
   aftermathShot: z.string().optional().or(z.literal("")),
+  establishingBeat: z.string().optional().or(z.literal("")),
+  cutawayPrompt: z.string().optional().or(z.literal("")),
+  atmosphereNote: z.string().optional().or(z.literal("")),
+  transitionBeat: z.string().optional().or(z.literal("")),
+  microTensionPrompt: z.string().optional().or(z.literal("")),
+  silenceBeat: z.string().optional().or(z.literal("")),
+  eyeLineShiftPrompt: z.string().optional().or(z.literal("")),
+  pullAwayShot: z.string().optional().or(z.literal("")),
 });
 
 export const filmPackSchema = z.object({

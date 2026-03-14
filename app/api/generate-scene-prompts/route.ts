@@ -65,6 +65,14 @@ const promptResponseSchema = z.object({
       impactBeat: z.string().optional(),
       enemyResponse: z.string().optional(),
       aftermathShot: z.string().optional(),
+      establishingBeat: z.string().optional(),
+      cutawayPrompt: z.string().optional(),
+      atmosphereNote: z.string().optional(),
+      transitionBeat: z.string().optional(),
+      microTensionPrompt: z.string().optional(),
+      silenceBeat: z.string().optional(),
+      eyeLineShiftPrompt: z.string().optional(),
+      pullAwayShot: z.string().optional(),
     })
   ),
 });
@@ -96,6 +104,14 @@ function buildPromptsJsonSchema(sceneCount: number) {
               impactBeat: { type: "string" },
               enemyResponse: { type: "string" },
               aftermathShot: { type: "string" },
+              establishingBeat: { type: "string" },
+              cutawayPrompt: { type: "string" },
+              atmosphereNote: { type: "string" },
+              transitionBeat: { type: "string" },
+              microTensionPrompt: { type: "string" },
+              silenceBeat: { type: "string" },
+              eyeLineShiftPrompt: { type: "string" },
+              pullAwayShot: { type: "string" },
             },
             required: [
               "sceneNumber",
@@ -109,6 +125,14 @@ function buildPromptsJsonSchema(sceneCount: number) {
               "impactBeat",
               "enemyResponse",
               "aftermathShot",
+              "establishingBeat",
+              "cutawayPrompt",
+              "atmosphereNote",
+              "transitionBeat",
+              "microTensionPrompt",
+              "silenceBeat",
+              "eyeLineShiftPrompt",
+              "pullAwayShot",
             ],
           },
         },
@@ -203,8 +227,20 @@ Rules:
   - impactBeat: the main impact or turning hit
   - enemyResponse: how the enemy or opposing force responds
   - aftermathShot: the immediate visual aftermath or reset beat
+- If sceneType is environment, also return:
+  - establishingBeat: what the opening environmental read should communicate
+  - cutawayPrompt: one insert or cutaway idea that supports the space
+  - atmosphereNote: ambient texture, movement, weather, or social activity note
+  - transitionBeat: how this location can bridge into or out of nearby scenes
+- If sceneType is emotional, also return:
+  - microTensionPrompt: subtle physical tension or restraint direction
+  - silenceBeat: the held emotional pause inside the moment
+  - eyeLineShiftPrompt: eye focus or glance change that reveals inner thought
+  - pullAwayShot: the ideal retreating or widening shot after the emotion lands
 - If sceneType is not dialogue, return empty strings for the four dialogue fields.
 - If sceneType is not action, return empty strings for the four action fields.
+- If sceneType is not environment, return empty strings for the four environment fields.
+- If sceneType is not emotional, return empty strings for the four emotional fields.
 - style: ${input.settings.style}
 - color grade preset: ${input.settings.colorGradePreset || "(not provided)"}
 - narrator / POV character: ${input.settings.narratorCharacter?.trim() || "(not provided)"}
@@ -243,6 +279,24 @@ function fallbackActionPack() {
     impactBeat: "main impact lands with controlled force, motion blur, and environmental reaction",
     enemyResponse: "opposing force recoils, counters, or pressures back within the same beat",
     aftermathShot: "brief aftermath frame showing debris, breath, recoil, or charged stillness before the next move",
+  };
+}
+
+function fallbackEnvironmentPack(scene: SceneMetadata) {
+  return {
+    establishingBeat: `establish the surrounding space as ${scene.scenePurpose.toLowerCase()}`,
+    cutawayPrompt: "insert cutaway of location detail, signage, texture, or environmental movement that reinforces place",
+    atmosphereNote: `${scene.lightingColor}, ambient environmental activity, subtle lived-in motion`,
+    transitionBeat: "use the location beat to bridge into the next action or emotional turn with a calm spatial handoff",
+  };
+}
+
+function fallbackEmotionalPack(scene: SceneMetadata) {
+  return {
+    microTensionPrompt: "controlled breathing, restrained posture, tiny jaw or hand tension, emotion held just beneath the surface",
+    silenceBeat: `hold on a quiet pause after "${scene.voLine}" so the feeling lands before the next beat`,
+    eyeLineShiftPrompt: "small eye-line change away from camera or toward negative space to suggest internal processing",
+    pullAwayShot: "after the emotion lands, slowly pull away or widen to leave the character in reflective space",
   };
 }
 
@@ -341,6 +395,8 @@ export async function POST(request: Request) {
       const rawVideoPrompt = prompts.videoPrompt.trim();
       const isDialogue = (scene.sceneType as DirectorSceneType | undefined) === "dialogue";
       const isAction = (scene.sceneType as DirectorSceneType | undefined) === "action";
+      const isEnvironment = (scene.sceneType as DirectorSceneType | undefined) === "environment";
+      const isEmotional = (scene.sceneType as DirectorSceneType | undefined) === "emotional";
       const dialoguePack =
         isDialogue
           ? {
@@ -368,6 +424,32 @@ export async function POST(request: Request) {
             enemyResponse: "",
             aftermathShot: "",
           };
+      const environmentPack = isEnvironment
+        ? {
+            establishingBeat: prompts.establishingBeat?.trim() || fallbackEnvironmentPack(scene).establishingBeat,
+            cutawayPrompt: prompts.cutawayPrompt?.trim() || fallbackEnvironmentPack(scene).cutawayPrompt,
+            atmosphereNote: prompts.atmosphereNote?.trim() || fallbackEnvironmentPack(scene).atmosphereNote,
+            transitionBeat: prompts.transitionBeat?.trim() || fallbackEnvironmentPack(scene).transitionBeat,
+          }
+        : {
+            establishingBeat: "",
+            cutawayPrompt: "",
+            atmosphereNote: "",
+            transitionBeat: "",
+          };
+      const emotionalPack = isEmotional
+        ? {
+            microTensionPrompt: prompts.microTensionPrompt?.trim() || fallbackEmotionalPack(scene).microTensionPrompt,
+            silenceBeat: prompts.silenceBeat?.trim() || fallbackEmotionalPack(scene).silenceBeat,
+            eyeLineShiftPrompt: prompts.eyeLineShiftPrompt?.trim() || fallbackEmotionalPack(scene).eyeLineShiftPrompt,
+            pullAwayShot: prompts.pullAwayShot?.trim() || fallbackEmotionalPack(scene).pullAwayShot,
+          }
+        : {
+            microTensionPrompt: "",
+            silenceBeat: "",
+            eyeLineShiftPrompt: "",
+            pullAwayShot: "",
+          };
       return {
         ...scene,
         cameraStyle: scene.cameraStyle || motionTemplate.cameraStyle,
@@ -385,6 +467,8 @@ export async function POST(request: Request) {
               }),
         ...dialoguePack,
         ...actionPack,
+        ...environmentPack,
+        ...emotionalPack,
       };
     });
 

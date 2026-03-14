@@ -31,8 +31,16 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
         scene.sceneType === "action"
           ? `\n- Action sequence: ${scene.actionSequence || "(not provided)"}\n- Impact beat: ${scene.impactBeat || "(not provided)"}\n- Enemy response: ${scene.enemyResponse || "(not provided)"}\n- Aftermath shot: ${scene.aftermathShot || "(not provided)"}`
           : "";
+      const environmentBlock =
+        scene.sceneType === "environment"
+          ? `\n- Establishing beat: ${scene.establishingBeat || "(not provided)"}\n- Cutaway prompt: ${scene.cutawayPrompt || "(not provided)"}\n- Atmosphere note: ${scene.atmosphereNote || "(not provided)"}\n- Transition beat: ${scene.transitionBeat || "(not provided)"}`
+          : "";
+      const emotionalBlock =
+        scene.sceneType === "emotional"
+          ? `\n- Micro tension: ${scene.microTensionPrompt || "(not provided)"}\n- Silence beat: ${scene.silenceBeat || "(not provided)"}\n- Eye-line shift: ${scene.eyeLineShiftPrompt || "(not provided)"}\n- Pull-away shot: ${scene.pullAwayShot || "(not provided)"}`
+          : "";
 
-      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Scene type: ${scene.sceneType || "(not specified)"}\n- Shot type: ${scene.shotType}\n- Shot grammar: ${scene.shotGrammarPreset || "(not specified)"}\n- Camera style: ${scene.cameraStyle || "(not specified)"}\n- Action style: ${scene.actionStyle || "(not specified)"}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${dialogueBlock}${actionBlock}${companionBlock}`;
+      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Scene type: ${scene.sceneType || "(not specified)"}\n- Shot type: ${scene.shotType}\n- Shot grammar: ${scene.shotGrammarPreset || "(not specified)"}\n- Camera style: ${scene.cameraStyle || "(not specified)"}\n- Action style: ${scene.actionStyle || "(not specified)"}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${dialogueBlock}${actionBlock}${environmentBlock}${emotionalBlock}${companionBlock}`;
     })
     .join("\n\n");
 
