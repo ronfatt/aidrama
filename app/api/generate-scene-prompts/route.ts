@@ -61,6 +61,10 @@ const promptResponseSchema = z.object({
       lipSyncPrompt: z.string().optional(),
       microActingPrompt: z.string().optional(),
       reactionShotPrompt: z.string().optional(),
+      actionSequence: z.string().optional(),
+      impactBeat: z.string().optional(),
+      enemyResponse: z.string().optional(),
+      aftermathShot: z.string().optional(),
     })
   ),
 });
@@ -88,6 +92,10 @@ function buildPromptsJsonSchema(sceneCount: number) {
               lipSyncPrompt: { type: "string" },
               microActingPrompt: { type: "string" },
               reactionShotPrompt: { type: "string" },
+              actionSequence: { type: "string" },
+              impactBeat: { type: "string" },
+              enemyResponse: { type: "string" },
+              aftermathShot: { type: "string" },
             },
             required: [
               "sceneNumber",
@@ -97,6 +105,10 @@ function buildPromptsJsonSchema(sceneCount: number) {
               "lipSyncPrompt",
               "microActingPrompt",
               "reactionShotPrompt",
+              "actionSequence",
+              "impactBeat",
+              "enemyResponse",
+              "aftermathShot",
             ],
           },
         },
@@ -186,7 +198,13 @@ Rules:
   - lipSyncPrompt: concise prompt for lip-sync delivery
   - microActingPrompt: subtle head nods, breath, eyes, pauses, hand gestures
   - reactionShotPrompt: one cutaway or listener reaction idea
-- If sceneType is not dialogue, return empty strings for those four dialogue fields.
+- If sceneType is action, also return:
+  - actionSequence: concise beat-by-beat action progression
+  - impactBeat: the main impact or turning hit
+  - enemyResponse: how the enemy or opposing force responds
+  - aftermathShot: the immediate visual aftermath or reset beat
+- If sceneType is not dialogue, return empty strings for the four dialogue fields.
+- If sceneType is not action, return empty strings for the four action fields.
 - style: ${input.settings.style}
 - color grade preset: ${input.settings.colorGradePreset || "(not provided)"}
 - narrator / POV character: ${input.settings.narratorCharacter?.trim() || "(not provided)"}
@@ -216,6 +234,15 @@ function fallbackDialoguePack(scene: SceneMetadata) {
       "subtle head nods, natural blinking, controlled breathing, tiny eye focus shifts, slight hand gesture, realistic pauses",
     reactionShotPrompt:
       "reaction shot of listener or nearby witness, brief cutaway with restrained concern, then return to speaker",
+  };
+}
+
+function fallbackActionPack() {
+  return {
+    actionSequence: "first tension builds, then the hero commits to the move, finally the impact resolves into a brief reset beat",
+    impactBeat: "main impact lands with controlled force, motion blur, and environmental reaction",
+    enemyResponse: "opposing force recoils, counters, or pressures back within the same beat",
+    aftermathShot: "brief aftermath frame showing debris, breath, recoil, or charged stillness before the next move",
   };
 }
 
@@ -312,8 +339,10 @@ export async function POST(request: Request) {
       });
       const prompts = byScene.get(scene.sceneNumber)!;
       const rawVideoPrompt = prompts.videoPrompt.trim();
+      const isDialogue = (scene.sceneType as DirectorSceneType | undefined) === "dialogue";
+      const isAction = (scene.sceneType as DirectorSceneType | undefined) === "action";
       const dialoguePack =
-        (scene.sceneType as DirectorSceneType | undefined) === "dialogue"
+        isDialogue
           ? {
               voiceScript: prompts.voiceScript?.trim() || fallbackDialoguePack(scene).voiceScript,
               lipSyncPrompt: prompts.lipSyncPrompt?.trim() || fallbackDialoguePack(scene).lipSyncPrompt,
@@ -326,6 +355,19 @@ export async function POST(request: Request) {
               microActingPrompt: "",
               reactionShotPrompt: "",
             };
+      const actionPack = isAction
+        ? {
+            actionSequence: prompts.actionSequence?.trim() || fallbackActionPack().actionSequence,
+            impactBeat: prompts.impactBeat?.trim() || fallbackActionPack().impactBeat,
+            enemyResponse: prompts.enemyResponse?.trim() || fallbackActionPack().enemyResponse,
+            aftermathShot: prompts.aftermathShot?.trim() || fallbackActionPack().aftermathShot,
+          }
+        : {
+            actionSequence: "",
+            impactBeat: "",
+            enemyResponse: "",
+            aftermathShot: "",
+          };
       return {
         ...scene,
         cameraStyle: scene.cameraStyle || motionTemplate.cameraStyle,
@@ -342,6 +384,7 @@ export async function POST(request: Request) {
                 atmosphere: `${scene.lightingColor}, ${scene.actionStyle || motionTemplate.actionStyle}`,
               }),
         ...dialoguePack,
+        ...actionPack,
       };
     });
 

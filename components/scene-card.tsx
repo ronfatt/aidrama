@@ -293,6 +293,50 @@ export function SceneCard({
           </div>
         ) : null}
 
+        {scene.sceneType === "action" ? (
+          <div className="rounded-xl border border-amber-400/20 bg-amber-500/[0.04] p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-200">Action Director Pack</p>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Action Sequence</p>
+                  <CopyButton text={scene.actionSequence || ""} label="Copy sequence" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.actionSequence || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Impact Beat</p>
+                  <CopyButton text={scene.impactBeat || ""} label="Copy impact" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.impactBeat || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Enemy Response</p>
+                  <CopyButton text={scene.enemyResponse || ""} label="Copy response" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.enemyResponse || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Aftermath Shot</p>
+                  <CopyButton text={scene.aftermathShot || ""} label="Copy aftermath" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.aftermathShot || "(not provided)"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
       </div>
     </article>
   );

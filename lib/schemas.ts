@@ -115,6 +115,10 @@ export const sceneItemSchema = z.object({
   lipSyncPrompt: z.string().optional().or(z.literal("")),
   microActingPrompt: z.string().optional().or(z.literal("")),
   reactionShotPrompt: z.string().optional().or(z.literal("")),
+  actionSequence: z.string().optional().or(z.literal("")),
+  impactBeat: z.string().optional().or(z.literal("")),
+  enemyResponse: z.string().optional().or(z.literal("")),
+  aftermathShot: z.string().optional().or(z.literal("")),
 });
 
 export const filmPackSchema = z.object({

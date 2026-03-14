@@ -99,6 +99,10 @@ export interface SceneItem {
   lipSyncPrompt?: string;
   microActingPrompt?: string;
   reactionShotPrompt?: string;
+  actionSequence?: string;
+  impactBeat?: string;
+  enemyResponse?: string;
+  aftermathShot?: string;
   companionShots?: CompanionShot[];
 }
 
@@ -143,6 +147,10 @@ export interface CompanionShot {
   lipSyncPrompt?: string;
   microActingPrompt?: string;
   reactionShotPrompt?: string;
+  actionSequence?: string;
+  impactBeat?: string;
+  enemyResponse?: string;
+  aftermathShot?: string;
 }
 
 export interface FilmPack {
