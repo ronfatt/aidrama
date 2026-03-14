@@ -53,6 +53,9 @@ export function SceneCard({
 
       <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-2">
         <p>
+          <span className="font-semibold text-zinc-100">Scene type:</span> {scene.sceneType || "emotional"}
+        </p>
+        <p>
           <span className="font-semibold text-zinc-100">Shot type:</span> {scene.shotType}
         </p>
         {scene.shotGrammarPreset ? (
@@ -245,6 +248,50 @@ export function SceneCard({
           </div>
           <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">{scene.videoPrompt}</p>
         </div>
+
+        {scene.sceneType === "dialogue" ? (
+          <div className="rounded-xl border border-sky-400/20 bg-sky-500/[0.04] p-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-sky-200">Dialogue Director Pack</p>
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Voice Script</p>
+                  <CopyButton text={scene.voiceScript || ""} label="Copy voice" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.voiceScript || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Lip Sync Prompt</p>
+                  <CopyButton text={scene.lipSyncPrompt || ""} label="Copy lip sync" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.lipSyncPrompt || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Micro Acting</p>
+                  <CopyButton text={scene.microActingPrompt || ""} label="Copy acting" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.microActingPrompt || "(not provided)"}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Reaction Shot</p>
+                  <CopyButton text={scene.reactionShotPrompt || ""} label="Copy reaction" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.reactionShotPrompt || "(not provided)"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
       </div>
     </article>

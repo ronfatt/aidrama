@@ -38,6 +38,7 @@ export type SceneType =
   | "atmospheric insert"
   | "POV shot"
   | "over-shoulder shot";
+export type DirectorSceneType = "action" | "dialogue" | "environment" | "emotional";
 
 export interface UserSettings {
   projectMode?: ProjectMode;
@@ -81,6 +82,7 @@ export interface SceneItem {
   sceneNumber: number;
   phase: ScenePhase;
   voLine: string;
+  sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;
   cameraStyle?: string;
@@ -93,6 +95,10 @@ export interface SceneItem {
   videoPrompt: string;
   camera: string;
   lightingColor: string;
+  voiceScript?: string;
+  lipSyncPrompt?: string;
+  microActingPrompt?: string;
+  reactionShotPrompt?: string;
   companionShots?: CompanionShot[];
 }
 
@@ -100,6 +106,7 @@ export interface SceneMetadata {
   sceneNumber: number;
   phase: ScenePhase;
   voLine: string;
+  sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;
   cameraStyle?: string;
@@ -119,6 +126,7 @@ export interface CompanionShot {
   kind: CompanionShotKind;
   phase: ScenePhase;
   voLine: string;
+  sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;
   cameraStyle?: string;
@@ -131,6 +139,10 @@ export interface CompanionShot {
   videoPrompt: string;
   camera: string;
   lightingColor: string;
+  voiceScript?: string;
+  lipSyncPrompt?: string;
+  microActingPrompt?: string;
+  reactionShotPrompt?: string;
 }
 
 export interface FilmPack {

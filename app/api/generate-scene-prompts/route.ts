@@ -3,7 +3,7 @@ import { z } from "zod";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { buildStructuredVideoPrompt, pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { DirectorSceneType, FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +36,7 @@ const promptRequestSchema = z.object({
       sceneNumber: z.number().int().positive(),
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
+      sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1).optional(),
       cameraStyle: z.string().trim().min(1).optional(),
@@ -56,6 +57,10 @@ const promptResponseSchema = z.object({
       sceneNumber: z.number().int().positive(),
       imagePrompt: z.string().min(1),
       videoPrompt: z.string().min(1),
+      voiceScript: z.string().optional(),
+      lipSyncPrompt: z.string().optional(),
+      microActingPrompt: z.string().optional(),
+      reactionShotPrompt: z.string().optional(),
     })
   ),
 });
@@ -79,8 +84,20 @@ function buildPromptsJsonSchema(sceneCount: number) {
               sceneNumber: { type: "integer" },
               imagePrompt: { type: "string" },
               videoPrompt: { type: "string" },
+              voiceScript: { type: "string" },
+              lipSyncPrompt: { type: "string" },
+              microActingPrompt: { type: "string" },
+              reactionShotPrompt: { type: "string" },
             },
-            required: ["sceneNumber", "imagePrompt", "videoPrompt"],
+            required: [
+              "sceneNumber",
+              "imagePrompt",
+              "videoPrompt",
+              "voiceScript",
+              "lipSyncPrompt",
+              "microActingPrompt",
+              "reactionShotPrompt",
+            ],
           },
         },
       },
@@ -153,6 +170,7 @@ Rules:
 - project mode: ${projectMode}
 - Only one clearly visible character per scene.
 - Respect shotType, scenePurpose, camera, and lightingColor exactly.
+- Respect sceneType as a director-level instruction.
 - Respect shotGrammarPreset as a concrete visual-template instruction.
 - Respect cameraStyle and actionStyle as hard motion constraints.
 - Respect motionTemplate as the preferred Kling motion baseline.
@@ -163,6 +181,12 @@ Rules:
 - videoPrompt must be written as five compact parts in this order: Scene, Subject, Action Timeline, Camera Movement, Atmosphere.
 - In Action Timeline, prefer a short progression such as "first..., then..., finally...".
 - Include camera movement explicitly rather than generic motion language.
+- If sceneType is dialogue, also return:
+  - voiceScript: a tight spoken line or spoken beat direction for the scene
+  - lipSyncPrompt: concise prompt for lip-sync delivery
+  - microActingPrompt: subtle head nods, breath, eyes, pauses, hand gestures
+  - reactionShotPrompt: one cutaway or listener reaction idea
+- If sceneType is not dialogue, return empty strings for those four dialogue fields.
 - style: ${input.settings.style}
 - color grade preset: ${input.settings.colorGradePreset || "(not provided)"}
 - narrator / POV character: ${input.settings.narratorCharacter?.trim() || "(not provided)"}
@@ -181,6 +205,18 @@ ${input.scenes
   )
   .join("\n")}
 `;
+}
+
+function fallbackDialoguePack(scene: SceneMetadata) {
+  const voiceScript = scene.voLine.trim();
+  return {
+    voiceScript,
+    lipSyncPrompt: `${scene.cameraStyle || "cinematic close-up"}, character speaking naturally, synced to dialogue, restrained mouth movement, no exaggerated performance`,
+    microActingPrompt:
+      "subtle head nods, natural blinking, controlled breathing, tiny eye focus shifts, slight hand gesture, realistic pauses",
+    reactionShotPrompt:
+      "reaction shot of listener or nearby witness, brief cutaway with restrained concern, then return to speaker",
+  };
 }
 
 async function generatePromptBatch(
@@ -276,6 +312,20 @@ export async function POST(request: Request) {
       });
       const prompts = byScene.get(scene.sceneNumber)!;
       const rawVideoPrompt = prompts.videoPrompt.trim();
+      const dialoguePack =
+        (scene.sceneType as DirectorSceneType | undefined) === "dialogue"
+          ? {
+              voiceScript: prompts.voiceScript?.trim() || fallbackDialoguePack(scene).voiceScript,
+              lipSyncPrompt: prompts.lipSyncPrompt?.trim() || fallbackDialoguePack(scene).lipSyncPrompt,
+              microActingPrompt: prompts.microActingPrompt?.trim() || fallbackDialoguePack(scene).microActingPrompt,
+              reactionShotPrompt: prompts.reactionShotPrompt?.trim() || fallbackDialoguePack(scene).reactionShotPrompt,
+            }
+          : {
+              voiceScript: "",
+              lipSyncPrompt: "",
+              microActingPrompt: "",
+              reactionShotPrompt: "",
+            };
       return {
         ...scene,
         cameraStyle: scene.cameraStyle || motionTemplate.cameraStyle,
@@ -291,6 +341,7 @@ export async function POST(request: Request) {
                 cameraMovement: `${scene.cameraStyle || motionTemplate.cameraStyle}, ${scene.camera}`,
                 atmosphere: `${scene.lightingColor}, ${scene.actionStyle || motionTemplate.actionStyle}`,
               }),
+        ...dialoguePack,
       };
     });
 

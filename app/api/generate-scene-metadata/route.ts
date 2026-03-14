@@ -5,7 +5,7 @@ import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/co
 import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
-import type { BeatItem, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
+import type { BeatItem, DirectorSceneType, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ const metadataSchema = z.object({
       sceneNumber: z.number().int().positive(),
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
+      sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1),
       cameraStyle: z.string().trim().min(1).optional(),
@@ -50,6 +51,7 @@ function buildMetadataJsonSchema(sceneCount: number) {
               sceneNumber: { type: "integer" },
               phase: { type: "string" },
               voLine: { type: "string" },
+              sceneType: { type: "string", enum: ["action", "dialogue", "environment", "emotional"] },
               shotType: { type: "string" },
               shotGrammarPreset: { type: "string" },
               cameraStyle: { type: "string" },
@@ -65,6 +67,7 @@ function buildMetadataJsonSchema(sceneCount: number) {
               "sceneNumber",
               "phase",
               "voLine",
+              "sceneType",
               "shotType",
               "shotGrammarPreset",
               "cameraStyle",
@@ -186,6 +189,11 @@ Rules:
 - No new facts, events, places, or people.
 - Use beat.visualRole and beat.framingIntent as hard composition instructions.
 - Use beat.shotGrammarPreset as a hard visual-template instruction.
+- Assign one sceneType from: action, dialogue, environment, emotional.
+- dialogue means the scene should play as spoken performance, reaction, or conversational coverage.
+- action means physical conflict, chase, power burst, impact, or kinetic escalation.
+- environment means place-establishing, civic/world detail, travel, or atmospheric coverage.
+- emotional means reflection, silence, inner conflict, grief, hesitation, or intimate character tension.
 - Assign one cameraStyle and one actionStyle that fit Kling cinematic motion logic.
 - cameraStyle should be a concise label such as handheld documentary, cinematic tracking, low-angle hero shot, slow orbit camera, or aerial drone shot.
 - actionStyle should be a concise label such as subtle realism, device interaction, emotional focus, heroic action, ocean power surge, or reflective pause.
@@ -239,6 +247,20 @@ function fallbackShotTypeFromBeat(beat: BeatItem): SceneMetadata["shotType"] {
     return "symbolic insert";
   }
   return "behavior shot";
+}
+
+function fallbackDirectorSceneTypeFromBeat(beat: BeatItem): DirectorSceneType {
+  const text = `${beat.voLine} ${beat.purpose} ${beat.visualRole} ${beat.framingIntent} ${beat.shotGrammarPreset}`.toLowerCase();
+  if (/say|speaking|speaks|asks|tells|warns|dialogue|conversation|listening|reply|reassure|promises/.test(text)) {
+    return "dialogue";
+  }
+  if (/fight|combat|enemy|attack|threat|impact|power|surge|confrontation|pursuit|collision|hero/.test(text)) {
+    return "action";
+  }
+  if (/environment|establish|world|location|village|office|harbour|market|jetty|corridor|atmospheric|travel/.test(text)) {
+    return "environment";
+  }
+  return "emotional";
 }
 
 function fallbackCameraFromBeat(beat: BeatItem): string {
@@ -297,6 +319,7 @@ function fallbackMetadataFromBeat(
     sceneNumber: beat.beatNumber,
     phase: beat.phase,
     voLine: beat.voLine,
+    sceneType: fallbackDirectorSceneTypeFromBeat(beat),
     shotType: fallbackShotTypeFromBeat(beat),
     shotGrammarPreset: beat.shotGrammarPreset,
     scenePurpose: beat.purpose,

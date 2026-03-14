@@ -98,6 +98,7 @@ export const sceneItemSchema = z.object({
   sceneNumber: z.number().int().positive(),
   phase: z.string().optional().or(z.literal("")),
   voLine: z.string().min(1),
+  sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
   shotType: z.string().min(1),
   shotGrammarPreset: z.string().optional().or(z.literal("")),
   cameraStyle: z.string().optional().or(z.literal("")),
@@ -110,6 +111,10 @@ export const sceneItemSchema = z.object({
   videoPrompt: z.string().min(1),
   camera: z.string().min(1),
   lightingColor: z.string().min(1),
+  voiceScript: z.string().optional().or(z.literal("")),
+  lipSyncPrompt: z.string().optional().or(z.literal("")),
+  microActingPrompt: z.string().optional().or(z.literal("")),
+  reactionShotPrompt: z.string().optional().or(z.literal("")),
 });
 
 export const filmPackSchema = z.object({
