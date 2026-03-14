@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { CompanionShot, SceneItem } from "@/types/film-pack";
+import type { CompanionShot, DirectorSceneType, SceneItem } from "@/types/film-pack";
 import { CopyButton } from "@/components/copy-button";
 
 interface SceneCardProps {
@@ -16,6 +16,7 @@ interface SceneCardProps {
   companionActionError?: string;
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
+  onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
 }
 
 export function SceneCard({
@@ -32,6 +33,7 @@ export function SceneCard({
   companionActionError,
   onGenerateImage,
   onGenerateCompanion,
+  onSceneTypeChange,
 }: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
@@ -53,7 +55,17 @@ export function SceneCard({
 
       <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-2">
         <p>
-          <span className="font-semibold text-zinc-100">Scene type:</span> {scene.sceneType || "emotional"}
+          <span className="font-semibold text-zinc-100">Scene type:</span>{" "}
+          <select
+            value={scene.sceneType || "emotional"}
+            onChange={(event) => onSceneTypeChange?.(scene.sceneNumber, event.target.value as DirectorSceneType)}
+            className="ml-2 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+          >
+            <option value="action">action</option>
+            <option value="dialogue">dialogue</option>
+            <option value="environment">environment</option>
+            <option value="emotional">emotional</option>
+          </select>
         </p>
         <p>
           <span className="font-semibold text-zinc-100">Shot type:</span> {scene.shotType}

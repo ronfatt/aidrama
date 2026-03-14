@@ -27,6 +27,7 @@ import type {
   BeatItem,
   ColorGradePreset,
   CompanionShot,
+  DirectorSceneType,
   FantasyBibleInput,
   FilmPack,
   FilmTone,
@@ -255,6 +256,67 @@ function fallbackSceneMetadataFromBeat(
     cameraStyle: motionTemplate.cameraStyle,
     actionStyle: motionTemplate.actionStyle,
     motionTemplateId: motionTemplate.id,
+  };
+}
+
+function applySceneTypeOverride(scene: SceneItem, nextType: DirectorSceneType): SceneItem {
+  const dialogueFallback = {
+    voiceScript: scene.voiceScript || scene.voLine,
+    lipSyncPrompt:
+      scene.lipSyncPrompt ||
+      `${scene.cameraStyle || "cinematic close-up"}, character speaking naturally, synced delivery, restrained mouth movement`,
+    microActingPrompt:
+      scene.microActingPrompt ||
+      "subtle head nods, natural blinking, controlled breathing, small pauses, attentive eye focus",
+    reactionShotPrompt:
+      scene.reactionShotPrompt ||
+      "brief reaction shot of listener or nearby witness, then return to speaker",
+  };
+
+  const actionFallback = {
+    actionSequence:
+      scene.actionSequence ||
+      "first the tension rises, then the character commits to movement, finally the impact resolves into a reset beat",
+    impactBeat:
+      scene.impactBeat ||
+      "the key impact lands with controlled force, motion, and environmental reaction",
+    enemyResponse:
+      scene.enemyResponse || "the opposing force reacts, recoils, or escalates within the same moment",
+    aftermathShot:
+      scene.aftermathShot || "brief aftermath frame showing recoil, debris, breath, or charged stillness",
+  };
+
+  const environmentFallback = {
+    establishingBeat:
+      scene.establishingBeat || `establish the location as ${scene.scenePurpose.toLowerCase()}`,
+    cutawayPrompt:
+      scene.cutawayPrompt || "insert a supporting location detail, signage, texture, or environmental movement",
+    atmosphereNote:
+      scene.atmosphereNote || `${scene.lightingColor}, ambient space activity, subtle lived-in environmental motion`,
+    transitionBeat:
+      scene.transitionBeat || "use the location to bridge smoothly into the next scene beat",
+  };
+
+  const emotionalFallback = {
+    microTensionPrompt:
+      scene.microTensionPrompt ||
+      "controlled breathing, restrained posture, tiny jaw or hand tension, emotion held beneath the surface",
+    silenceBeat:
+      scene.silenceBeat || `hold on a quiet pause after "${scene.voLine}" so the feeling lands`,
+    eyeLineShiftPrompt:
+      scene.eyeLineShiftPrompt ||
+      "small eye-line change away from camera or into negative space to suggest inner processing",
+    pullAwayShot:
+      scene.pullAwayShot || "after the emotion lands, slowly pull away or widen into reflective space",
+  };
+
+  return {
+    ...scene,
+    sceneType: nextType,
+    ...dialogueFallback,
+    ...actionFallback,
+    ...environmentFallback,
+    ...emotionalFallback,
   };
 }
 
@@ -907,6 +969,18 @@ export function FilmPackStudio() {
     }
   };
 
+  const overrideSceneType = (sceneNumber: number, nextType: DirectorSceneType) => {
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        scenes: prev.scenes.map((scene) =>
+          scene.sceneNumber === sceneNumber ? applySceneTypeOverride(scene, nextType) : scene
+        ),
+      };
+    });
+  };
+
   const onGenerate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -1446,6 +1520,7 @@ export function FilmPackStudio() {
                   companionImageErrors[`scene-${scene.sceneNumber}-broll`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-transition`]
                 }
+                onSceneTypeChange={overrideSceneType}
                 onGenerateImage={generateSceneImage}
                 onGenerateCompanion={generateCompanionShot}
               />
