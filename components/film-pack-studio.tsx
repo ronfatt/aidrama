@@ -366,6 +366,7 @@ export function FilmPackStudio() {
   const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
   const [scenePromptRegenerating, setScenePromptRegenerating] = useState<Record<number, boolean>>({});
   const [shotPackLoading, setShotPackLoading] = useState<Record<number, boolean>>({});
+  const [companionBatchImageLoading, setCompanionBatchImageLoading] = useState<Record<number, boolean>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
   const availableFilmStyles = useMemo(
     () => (projectMode === "coastal-fantasy-drama" ? FANTASY_FILM_STYLES : FILM_STYLES),
@@ -474,6 +475,7 @@ export function FilmPackStudio() {
     setCompanionLoading({});
     setScenePromptRegenerating({});
     setShotPackLoading({});
+    setCompanionBatchImageLoading({});
     setSceneImageMeta({});
     setCompanionImageMeta({});
   };
@@ -1116,6 +1118,18 @@ export function FilmPackStudio() {
     }
   };
 
+  const generateAllCompanionImages = async (scene: SceneItem) => {
+    if (!scene.companionShots?.length) return;
+    setCompanionBatchImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: true }));
+    try {
+      for (const shot of scene.companionShots) {
+        await generateSceneImage(shot);
+      }
+    } finally {
+      setCompanionBatchImageLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+    }
+  };
+
   const overrideSceneType = (sceneNumber: number, nextType: DirectorSceneType) => {
     setResult((prev) => {
       if (!prev) return prev;
@@ -1166,6 +1180,7 @@ export function FilmPackStudio() {
       setCompanionLoading({});
       setScenePromptRegenerating({});
       setShotPackLoading({});
+      setCompanionBatchImageLoading({});
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Generation failed.";
       setError(message);
@@ -1666,12 +1681,14 @@ export function FilmPackStudio() {
                 companionImageErrors={companionImageErrors}
                 generatingCompanionKind={companionLoading[scene.sceneNumber] || null}
                 generatingShotPack={shotPackLoading[scene.sceneNumber]}
+                generatingAllCompanionImages={companionBatchImageLoading[scene.sceneNumber]}
                 companionActionError={
                   companionImageErrors[`scene-${scene.sceneNumber}-pack`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-broll`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-transition`]
                 }
                 onGenerateShotPack={generateShotPack}
+                onGenerateAllCompanionImages={generateAllCompanionImages}
                 onRegenerateScene={regenerateSingleScene}
                 regeneratingScene={scenePromptRegenerating[scene.sceneNumber]}
                 onSceneTypeChange={overrideSceneType}

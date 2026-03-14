@@ -17,10 +17,12 @@ interface SceneCardProps {
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
   onGenerateShotPack?: (scene: SceneItem) => void;
+  onGenerateAllCompanionImages?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
   onRegenerateScene?: (scene: SceneItem) => void;
   regeneratingScene?: boolean;
   generatingShotPack?: boolean;
+  generatingAllCompanionImages?: boolean;
 }
 
 export function SceneCard({
@@ -38,10 +40,12 @@ export function SceneCard({
   onGenerateImage,
   onGenerateCompanion,
   onGenerateShotPack,
+  onGenerateAllCompanionImages,
   onSceneTypeChange,
   onRegenerateScene,
   regeneratingScene,
   generatingShotPack,
+  generatingAllCompanionImages,
 }: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
@@ -147,7 +151,17 @@ export function SceneCard({
 
         {scene.companionShots?.length ? (
           <div className="space-y-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Companion Shots</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Companion Shots</p>
+              <button
+                type="button"
+                onClick={() => onGenerateAllCompanionImages?.(scene)}
+                disabled={generatingAllCompanionImages || !onGenerateAllCompanionImages}
+                className="rounded-md border border-emerald-300/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {generatingAllCompanionImages ? "Generating Pack Images..." : "Generate All Images"}
+              </button>
+            </div>
             {scene.companionShots.map((shot) => (
               <div key={shot.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -174,6 +188,11 @@ export function SceneCard({
                   <span className="font-semibold text-zinc-100">VO:</span> {shot.voLine}
                 </p>
                 <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-2">
+                  {shot.sceneType ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">Scene type:</span> {shot.sceneType}
+                    </p>
+                  ) : null}
                   <p>
                     <span className="font-semibold text-zinc-100">Shot type:</span> {shot.shotType}
                   </p>
