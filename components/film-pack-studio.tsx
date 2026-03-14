@@ -359,6 +359,7 @@ export function FilmPackStudio() {
   const [sceneImageErrors, setSceneImageErrors] = useState<Record<number, string>>({});
   const [companionImageErrors, setCompanionImageErrors] = useState<Record<string, string>>({});
   const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
+  const [scenePromptRegenerating, setScenePromptRegenerating] = useState<Record<number, boolean>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
   const availableFilmStyles = useMemo(
     () => (projectMode === "coastal-fantasy-drama" ? FANTASY_FILM_STYLES : FILM_STYLES),
@@ -465,6 +466,7 @@ export function FilmPackStudio() {
     setSceneImageErrors({});
     setCompanionImageErrors({});
     setCompanionLoading({});
+    setScenePromptRegenerating({});
     setSceneImageMeta({});
     setCompanionImageMeta({});
   };
@@ -720,6 +722,7 @@ export function FilmPackStudio() {
             sceneNumber: scene.sceneNumber,
             phase: scene.phase,
             voLine: scene.voLine,
+            sceneType: scene.sceneType,
             shotType: scene.shotType,
             shotGrammarPreset: scene.shotGrammarPreset,
             cameraStyle: scene.cameraStyle,
@@ -786,6 +789,86 @@ export function FilmPackStudio() {
       }
       return mergedScene;
     });
+  };
+
+  const regenerateSingleScene = async (scene: SceneItem) => {
+    if (!result) return;
+
+    setScenePromptRegenerating((prev) => ({ ...prev, [scene.sceneNumber]: true }));
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate-scene-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            title,
+            style,
+            colorGradePreset,
+            narratorCharacter,
+            onScreenCharacter,
+            referenceTag,
+            strictMode,
+            projectMode,
+            fantasyBible,
+          },
+          scenes: [
+            {
+              sceneNumber: scene.sceneNumber,
+              phase: scene.phase,
+              voLine: scene.voLine,
+              sceneType: scene.sceneType,
+              shotType: scene.shotType,
+              shotGrammarPreset: scene.shotGrammarPreset,
+              cameraStyle: scene.cameraStyle,
+              actionStyle: scene.actionStyle,
+              motionTemplateId: scene.motionTemplateId,
+              scenePurpose: scene.scenePurpose,
+              importance: scene.importance,
+              useReferenceImage: scene.useReferenceImage,
+              camera: scene.camera,
+              lightingColor: scene.lightingColor,
+            },
+          ],
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateScenePayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateScenePayload;
+      } catch {
+        payload = {
+          error: normalizeStageError(raw, "Single scene regeneration failed (non-JSON response)."),
+        };
+      }
+
+      if (!response.ok || !payload?.scenes?.length) {
+        throw new Error(payload?.error || "Single scene regeneration failed.");
+      }
+
+      const regenerated = payload.scenes[0] as SceneItem;
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          scenes: prev.scenes.map((item) =>
+            item.sceneNumber === scene.sceneNumber
+              ? {
+                  ...regenerated,
+                  companionShots: item.companionShots || [],
+                }
+              : item
+          ),
+        };
+      });
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Single scene regeneration failed.";
+      setError(message);
+    } finally {
+      setScenePromptRegenerating((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+    }
   };
 
   const generateSceneImage = async (scene: SceneItem | CompanionShot) => {
@@ -1017,6 +1100,7 @@ export function FilmPackStudio() {
       setSceneImageErrors({});
       setCompanionImageErrors({});
       setCompanionLoading({});
+      setScenePromptRegenerating({});
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Generation failed.";
       setError(message);
@@ -1520,6 +1604,8 @@ export function FilmPackStudio() {
                   companionImageErrors[`scene-${scene.sceneNumber}-broll`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-transition`]
                 }
+                onRegenerateScene={regenerateSingleScene}
+                regeneratingScene={scenePromptRegenerating[scene.sceneNumber]}
                 onSceneTypeChange={overrideSceneType}
                 onGenerateImage={generateSceneImage}
                 onGenerateCompanion={generateCompanionShot}

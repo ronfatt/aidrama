@@ -17,6 +17,8 @@ interface SceneCardProps {
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
+  onRegenerateScene?: (scene: SceneItem) => void;
+  regeneratingScene?: boolean;
 }
 
 export function SceneCard({
@@ -34,6 +36,8 @@ export function SceneCard({
   onGenerateImage,
   onGenerateCompanion,
   onSceneTypeChange,
+  onRegenerateScene,
+  regeneratingScene,
 }: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
@@ -102,6 +106,14 @@ export function SceneCard({
 
       <div className="mt-4 space-y-3">
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onRegenerateScene?.(scene)}
+            disabled={regeneratingScene || !onRegenerateScene}
+            className="rounded-md border border-violet-300/30 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-60"
+          >
+            {regeneratingScene ? "Regenerating Scene..." : "Regenerate This Scene"}
+          </button>
           <button
             type="button"
             onClick={() => onGenerateCompanion?.(scene, "broll")}
@@ -219,10 +231,10 @@ export function SceneCard({
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Image Prompt</p>
-            <div className="flex gap-2">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Image Prompt</p>
+              <div className="flex gap-2">
               <CopyButton text={scene.imagePrompt} label="Copy image" />
               <button
                 type="button"
