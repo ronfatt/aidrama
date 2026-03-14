@@ -53,6 +53,11 @@ interface GenerateCompanionShotPayload {
   error?: string;
 }
 
+interface GenerateShotPackPayload {
+  shots?: CompanionShot[];
+  error?: string;
+}
+
 interface GenerateImageResponse {
   imageDataUrl?: string;
   error?: string;
@@ -360,6 +365,7 @@ export function FilmPackStudio() {
   const [companionImageErrors, setCompanionImageErrors] = useState<Record<string, string>>({});
   const [companionLoading, setCompanionLoading] = useState<Record<number, "broll" | "transition" | null>>({});
   const [scenePromptRegenerating, setScenePromptRegenerating] = useState<Record<number, boolean>>({});
+  const [shotPackLoading, setShotPackLoading] = useState<Record<number, boolean>>({});
   const [savedPacks, setSavedPacks] = useState<SavedFilmPackRecord[]>([]);
   const availableFilmStyles = useMemo(
     () => (projectMode === "coastal-fantasy-drama" ? FANTASY_FILM_STYLES : FILM_STYLES),
@@ -467,6 +473,7 @@ export function FilmPackStudio() {
     setCompanionImageErrors({});
     setCompanionLoading({});
     setScenePromptRegenerating({});
+    setShotPackLoading({});
     setSceneImageMeta({});
     setCompanionImageMeta({});
   };
@@ -1052,6 +1059,63 @@ export function FilmPackStudio() {
     }
   };
 
+  const generateShotPack = async (scene: SceneItem) => {
+    if (!result) return;
+
+    setShotPackLoading((prev) => ({ ...prev, [scene.sceneNumber]: true }));
+    setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-pack`]: "" }));
+
+    try {
+      const response = await fetch("/api/generate-shot-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: result.title,
+          style: result.style,
+          colorGradePreset,
+          settingNote: result.settingNote,
+          characterReferenceGuidance: result.characterReferenceGuidance,
+          referenceTag,
+          projectColorGradeLock,
+          strictMode,
+          scene,
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateShotPackPayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateShotPackPayload;
+      } catch {
+        payload = { error: raw || "Failed to generate shot pack." };
+      }
+
+      if (!response.ok || !payload?.shots?.length) {
+        throw new Error(payload?.error || "Failed to generate shot pack.");
+      }
+
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          scenes: prev.scenes.map((item) =>
+            item.sceneNumber === scene.sceneNumber
+              ? {
+                  ...item,
+                  companionShots: [...(item.companionShots || []), ...payload!.shots!],
+                }
+              : item
+          ),
+        };
+      });
+    } catch (generationError) {
+      const message = generationError instanceof Error ? generationError.message : "Failed to generate shot pack.";
+      setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-pack`]: message }));
+    } finally {
+      setShotPackLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+    }
+  };
+
   const overrideSceneType = (sceneNumber: number, nextType: DirectorSceneType) => {
     setResult((prev) => {
       if (!prev) return prev;
@@ -1101,6 +1165,7 @@ export function FilmPackStudio() {
       setCompanionImageErrors({});
       setCompanionLoading({});
       setScenePromptRegenerating({});
+      setShotPackLoading({});
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Generation failed.";
       setError(message);
@@ -1600,10 +1665,13 @@ export function FilmPackStudio() {
                 companionImageLoading={companionImageLoading}
                 companionImageErrors={companionImageErrors}
                 generatingCompanionKind={companionLoading[scene.sceneNumber] || null}
+                generatingShotPack={shotPackLoading[scene.sceneNumber]}
                 companionActionError={
+                  companionImageErrors[`scene-${scene.sceneNumber}-pack`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-broll`] ||
                   companionImageErrors[`scene-${scene.sceneNumber}-transition`]
                 }
+                onGenerateShotPack={generateShotPack}
                 onRegenerateScene={regenerateSingleScene}
                 regeneratingScene={scenePromptRegenerating[scene.sceneNumber]}
                 onSceneTypeChange={overrideSceneType}

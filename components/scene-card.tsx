@@ -16,9 +16,11 @@ interface SceneCardProps {
   companionActionError?: string;
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
+  onGenerateShotPack?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
   onRegenerateScene?: (scene: SceneItem) => void;
   regeneratingScene?: boolean;
+  generatingShotPack?: boolean;
 }
 
 export function SceneCard({
@@ -35,9 +37,11 @@ export function SceneCard({
   companionActionError,
   onGenerateImage,
   onGenerateCompanion,
+  onGenerateShotPack,
   onSceneTypeChange,
   onRegenerateScene,
   regeneratingScene,
+  generatingShotPack,
 }: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
@@ -113,6 +117,14 @@ export function SceneCard({
             className="rounded-md border border-violet-300/30 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-60"
           >
             {regeneratingScene ? "Regenerating Scene..." : "Regenerate This Scene"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onGenerateShotPack?.(scene)}
+            disabled={generatingShotPack || !onGenerateShotPack}
+            className="rounded-md border border-fuchsia-300/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs font-medium text-fuchsia-200 transition hover:bg-fuchsia-500/20 disabled:opacity-60"
+          >
+            {generatingShotPack ? "Generating Shot Pack..." : "Generate Shot Pack"}
           </button>
           <button
             type="button"
