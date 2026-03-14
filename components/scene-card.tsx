@@ -17,12 +17,14 @@ interface SceneCardProps {
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
   onGenerateShotPack?: (scene: SceneItem) => void;
+  onRegenerateShotPack?: (scene: SceneItem) => void;
   onGenerateAllCompanionImages?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
   onRegenerateScene?: (scene: SceneItem) => void;
   regeneratingScene?: boolean;
   generatingShotPack?: boolean;
   generatingAllCompanionImages?: boolean;
+  hasShotPack?: boolean;
 }
 
 export function SceneCard({
@@ -40,12 +42,14 @@ export function SceneCard({
   onGenerateImage,
   onGenerateCompanion,
   onGenerateShotPack,
+  onRegenerateShotPack,
   onGenerateAllCompanionImages,
   onSceneTypeChange,
   onRegenerateScene,
   regeneratingScene,
   generatingShotPack,
   generatingAllCompanionImages,
+  hasShotPack,
 }: SceneCardProps) {
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
@@ -130,6 +134,16 @@ export function SceneCard({
           >
             {generatingShotPack ? "Generating Shot Pack..." : "Generate Shot Pack"}
           </button>
+          {hasShotPack ? (
+            <button
+              type="button"
+              onClick={() => onRegenerateShotPack?.(scene)}
+              disabled={generatingShotPack || !onRegenerateShotPack}
+              className="rounded-md border border-pink-300/30 bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-200 transition hover:bg-pink-500/20 disabled:opacity-60"
+            >
+              {generatingShotPack ? "Regenerating Pack..." : "Regenerate Pack"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onGenerateCompanion?.(scene, "broll")}
