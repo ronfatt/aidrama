@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { CompanionShotKind, ScenePhase, SceneType } from "@/types/film-pack";
+import type { CompanionShotKind, FilmTone, ScenePhase, SceneType } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,6 +75,9 @@ const responseSchema = {
         ],
       },
       shotGrammarPreset: { type: "string" },
+      cameraStyle: { type: "string" },
+      actionStyle: { type: "string" },
+      motionTemplateId: { type: "string" },
       scenePurpose: { type: "string" },
       importance: { type: "string", enum: ["A", "B", "C"] },
       useReferenceImage: { type: "boolean" },
@@ -87,6 +91,9 @@ const responseSchema = {
       "voLine",
       "shotType",
       "shotGrammarPreset",
+      "cameraStyle",
+      "actionStyle",
+      "motionTemplateId",
       "scenePurpose",
       "importance",
       "useReferenceImage",
@@ -110,6 +117,7 @@ Rules:
 - For broll: prefer environment, atmospheric insert, symbolic insert, transition B-roll.
 - For transition: focus on bridging motion, space, mood, or time shift.
 - Keep a related shot grammar family to the base scene, but shift it into a supporting angle rather than repeating the exact same frame.
+- Return one cameraStyle and one actionStyle suited for Kling motion.
 - Importance should usually be B or C.
 - Keep prompts concise and cinematic.
 - Keep the same overall color grade family as the base scene and project lock.
@@ -169,6 +177,9 @@ export async function POST(request: Request) {
       voLine: string;
       shotType: SceneType;
       shotGrammarPreset: string;
+      cameraStyle: string;
+      actionStyle: string;
+      motionTemplateId: string;
       scenePurpose: string;
       importance: "A" | "B" | "C";
       useReferenceImage: boolean;
@@ -178,12 +189,32 @@ export async function POST(request: Request) {
       lightingColor: string;
     };
 
+    const motionTemplate = pickKlingMotionTemplate({
+      scene: {
+        sceneNumber: parsed.scene.sceneNumber,
+        shotType: payload.shotType,
+        shotGrammarPreset: payload.shotGrammarPreset,
+        scenePurpose: payload.scenePurpose,
+        camera: payload.camera,
+        lightingColor: payload.lightingColor,
+      },
+      projectMode: parsed.settingNote.toLowerCase().includes("tawau")
+        ? "tawau-sabah-realism"
+        : parsed.settingNote.toLowerCase().includes("fantasy")
+          ? "coastal-fantasy-drama"
+          : "singapore-realism",
+      style: parsed.style as FilmTone,
+    });
+
     const shot = {
       id: crypto.randomUUID(),
       parentSceneNumber: parsed.scene.sceneNumber,
       label: parsed.kind === "broll" ? `Scene ${parsed.scene.sceneNumber}B` : `Scene ${parsed.scene.sceneNumber}T`,
       kind: parsed.kind as CompanionShotKind,
       ...payload,
+      cameraStyle: payload.cameraStyle?.trim() || motionTemplate.cameraStyle,
+      actionStyle: payload.actionStyle?.trim() || motionTemplate.actionStyle,
+      motionTemplateId: payload.motionTemplateId?.trim() || motionTemplate.id,
     };
 
     return NextResponse.json({ shot });

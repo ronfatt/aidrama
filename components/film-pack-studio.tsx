@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants";
 import { assembleFilmPackFromScenes } from "@/lib/film-pack-assembly";
 import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/formatters";
+import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { normalizeReferenceTag } from "@/lib/reference-tag";
 import type {
   BeatItem,
@@ -232,7 +233,7 @@ function fallbackSceneMetadataFromBeat(
   tone: FilmTone,
   normalizedReferenceTag: string
 ): SceneMetadata {
-  return {
+  const baseScene: SceneMetadata = {
     sceneNumber: beat.beatNumber,
     phase: beat.phase,
     voLine: beat.voLine,
@@ -243,6 +244,17 @@ function fallbackSceneMetadataFromBeat(
     useReferenceImage: Boolean(normalizedReferenceTag) && beat.role === "hero",
     camera: fallbackCameraFromBeat(beat),
     lightingColor: fallbackLightingFromBeat(beat, mode, preset, tone),
+  };
+  const motionTemplate = pickKlingMotionTemplate({
+    scene: baseScene,
+    projectMode: mode,
+    style: tone,
+  });
+  return {
+    ...baseScene,
+    cameraStyle: motionTemplate.cameraStyle,
+    actionStyle: motionTemplate.actionStyle,
+    motionTemplateId: motionTemplate.id,
   };
 }
 
@@ -648,6 +660,9 @@ export function FilmPackStudio() {
             voLine: scene.voLine,
             shotType: scene.shotType,
             shotGrammarPreset: scene.shotGrammarPreset,
+            cameraStyle: scene.cameraStyle,
+            actionStyle: scene.actionStyle,
+            motionTemplateId: scene.motionTemplateId,
             scenePurpose: scene.scenePurpose,
             importance: scene.importance,
             useReferenceImage: scene.useReferenceImage,

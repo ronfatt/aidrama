@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
+import { buildStructuredVideoPrompt, pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { FantasyBibleInput, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,9 @@ const promptRequestSchema = z.object({
       voLine: z.string().trim().min(1),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1).optional(),
+      cameraStyle: z.string().trim().min(1).optional(),
+      actionStyle: z.string().trim().min(1).optional(),
+      motionTemplateId: z.string().trim().min(1).optional(),
       scenePurpose: z.string().trim().min(1),
       importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
       useReferenceImage: z.boolean(),
@@ -150,11 +154,15 @@ Rules:
 - Only one clearly visible character per scene.
 - Respect shotType, scenePurpose, camera, and lightingColor exactly.
 - Respect shotGrammarPreset as a concrete visual-template instruction.
+- Respect cameraStyle and actionStyle as hard motion constraints.
+- Respect motionTemplate as the preferred Kling motion baseline.
 - Do not turn all scenes into front-facing portraits.
 - Preserve shot diversity.
 - If useReferenceImage=true, avoid re-describing facial identity.
 - imagePrompt should describe the single best frame.
-- videoPrompt should describe subtle motion, environmental motion, and camera movement.
+- videoPrompt must be written as five compact parts in this order: Scene, Subject, Action Timeline, Camera Movement, Atmosphere.
+- In Action Timeline, prefer a short progression such as "first..., then..., finally...".
+- Include camera movement explicitly rather than generic motion language.
 - style: ${input.settings.style}
 - color grade preset: ${input.settings.colorGradePreset || "(not provided)"}
 - narrator / POV character: ${input.settings.narratorCharacter?.trim() || "(not provided)"}
@@ -169,7 +177,7 @@ Scenes:
 ${input.scenes
   .map(
     (scene) =>
-      `${scene.sceneNumber}. [${scene.phase}] shotType=${scene.shotType} shotGrammarPreset="${scene.shotGrammarPreset || ""}" importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
+      `${scene.sceneNumber}. [${scene.phase}] shotType=${scene.shotType} shotGrammarPreset="${scene.shotGrammarPreset || ""}" cameraStyle="${scene.cameraStyle || ""}" actionStyle="${scene.actionStyle || ""}" motionTemplate="${scene.motionTemplateId || ""}" importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
   )
   .join("\n")}
 `;
@@ -261,11 +269,28 @@ export async function POST(request: Request) {
     }
 
     const scenes: SceneItem[] = (parsed.scenes as SceneMetadata[]).map((scene) => {
+      const motionTemplate = pickKlingMotionTemplate({
+        scene,
+        projectMode: (parsed.settings.projectMode || "singapore-realism") as ProjectMode,
+        style: parsed.settings.style as FilmTone,
+      });
       const prompts = byScene.get(scene.sceneNumber)!;
+      const rawVideoPrompt = prompts.videoPrompt.trim();
       return {
         ...scene,
+        cameraStyle: scene.cameraStyle || motionTemplate.cameraStyle,
+        actionStyle: scene.actionStyle || motionTemplate.actionStyle,
+        motionTemplateId: scene.motionTemplateId || motionTemplate.id,
         imagePrompt: prompts.imagePrompt,
-        videoPrompt: prompts.videoPrompt,
+        videoPrompt:
+          /^scene:\s/i.test(rawVideoPrompt)
+            ? rawVideoPrompt
+            : buildStructuredVideoPrompt({
+                basePrompt: rawVideoPrompt,
+                scenePurpose: scene.scenePurpose,
+                cameraMovement: `${scene.cameraStyle || motionTemplate.cameraStyle}, ${scene.camera}`,
+                atmosphere: `${scene.lightingColor}, ${scene.actionStyle || motionTemplate.actionStyle}`,
+              }),
       };
     });
 

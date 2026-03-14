@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizeBeatSheet } from "@/lib/beat-sheet";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
+import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
 import type { BeatItem, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
@@ -18,6 +19,9 @@ const metadataSchema = z.object({
       voLine: z.string().trim().min(1),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1),
+      cameraStyle: z.string().trim().min(1).optional(),
+      actionStyle: z.string().trim().min(1).optional(),
+      motionTemplateId: z.string().trim().min(1).optional(),
       scenePurpose: z.string().trim().min(1),
       importance: z.union([z.literal("A"), z.literal("B"), z.literal("C")]),
       useReferenceImage: z.boolean(),
@@ -48,6 +52,9 @@ function buildMetadataJsonSchema(sceneCount: number) {
               voLine: { type: "string" },
               shotType: { type: "string" },
               shotGrammarPreset: { type: "string" },
+              cameraStyle: { type: "string" },
+              actionStyle: { type: "string" },
+              motionTemplateId: { type: "string" },
               scenePurpose: { type: "string" },
               importance: { type: "string", enum: ["A", "B", "C"] },
               useReferenceImage: { type: "boolean" },
@@ -60,6 +67,9 @@ function buildMetadataJsonSchema(sceneCount: number) {
               "voLine",
               "shotType",
               "shotGrammarPreset",
+              "cameraStyle",
+              "actionStyle",
+              "motionTemplateId",
               "scenePurpose",
               "importance",
               "useReferenceImage",
@@ -176,6 +186,9 @@ Rules:
 - No new facts, events, places, or people.
 - Use beat.visualRole and beat.framingIntent as hard composition instructions.
 - Use beat.shotGrammarPreset as a hard visual-template instruction.
+- Assign one cameraStyle and one actionStyle that fit Kling cinematic motion logic.
+- cameraStyle should be a concise label such as handheld documentary, cinematic tracking, low-angle hero shot, slow orbit camera, or aerial drone shot.
+- actionStyle should be a concise label such as subtle realism, device interaction, emotional focus, heroic action, ocean power surge, or reflective pause.
 - Do not repeat the same portrait setup in consecutive scenes.
 - At least 25 percent of scenes must avoid front-facing portrait framing.
 - If no reference tag is provided, set useReferenceImage=false for all scenes.
@@ -289,6 +302,9 @@ function fallbackMetadataFromBeat(
     scenePurpose: beat.purpose,
     importance: beat.importance,
     useReferenceImage: hasReferenceTag ? beat.role === "hero" : false,
+    cameraStyle: "",
+    actionStyle: "",
+    motionTemplateId: "",
     camera: fallbackCameraFromBeat(beat),
     lightingColor: fallbackLightingFromBeat(beat, projectMode, colorGradePreset),
   };
@@ -427,15 +443,25 @@ export async function POST(request: Request) {
 
     const scenes = beatSheet.map((beat) => {
       const scene = byScene.get(beat.beatNumber);
-      if (scene) {
-        return scene;
-      }
-      return fallbackMetadataFromBeat(
+      const baseScene =
+        scene ||
+        fallbackMetadataFromBeat(
         beat,
         parsedBody.settings.projectMode || "singapore-realism",
         parsedBody.settings.colorGradePreset,
         Boolean(referenceTag)
       );
+      const motionTemplate = pickKlingMotionTemplate({
+        scene: baseScene,
+        projectMode: parsedBody.settings.projectMode || "singapore-realism",
+        style: parsedBody.settings.style,
+      });
+      return {
+        ...baseScene,
+        cameraStyle: baseScene.cameraStyle?.trim() || motionTemplate.cameraStyle,
+        actionStyle: baseScene.actionStyle?.trim() || motionTemplate.actionStyle,
+        motionTemplateId: baseScene.motionTemplateId?.trim() || motionTemplate.id,
+      };
     });
 
     return NextResponse.json({ scenes });

@@ -18,12 +18,12 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
         ? `\n- Companion shots:\n${scene.companionShots
             .map(
               (shot) =>
-                `  - ${shot.label}: kind=${shot.kind}, shot type=${shot.shotType}, purpose=${shot.scenePurpose}, image prompt=${shot.imagePrompt}, video prompt=${shot.videoPrompt}`
+                `  - ${shot.label}: kind=${shot.kind}, shot type=${shot.shotType}, camera style=${shot.cameraStyle || "(not specified)"}, action style=${shot.actionStyle || "(not specified)"}, purpose=${shot.scenePurpose}, image prompt=${shot.imagePrompt}, video prompt=${shot.videoPrompt}`
             )
             .join("\n")}`
         : "";
 
-      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Shot grammar: ${scene.shotGrammarPreset || "(not specified)"}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${companionBlock}`;
+      return `### Scene ${scene.sceneNumber}\n- Phase: ${scene.phase}\n- VO line: ${scene.voLine}\n- Shot type: ${scene.shotType}\n- Shot grammar: ${scene.shotGrammarPreset || "(not specified)"}\n- Camera style: ${scene.cameraStyle || "(not specified)"}\n- Action style: ${scene.actionStyle || "(not specified)"}\n- Scene purpose: ${scene.scenePurpose}\n- Importance: ${scene.importance}\n- Reference image: ${scene.useReferenceImage ? "yes" : "no"}\n- Image prompt: ${scene.imagePrompt}\n- Video prompt: ${scene.videoPrompt}\n- Camera: ${scene.camera}\n- Lighting / Color: ${scene.lightingColor}${companionBlock}`;
     })
     .join("\n\n");
 

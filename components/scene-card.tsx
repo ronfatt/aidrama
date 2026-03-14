@@ -60,6 +60,16 @@ export function SceneCard({
             <span className="font-semibold text-zinc-100">Shot grammar:</span> {scene.shotGrammarPreset}
           </p>
         ) : null}
+        {scene.cameraStyle ? (
+          <p>
+            <span className="font-semibold text-zinc-100">Camera style:</span> {scene.cameraStyle}
+          </p>
+        ) : null}
+        {scene.actionStyle ? (
+          <p>
+            <span className="font-semibold text-zinc-100">Action style:</span> {scene.actionStyle}
+          </p>
+        ) : null}
         <p>
           <span className="font-semibold text-zinc-100">Purpose:</span> {scene.scenePurpose}
         </p>
@@ -131,6 +141,16 @@ export function SceneCard({
                   {shot.shotGrammarPreset ? (
                     <p>
                       <span className="font-semibold text-zinc-100">Shot grammar:</span> {shot.shotGrammarPreset}
+                    </p>
+                  ) : null}
+                  {shot.cameraStyle ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">Camera style:</span> {shot.cameraStyle}
+                    </p>
+                  ) : null}
+                  {shot.actionStyle ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">Action style:</span> {shot.actionStyle}
                     </p>
                   ) : null}
                   <p>

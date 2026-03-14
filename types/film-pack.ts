@@ -83,6 +83,9 @@ export interface SceneItem {
   voLine: string;
   shotType: SceneType;
   shotGrammarPreset?: string;
+  cameraStyle?: string;
+  actionStyle?: string;
+  motionTemplateId?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;
@@ -99,6 +102,9 @@ export interface SceneMetadata {
   voLine: string;
   shotType: SceneType;
   shotGrammarPreset?: string;
+  cameraStyle?: string;
+  actionStyle?: string;
+  motionTemplateId?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;
@@ -115,6 +121,9 @@ export interface CompanionShot {
   voLine: string;
   shotType: SceneType;
   shotGrammarPreset?: string;
+  cameraStyle?: string;
+  actionStyle?: string;
+  motionTemplateId?: string;
   scenePurpose: string;
   importance: SceneImportance;
   useReferenceImage: boolean;
