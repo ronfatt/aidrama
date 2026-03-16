@@ -1,5 +1,5 @@
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
-import type { BeatItem, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
+import type { AspectRatio, BeatItem, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
 
 export function buildSettingNote(style: string, projectMode: ProjectMode, fantasyBible?: FantasyBibleInput) {
   if (projectMode === "coastal-fantasy-drama") {
@@ -58,6 +58,7 @@ export function assembleFilmPackFromScenes({
     projectMode?: ProjectMode;
     title?: string;
     style: FilmPack["style"];
+    aspectRatio?: AspectRatio;
     colorGradePreset?: FilmPack["colorGradePreset"];
     narratorCharacter?: string;
     onScreenCharacter?: string;
@@ -70,6 +71,7 @@ export function assembleFilmPackFromScenes({
   return {
     title: settings.title?.trim() || "Untitled Film Pack",
     style: settings.style,
+    aspectRatio: settings.aspectRatio,
     colorGradePreset: settings.colorGradePreset,
     settingNote: buildSettingNote(settings.style, projectMode, settings.fantasyBible),
     preservedVoiceOverScript: lockedVoiceOver || beatSheet.map((beat) => beat.voLine).join(" "),

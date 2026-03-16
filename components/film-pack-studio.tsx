@@ -24,6 +24,7 @@ import { fullOutputCopy, toFilmPackMarkdown, toFilmPackText } from "@/lib/format
 import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { normalizeReferenceTag } from "@/lib/reference-tag";
 import type {
+  AspectRatio,
   BeatItem,
   ColorGradePreset,
   CompanionShot,
@@ -335,6 +336,7 @@ export function FilmPackStudio() {
   const [referenceTag, setReferenceTag] = useState(DEFAULT_REFERENCE_TAG);
   const [sceneCount, setSceneCount] = useState<SceneCountInput>("auto");
   const [style, setStyle] = useState<FilmTone>("cinematic documentary");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [colorGradePreset, setColorGradePreset] = useState<ColorGradePreset>("warm-neutral documentary");
   const [strictMode, setStrictMode] = useState(true);
   const [fantasyBible, setFantasyBible] = useState<FantasyBibleInput>({
@@ -442,6 +444,9 @@ export function FilmPackStudio() {
     const target = savedPacks.find((record) => record.id === id);
     if (target) {
       setResult(target.filmPack);
+      if (target.filmPack.aspectRatio) {
+        setAspectRatio(target.filmPack.aspectRatio);
+      }
       if (target.filmPack.colorGradePreset) {
         setColorGradePreset(target.filmPack.colorGradePreset);
       }
@@ -492,6 +497,7 @@ export function FilmPackStudio() {
       setOnScreenCharacter("Kai");
       setReferenceTag("[KAI_REF]");
       setStyle("epic cinematic fantasy");
+      setAspectRatio("16:9");
       setColorGradePreset("storm-blue mythic");
       setSceneCount(30);
       setFantasyBible(FANTASY_SAMPLE_BIBLE);
@@ -506,6 +512,7 @@ export function FilmPackStudio() {
       setOnScreenCharacter("Local Citizen");
       setReferenceTag("[CITIZEN_REPORTER]");
       setStyle("cinematic documentary");
+      setAspectRatio("16:9");
       setColorGradePreset("neutral-cool restraint");
       setSceneCount("auto");
       setFantasyBible({
@@ -527,6 +534,7 @@ export function FilmPackStudio() {
     setOnScreenCharacter("");
     setReferenceTag(DEFAULT_REFERENCE_TAG);
     setStyle("cinematic documentary");
+    setAspectRatio("16:9");
     setColorGradePreset("warm-neutral documentary");
     setSceneCount("auto");
     setFantasyBible({
@@ -595,6 +603,7 @@ export function FilmPackStudio() {
             referenceTag,
             sceneCount,
             style,
+            aspectRatio,
             colorGradePreset,
             strictMode,
             fantasyBible,
@@ -646,6 +655,7 @@ export function FilmPackStudio() {
             referenceTag,
             sceneCount,
             style,
+            aspectRatio,
             colorGradePreset,
             strictMode,
             fantasyBible,
@@ -719,6 +729,7 @@ export function FilmPackStudio() {
           settings: {
             title,
             style,
+            aspectRatio,
             colorGradePreset,
             narratorCharacter,
             onScreenCharacter,
@@ -814,6 +825,7 @@ export function FilmPackStudio() {
           settings: {
             title,
             style,
+            aspectRatio,
             colorGradePreset,
             narratorCharacter,
             onScreenCharacter,
@@ -903,6 +915,7 @@ export function FilmPackStudio() {
           imagePrompt: scene.imagePrompt,
           sceneNumber: isCompanion ? scene.parentSceneNumber : scene.sceneNumber,
           projectMode,
+          aspectRatio,
           useReferenceImage: scene.useReferenceImage,
           referenceTag,
           style,
@@ -1216,6 +1229,7 @@ export function FilmPackStudio() {
           projectMode,
           title,
           style,
+          aspectRatio,
           colorGradePreset,
           narratorCharacter,
           onScreenCharacter,
@@ -1596,9 +1610,22 @@ export function FilmPackStudio() {
           </label>
         </div>
 
-        <label className="grid gap-2">
-          <span className="text-sm font-medium text-zinc-200">Color Grade Preset</span>
-          <select
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Frame Ratio</span>
+            <select
+              value={aspectRatio}
+              onChange={(event) => setAspectRatio(event.target.value as AspectRatio)}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+            >
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Color Grade Preset</span>
+            <select
               value={colorGradePreset}
               onChange={(event) => setColorGradePreset(event.target.value as ColorGradePreset)}
               className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
@@ -1607,9 +1634,10 @@ export function FilmPackStudio() {
                 <option key={preset} value={preset}>
                   {preset}
                 </option>
-            ))}
-          </select>
-        </label>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
           <div className="space-y-1">
@@ -1651,7 +1679,7 @@ export function FilmPackStudio() {
               <div>
                 <h2 className="text-2xl font-semibold text-zinc-100">{result.title}</h2>
                 <p className="text-sm text-zinc-300">{result.style}</p>
-                <p className="text-xs text-zinc-400">{colorGradePreset}</p>
+                <p className="text-xs text-zinc-400">{colorGradePreset} · {aspectRatio}</p>
               </div>
             </div>
 

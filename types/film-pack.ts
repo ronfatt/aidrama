@@ -2,6 +2,7 @@ export type SceneCount = 20 | 22 | 25 | 28 | 30;
 export type SceneCountInput = SceneCount | "auto";
 export type CompanionShotKind = "broll" | "transition";
 export type BeatRole = "hero" | "broll" | "transition";
+export type AspectRatio = "16:9" | "9:16";
 export type ColorGradePreset =
   | "warm-neutral documentary"
   | "neutral-cool restraint"
@@ -50,6 +51,7 @@ export interface UserSettings {
   referenceTag?: string;
   sceneCount: SceneCountInput;
   style: FilmTone;
+  aspectRatio?: AspectRatio;
   colorGradePreset?: ColorGradePreset;
   strictMode?: boolean;
   fantasyBible?: FantasyBibleInput;
@@ -172,6 +174,7 @@ export interface CompanionShot {
 export interface FilmPack {
   title: string;
   style: FilmTone;
+  aspectRatio?: AspectRatio;
   colorGradePreset?: ColorGradePreset;
   settingNote: string;
   preservedVoiceOverScript: string;

@@ -37,6 +37,8 @@ const colorGradePresetSchema = z.union([
   z.literal("tidal supernatural realism"),
 ]);
 
+const aspectRatioSchema = z.union([z.literal("16:9"), z.literal("9:16")]);
+
 const phaseSchema = z.union([
   z.literal("Opening - Awareness"),
   z.literal("Understanding - Reframing"),
@@ -76,6 +78,7 @@ export const generateRequestSchema = z.object({
       .or(z.literal("")),
     sceneCount: sceneCountSchema,
     style: styleSchema,
+    aspectRatio: aspectRatioSchema.optional(),
     colorGradePreset: colorGradePresetSchema.optional(),
     strictMode: z.boolean().optional(),
     fantasyBible: z

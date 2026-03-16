@@ -10,7 +10,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
         .join("\n")}\n\n`
     : "";
 
-  const header = `# ${pack.title}\n\n- Style: ${pack.style}\n- Setting: ${pack.settingNote}\n\n## Preserved Voice Over\n${pack.preservedVoiceOverScript}\n\n## Character Reference Guidance\n${pack.characterReferenceGuidance}\n\n${beatSheetBlock}## Scenes\n`;
+  const header = `# ${pack.title}\n\n- Style: ${pack.style}\n- Frame ratio: ${pack.aspectRatio || "16:9"}\n- Setting: ${pack.settingNote}\n\n## Preserved Voice Over\n${pack.preservedVoiceOverScript}\n\n## Character Reference Guidance\n${pack.characterReferenceGuidance}\n\n${beatSheetBlock}## Scenes\n`;
 
   const sceneBlocks = pack.scenes
     .map((scene) => {

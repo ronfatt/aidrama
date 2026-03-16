@@ -14,6 +14,7 @@ const promptRequestSchema = z.object({
     projectMode: z.union([z.literal("singapore-realism"), z.literal("tawau-sabah-realism"), z.literal("coastal-fantasy-drama")]).optional(),
     title: z.string().optional(),
     style: z.string().min(1),
+    aspectRatio: z.union([z.literal("16:9"), z.literal("9:16")]).optional(),
     colorGradePreset: z.string().optional(),
     narratorCharacter: z.string().optional(),
     onScreenCharacter: z.string().optional(),
@@ -207,6 +208,7 @@ Return valid JSON only:
 Rules:
 - Keep prompts practical for still-image generation and image-to-video.
 - project mode: ${projectMode}
+- frame ratio: ${input.settings.aspectRatio || "16:9"}
 - Only one clearly visible character per scene.
 - Respect shotType, scenePurpose, camera, and lightingColor exactly.
 - Respect sceneType as a director-level instruction.
@@ -217,6 +219,7 @@ Rules:
 - Preserve shot diversity.
 - If useReferenceImage=true, avoid re-describing facial identity.
 - imagePrompt should describe the single best frame.
+- Compose for ${input.settings.aspectRatio === "9:16" ? "9:16 vertical framing with stronger height and stacked composition" : "16:9 widescreen framing with horizontal environmental depth"}.
 - videoPrompt must be written as five compact parts in this order: Scene, Subject, Action Timeline, Camera Movement, Atmosphere.
 - In Action Timeline, prefer a short progression such as "first..., then..., finally...".
 - Include camera movement explicitly rather than generic motion language.

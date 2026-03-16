@@ -102,6 +102,7 @@ function buildMetadataPrompt({
   beatSheet,
   title,
   style,
+  aspectRatio,
   colorGradePreset,
   projectMode,
   fantasyBible,
@@ -113,6 +114,7 @@ function buildMetadataPrompt({
   beatSheet: BeatItem[];
   title?: string;
   style: string;
+  aspectRatio?: "16:9" | "9:16";
   colorGradePreset?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
@@ -207,6 +209,7 @@ Rules:
 - Keep metadata concise and practical.
 - Do not leave shotGrammarPreset empty.
 - style: ${style}
+- frame ratio: ${aspectRatio || "16:9"}
 - color grade preset: ${colorGradePreset || "(not provided)"}
 - narrator / POV character: ${narratorCharacter?.trim() || "(not provided)"}
 - primary on-screen character: ${onScreenCharacter?.trim() || "(not provided)"}

@@ -9,6 +9,7 @@ const generateImageSchema = z.object({
   imagePrompt: z.string().min(8).max(4000),
   sceneNumber: z.number().int().positive(),
   projectMode: z.string().optional().or(z.literal("")),
+  aspectRatio: z.union([z.literal("16:9"), z.literal("9:16")]).optional(),
   useReferenceImage: z.boolean(),
   referenceTag: z.string().optional().or(z.literal("")),
   style: z.string().min(1),
@@ -59,6 +60,8 @@ async function fetchJsonWithTimeout(
 }
 
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
+  const aspectRatio = input.aspectRatio || "16:9";
+  const aspectLabel = aspectRatio === "9:16" ? "9:16 vertical frame only" : "16:9 widescreen frame only";
   const locationLock =
     input.projectMode === "tawau-sabah-realism"
       ? "Tawau Sabah modern civic location realism"
@@ -69,7 +72,7 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     "single clearly visible character",
     locationLock,
     "cinematic photorealistic 35mm still",
-    "16:9 widescreen frame only",
+    aspectLabel,
     "natural but moody lighting",
     "no western suburban architecture",
     "keep color grading consistent with the same project palette",
@@ -106,7 +109,7 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
 
   return `${input.imagePrompt}. Style: ${input.style}. ${colorNotes ? `${colorNotes}. ` : ""}Locks: ${locks.join(
     ", "
-  )}. Output a single best frame in 16:9 widescreen.`;
+  )}. Output a single best frame in ${aspectRatio === "9:16" ? "9:16 vertical" : "16:9 widescreen"}.`;
 }
 
 function parseDataUrlImage(dataUrl: string): { mimeType: string; data: string } | null {
@@ -284,7 +287,8 @@ function buildKlingQueryUrl(taskId: string): string {
 
 async function generateWithGemini(
   prompt: string,
-  refs: string[]
+  refs: string[],
+  aspectRatio: "16:9" | "9:16"
 ): Promise<{ ok: true; imageSrc: string; modelUsed: string } | { ok: false; error: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const primaryModel = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
@@ -315,7 +319,7 @@ async function generateWithGemini(
             generationConfig: {
               responseModalities: ["TEXT", "IMAGE"],
               imageConfig: {
-                aspectRatio: "16:9",
+                aspectRatio,
               },
             },
           }),
@@ -371,6 +375,7 @@ async function createKlingTask(
 
   const seed = hashToSeed(`${payload.continuitySeed || "seed"}|${payload.sceneNumber}`);
   const referenceUrls = (payload.masterReferenceImages || []).filter((item) => /^https?:\/\//i.test(item));
+  const aspectRatio = payload.aspectRatio || "16:9";
 
   const response = await fetchJsonWithTimeout(
     endpoint,
@@ -386,7 +391,7 @@ async function createKlingTask(
         negative_prompt: "",
         image_list: referenceUrls.slice(0, 4).map((image) => ({ image })),
         n: 1,
-        aspect_ratio: "16:9",
+        aspect_ratio: aspectRatio,
         external_task_id: `scene_${payload.sceneNumber}_${seed}`,
         callback_url: "",
       }),
@@ -496,7 +501,10 @@ export async function POST(request: Request) {
     const provider = getProvider();
     const refs = payload.masterReferenceImages || [];
 
-    const primary = provider === "kling" ? await createKlingTask(prompt, payload) : await generateWithGemini(prompt, refs);
+    const primary =
+      provider === "kling"
+        ? await createKlingTask(prompt, payload)
+        : await generateWithGemini(prompt, refs, payload.aspectRatio || "16:9");
 
     if (primary.ok) {
       if ("taskId" in primary) {
@@ -512,7 +520,7 @@ export async function POST(request: Request) {
 
     const fallbackProvider = (process.env.IMAGE_FALLBACK_PROVIDER || "").toLowerCase();
     if (fallbackProvider === "gemini" && provider === "kling") {
-      const fallback = await generateWithGemini(prompt, refs);
+      const fallback = await generateWithGemini(prompt, refs, payload.aspectRatio || "16:9");
       if (fallback.ok) {
         return NextResponse.json({
           imageDataUrl: fallback.imageSrc,
