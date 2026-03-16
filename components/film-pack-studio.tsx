@@ -506,7 +506,7 @@ export function FilmPackStudio() {
       setOnScreenCharacter("Local Citizen");
       setReferenceTag("[CITIZEN_REPORTER]");
       setStyle("cinematic documentary");
-      setColorGradePreset("warm-neutral documentary");
+      setColorGradePreset("neutral-cool restraint");
       setSceneCount("auto");
       setFantasyBible({
         corePremise: "",

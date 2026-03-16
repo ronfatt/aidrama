@@ -103,8 +103,10 @@ function buildBeatPrompt({
       : projectMode === "tawau-sabah-realism"
         ? `
 - Keep Tawau, Sabah realism and single-character production logic in mind.
-- Use grounded Tawau and Sabah spaces such as municipal offices, government counters, shoplots, coastal roads, jetties, kampung air walkways, wet markets, district housing areas, schools, clinics, and public works depots.
+- Use grounded Tawau and Sabah spaces such as modern municipal offices, clean government counters, refreshed shopfront rows, upgraded coastal roads, maintained jetties, renovated kampung air walkways, district housing frontages, schools, clinics, and organized public works depots.
 - Preserve civic, public-service, and coastal-town realism rather than fantasy spectacle.
+- Prefer newer, maintained, or recently upgraded buildings and public infrastructure over visibly old, decayed, retro, or run-down architecture unless the script explicitly requires age or damage.
+- Visual tone should feel contemporary, efficient, and municipally current rather than nostalgic or weathered.
 `
         : `
 - Keep Singapore realism and single-character production logic in mind.

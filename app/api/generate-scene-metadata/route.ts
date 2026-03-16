@@ -133,8 +133,11 @@ function buildMetadataPrompt({
       : projectMode === "tawau-sabah-realism"
         ? `
 - Keep metadata grounded in Tawau, Sabah realism.
-- Use real Tawau and Sabah civic and neighborhood spaces: municipal offices, service counters, shoplots, roadsides, jetties, kampung air walkways, wet markets, schools, clinics, public works depots, and housing areas.
+- Use real Tawau and Sabah civic and neighborhood spaces: modern municipal offices, clean service counters, refreshed shoplots, upgraded roadsides, maintained jetties, renovated kampung air walkways, schools, clinics, public works depots, and housing frontages.
 - Maintain local civic-documentary realism rather than fantasy spectacle.
+- Prefer newer, maintained, cleaner, and more contemporary architecture and public infrastructure.
+- Avoid old, shabby, derelict, vintage, or overly weathered building reads unless the beat explicitly requires damage or poverty.
+- Keep lighting and composition contemporary rather than nostalgic.
 `
         : `
 - Keep metadata grounded in contemporary Singapore realism.
@@ -293,7 +296,7 @@ function fallbackLightingFromBeat(beat: BeatItem, projectMode: ProjectMode, colo
   }
 
   if (projectMode === "tawau-sabah-realism") {
-    return `Tawau / Sabah realism, grounded public-service and coastal-town textures, practical daylight and humid tropical atmosphere`;
+    return `Tawau / Sabah realism, contemporary public-service and coastal-town textures, cleaner modern municipal spaces, crisp tropical daylight, controlled contrast, and present-day Malaysian civic color treatment`;
   }
 
   switch (colorGradePreset) {

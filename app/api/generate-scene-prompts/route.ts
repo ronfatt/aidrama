@@ -159,7 +159,10 @@ function buildPromptExpansionPrompt(input: z.infer<typeof promptRequestSchema>) 
         ? `
 - Keep all scenes in Tawau, Sabah realism with grounded civic and coastal-town textures.
 - Preserve cinematic documentary realism over fantasy spectacle.
-- Use municipal offices, public counters, shoplots, kampung air walkways, roadsides, jetties, wet markets, schools, clinics, local depots, and neighborhood housing where relevant.
+- Use modern municipal offices, clean public counters, refreshed shoplots, maintained kampung air walkways, upgraded roadsides, jetties, wet markets, schools, clinics, local depots, and neighborhood housing where relevant.
+- Favor contemporary, cleaner, more maintained architecture and infrastructure.
+- Avoid prompts that imply retro, abandoned, decaying, shabby, or very old building stock unless the scene metadata explicitly requires damage.
+- Keep the color treatment contemporary: crisp daylight, controlled tropical humidity, clean practicals, realistic modern municipal contrast, no vintage sepia wash.
 `
         : `
 - Keep all scenes in Singapore heartland reality with grounded local textures.

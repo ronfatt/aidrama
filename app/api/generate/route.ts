@@ -146,7 +146,7 @@ ${beatSheet
 
 function buildSettingNote(style: string, projectMode: "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama" = "singapore-realism") {
   if (projectMode === "tawau-sabah-realism") {
-    return `All scenes are set in Tawau, Sabah civic and neighborhood spaces: municipal offices, shoplots, roadsides, jetties, kampung air walkways, wet markets, schools, clinics, housing areas, and local service depots. Visual tone is ${style}, grounded in local textures and documentary realism.`;
+    return `All scenes are set in Tawau, Sabah civic and neighborhood spaces with a contemporary visual bias: modern municipal offices, cleaner shopfronts, upgraded roadsides, maintained jetties, renovated kampung air walkways, schools, clinics, housing frontages, and organized local service depots. Visual tone is ${style}, grounded in local textures and documentary realism but framed with present-day municipal clarity, cleaner modern architecture, and contemporary color contrast. Avoid retro, overly aged, or derelict building reads unless explicitly required by the story.`;
   }
   return `All scenes are set in contemporary Singapore heartland spaces: HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood parks and small apartments. Visual tone is ${style}, grounded in local textures and documentary realism.`;
 }

@@ -61,7 +61,7 @@ async function fetchJsonWithTimeout(
 function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): string {
   const locationLock =
     input.projectMode === "tawau-sabah-realism"
-      ? "Tawau Sabah location realism"
+      ? "Tawau Sabah modern civic location realism"
       : input.projectMode === "coastal-fantasy-drama"
         ? "Southeast Asian coastal fantasy realism"
         : "Singapore location realism";
@@ -74,7 +74,10 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
     "no western suburban architecture",
     "keep color grading consistent with the same project palette",
     "do not swing between cool cyan grading and warm amber grading across scenes unless explicitly required",
-  ];
+    input.projectMode === "tawau-sabah-realism"
+      ? "prefer modern, cleaner, maintained Tawau civic and town architecture, avoid retro or run-down building reads unless explicitly required"
+      : "",
+  ].filter(Boolean);
 
   if (input.useReferenceImage && input.referenceTag?.trim()) {
     locks.push(`keep character identity consistent with reference tag ${input.referenceTag.trim()}`);

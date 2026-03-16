@@ -9,7 +9,7 @@ export function buildSettingNote(style: string, projectMode: ProjectMode, fantas
   }
 
   if (projectMode === "tawau-sabah-realism") {
-    return `All scenes are set in Tawau, Sabah civic and neighborhood spaces: municipal offices, shoplots, public roadsides, kampung air walkways, jetties, wet markets, housing areas, schools, clinics, and local service depots. Use a recurring Tawau location family such as ${TAWAU_LOCATION_VOCABULARY.slice(0, 6).join(", ")}. Visual tone is ${style}, grounded in local textures, public-service realism, and documentary clarity.`;
+    return `All scenes are set in Tawau, Sabah civic and neighborhood spaces with a more contemporary visual bias: modern municipal offices, cleaner service counters, refreshed shopfront rows, upgraded public roadsides, maintained jetties, renovated kampung air walkways, housing frontages, schools, clinics, and organized service depots. Use a recurring Tawau location family such as ${TAWAU_LOCATION_VOCABULARY.slice(0, 6).join(", ")}. Visual tone is ${style}, grounded in local realism but favoring current, well-kept, more modern architecture, clean lines, realistic daylight, and contemporary municipal color contrast. Avoid decayed, derelict, retro, or overly weathered buildings unless the script explicitly requires them.`;
   }
 
   return `All scenes are set in contemporary Singapore heartland spaces: HDB flats, corridors, void decks, MRT, hawker centres, neighbourhood parks and small apartments. Visual tone is ${style}, grounded in local textures and documentary realism.`;

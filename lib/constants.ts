@@ -9,7 +9,7 @@ export const PROJECT_MODES: Array<{ value: ProjectMode; label: string; descripti
   {
     value: "tawau-sabah-realism",
     label: "Sabah / Tawau Realism",
-    description: "Grounded Tawau, Sabah short-form realism with local civic, coastal, and town textures.",
+    description: "Grounded Tawau, Sabah short-form realism with modern civic spaces, cleaner town textures, and contemporary municipal visuals.",
   },
   {
     value: "coastal-fantasy-drama",
@@ -61,22 +61,22 @@ export const FANTASY_LOCATION_VOCABULARY = [
 ] as const;
 
 export const TAWAU_LOCATION_VOCABULARY = [
-  "Tawau municipal office",
-  "Sabah town shoplots",
-  "Tawau wet market",
-  "coastal roadside in Tawau",
-  "public jetty edge",
-  "kampung air walkway",
-  "government service counter",
-  "public works depot",
-  "district housing area",
-  "school or clinic frontage",
+  "modern Tawau municipal office lobby",
+  "clean government service counter",
+  "refreshed Sabah town shopfront row",
+  "upgraded coastal roadside in Tawau",
+  "well-maintained public jetty edge",
+  "renovated kampung air walkway",
+  "organized public works depot",
+  "modern district housing frontage",
+  "newer school or clinic frontage",
+  "recently repaired bridge or drainage site",
 ] as const;
 
 export function getRuleChecklist(projectMode: ProjectMode) {
   const locationRule =
     projectMode === "tawau-sabah-realism"
-      ? "All scenes in Tawau / Sabah contexts (municipal offices, shoplots, kampung air, jetties, roadsides, housing areas, schools, clinics)."
+      ? "All scenes in Tawau / Sabah contexts with newer or well-maintained civic and neighborhood spaces (modern municipal offices, cleaner shopfronts, upgraded roadsides, jetties, housing areas, schools, clinics)."
       : projectMode === "coastal-fantasy-drama"
         ? "Use a grounded Southeast Asian coastal setting family with shoreline walkways, jetties, storm drains, harbours and sea-facing housing."
         : "All scenes in Singapore contexts (HDB, MRT, hawker, void deck, parks).";
