@@ -186,6 +186,18 @@ Hard rules:
 - Avoid runs of static front-facing close portraits.
 - Vary framing using combinations such as intimate close portrait, environmental distance, over-shoulder witness, back-view withdrawal, doorway threshold frame, reflection composition, negative space frame, object detail insert, hands and gesture detail, corridor transition frame, architectural wide.
 - At least 25 percent of beats should avoid front-facing portrait framing.
+- If the story implies recurring supporting characters, rivals, love interests, friends, or authority figures, still design coverage around one clear on-screen subject at a time.
+- Prefer relationship-safe coverage patterns such as:
+  speaker close-up
+  listener reaction close-up
+  over-shoulder witness frame
+  back-view two-person tension
+  doorway threshold separation
+  hands exchange insert
+  profile versus silhouette
+  reflected presence frame
+  object or environment cutaway between two speaking beats
+- Avoid writing beats that require two clear frontal faces in one frame.
 ${
   projectMode === "coastal-fantasy-drama"
     ? `

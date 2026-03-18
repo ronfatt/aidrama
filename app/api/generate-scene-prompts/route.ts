@@ -220,6 +220,14 @@ Rules:
 - If useReferenceImage=true, avoid re-describing facial identity.
 - imagePrompt should describe the single best frame.
 - Compose for ${input.settings.aspectRatio === "9:16" ? "9:16 vertical framing with stronger height and stacked composition" : "16:9 widescreen framing with horizontal environmental depth"}.
+- If a scene implies another important character, do not make both characters equally clear in the same frame.
+- Prefer relationship-safe cinematic coverage:
+  - one clear speaker close-up
+  - one listener reaction shot
+  - one over-shoulder witness angle
+  - one back-view or silhouette tension frame
+  - one hands / object / doorway / environment cutaway between character beats
+- Avoid two clear frontal faces in one frame unless the scene metadata explicitly makes that unavoidable, and even then keep one face partial or less dominant.
 - videoPrompt must be written as five compact parts in this order: Scene, Subject, Action Timeline, Camera Movement, Atmosphere.
 - In Action Timeline, prefer a short progression such as "first..., then..., finally...".
 - Include camera movement explicitly rather than generic motion language.
@@ -275,7 +283,7 @@ function fallbackDialoguePack(scene: SceneMetadata) {
     microActingPrompt:
       "subtle head nods, natural blinking, controlled breathing, tiny eye focus shifts, slight hand gesture, realistic pauses",
     reactionShotPrompt:
-      "reaction shot of listener or nearby witness, brief cutaway with restrained concern, then return to speaker",
+      "reaction shot of listener or nearby witness, preferably as single-subject close-up, over-shoulder, or partial-profile response before returning to speaker",
   };
 }
 
@@ -291,7 +299,7 @@ function fallbackActionPack() {
 function fallbackEnvironmentPack(scene: SceneMetadata) {
   return {
     establishingBeat: `establish the surrounding space as ${scene.scenePurpose.toLowerCase()}`,
-    cutawayPrompt: "insert cutaway of location detail, signage, texture, or environmental movement that reinforces place",
+    cutawayPrompt: "insert cutaway of location detail, signage, hands, doorway separation, or environmental movement that reinforces place and can bridge between two character beats",
     atmosphereNote: `${scene.lightingColor}, ambient environmental activity, subtle lived-in motion`,
     transitionBeat: "use the location beat to bridge into the next action or emotional turn with a calm spatial handoff",
   };

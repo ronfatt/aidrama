@@ -208,6 +208,8 @@ Rules:
 - If narrator and on-screen character differ, prioritize the on-screen character visually.
 - Keep metadata concise and practical.
 - Do not leave shotGrammarPreset empty.
+- For scenes that imply two or more recurring characters, keep one character as the only clear visible subject and imply the other through over-shoulder framing, back view, silhouette, reflection, foreground blur, doorway separation, hands, or object cutaways.
+- For dialogue or relationship tension, favor metadata patterns such as speaker close-up, listener reaction, over-shoulder witness, and threshold-distance framing rather than two clear frontal faces.
 - style: ${style}
 - frame ratio: ${aspectRatio || "16:9"}
 - color grade preset: ${colorGradePreset || "(not provided)"}

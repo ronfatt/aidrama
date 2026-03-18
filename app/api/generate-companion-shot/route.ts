@@ -114,6 +114,7 @@ Rules:
 - Keep the same regional realism or fantasy context already established by the base scene setting note.
 - Only one clearly visible character.
 - If possible, reduce frontal face dependency.
+- If another character is implied, keep them as over-shoulder, back view, silhouette, reflection, foreground blur, or cutaway presence rather than a second clear face.
 - For broll: prefer environment, atmospheric insert, symbolic insert, transition B-roll.
 - For transition: focus on bridging motion, space, mood, or time shift.
 - Keep a related shot grammar family to the base scene, but shift it into a supporting angle rather than repeating the exact same frame.

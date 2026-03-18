@@ -140,6 +140,14 @@ Rules:
 - Use concise production-friendly prompts.
 - Video prompts should keep explicit camera movement and short action timeline.
 - Use a mix of broll and transition kinds where useful.
+- If the base scene implies another character, expand it using relationship-safe editorial coverage rather than two clear faces in one frame.
+- Favor shot-pack patterns such as:
+  - speaker close-up
+  - listener reaction
+  - over-shoulder witness angle
+  - back-view tension frame
+  - hands / object / doorway / environmental cutaway
+- Keep only one clearly visible face per shot.
 
 Project:
 - title: ${input.title}
@@ -167,7 +175,7 @@ Base scene:
 - camera: ${input.scene.camera || "(not provided)"}
 - lighting/color: ${input.scene.lightingColor || "(not provided)"}
 
-Return a shot pack that feels like a director expanded this one scene into 3-5 useful editorial shots.`;
+Return a shot pack that feels like a director expanded this one scene into 3-5 useful editorial shots, especially safe coverage for dialogue, relationship tension, or confrontation.`;
 }
 
 export async function POST(request: Request) {
