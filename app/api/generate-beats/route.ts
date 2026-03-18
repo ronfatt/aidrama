@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { ZodError, z } from "zod";
+import { z } from "zod";
 import { normalizeBeatSheet, phaseByPosition } from "@/lib/beat-sheet";
 import { getBeatModelName, getOpenAIClient } from "@/lib/openai";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
-import type { FantasyBibleInput, ProjectMode } from "@/types/film-pack";
+import type { FantasyBibleInput, ProjectMode, SceneCount } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,16 +15,16 @@ export const maxDuration = 60;
 const beatSheetResponseSchema = z.object({
   beats: z.array(
     z.object({
-      beatNumber: z.number().int().positive(),
-      phase: z.string(),
-      storyArc: z.string().min(1),
-      shotGrammarPreset: z.string().min(1),
-      role: z.string(),
-      importance: z.string(),
-      voLine: z.string().min(1),
-      purpose: z.string().min(1),
-      visualRole: z.string().min(1),
-      framingIntent: z.string().min(1),
+      beatNumber: z.number().int().positive().optional(),
+      phase: z.string().optional().or(z.literal("")),
+      storyArc: z.string().optional().or(z.literal("")),
+      shotGrammarPreset: z.string().optional().or(z.literal("")),
+      role: z.string().optional().or(z.literal("")),
+      importance: z.string().optional().or(z.literal("")),
+      voLine: z.string().optional().or(z.literal("")),
+      purpose: z.string().optional().or(z.literal("")),
+      visualRole: z.string().optional().or(z.literal("")),
+      framingIntent: z.string().optional().or(z.literal("")),
     })
   ),
 });
@@ -62,6 +62,63 @@ const beatSheetJsonSchema = {
     required: ["beats"],
   },
 } as const;
+
+type ParsedBeatPayload = z.infer<typeof beatSheetResponseSchema>;
+
+function parseBeatPayload(raw: string): ParsedBeatPayload {
+  let parsedJson: unknown;
+
+  try {
+    parsedJson = JSON.parse(raw);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown JSON parse error";
+    throw new Error(`Beat sheet model returned malformed JSON: ${message}`);
+  }
+
+  const parsed = beatSheetResponseSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error(`Beat sheet model returned invalid structure: ${parsed.error.issues[0]?.message || "Unknown schema error"}`);
+  }
+
+  return parsed.data;
+}
+
+function buildLocalBeatFallback({
+  sourceText,
+  sceneCount,
+  projectMode,
+  beatLines,
+}: {
+  sourceText: string;
+  sceneCount: SceneCount;
+  projectMode: ProjectMode;
+  beatLines?: string[];
+}) {
+  const sourceLines = sourceText
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const fallbackLines =
+    beatLines && beatLines.length === sceneCount
+      ? beatLines
+      : Array.from({ length: sceneCount }, (_, index) => sourceLines[index] || sourceLines[sourceLines.length - 1] || `Beat ${index + 1}`);
+
+  const fallbackRaw = fallbackLines.map((line, index) => ({
+    beatNumber: index + 1,
+    phase: phaseByPosition(index, sceneCount),
+    storyArc: "",
+    shotGrammarPreset: "",
+    role: "",
+    importance: "",
+    voLine: line,
+    purpose: "Cover this story moment clearly and concisely.",
+    visualRole: "",
+    framingIntent: "",
+  }));
+
+  return normalizeBeatSheet(fallbackRaw, sceneCount, projectMode);
+}
 
 function buildBeatPrompt({
   sourceText,
@@ -240,7 +297,19 @@ ${sourceText.trim()}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const parsedBody = generateRequestSchema.parse(body);
+    const parsedRequest = generateRequestSchema.safeParse(body);
+    if (!parsedRequest.success) {
+      const referenceTagError = parsedRequest.error.issues.find((issue) => issue.path.join(".") === "settings.referenceTag")?.message;
+      return NextResponse.json(
+        {
+          error: referenceTagError || "Invalid beat sheet request or output format.",
+          details: parsedRequest.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const parsedBody = parsedRequest.data;
 
     const strictMode = parsedBody.settings.strictMode ?? parsedBody.strict_mode ?? true;
     const lockedVoiceOver = parsedBody.settings.lockedVoiceOver?.trim() || "";
@@ -253,43 +322,63 @@ export async function POST(request: Request) {
       ? splitVoiceOverIntoSceneBeats(lockedVoiceOver, sceneCount)
       : undefined;
 
+    const projectMode = parsedBody.settings.projectMode || "singapore-realism";
     const client = getOpenAIClient();
-    const response = await client.responses.create({
-      model: getBeatModelName(),
-      temperature: strictMode ? 0.15 : 0.4,
-      input: [
-        {
-          role: "user",
-          content: buildBeatPrompt({
-            sourceText: parsedBody.settings.originalScript,
-            sceneCount,
-            style: parsedBody.settings.style,
-            colorGradePreset: parsedBody.settings.colorGradePreset,
-            projectMode: parsedBody.settings.projectMode || "singapore-realism",
-            fantasyBible: parsedBody.settings.fantasyBible,
-            narratorCharacter: parsedBody.settings.narratorCharacter,
-            onScreenCharacter: parsedBody.settings.onScreenCharacter,
-            lockedVoiceOver,
-            strictMode,
-            beatLines,
-          }),
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          ...beatSheetJsonSchema,
-        },
-      },
+    const prompt = buildBeatPrompt({
+      sourceText: parsedBody.settings.originalScript,
+      sceneCount,
+      style: parsedBody.settings.style,
+      colorGradePreset: parsedBody.settings.colorGradePreset,
+      projectMode,
+      fantasyBible: parsedBody.settings.fantasyBible,
+      narratorCharacter: parsedBody.settings.narratorCharacter,
+      onScreenCharacter: parsedBody.settings.onScreenCharacter,
+      lockedVoiceOver,
+      strictMode,
+      beatLines,
     });
 
-    const raw = response.output_text;
-    if (!raw) {
-      throw new Error("No beat sheet returned from model.");
+    const fetchBeatSheet = async () => {
+      const response = await client.responses.create({
+        model: getBeatModelName(),
+        temperature: strictMode ? 0.15 : 0.4,
+        input: [{ role: "user", content: prompt }],
+        text: {
+          format: {
+            type: "json_schema",
+            ...beatSheetJsonSchema,
+          },
+        },
+      });
+
+      const raw = response.output_text;
+      if (!raw) {
+        throw new Error("No beat sheet returned from model.");
+      }
+
+      return parseBeatPayload(raw);
+    };
+
+    let parsed: ParsedBeatPayload | null = null;
+    let lastBeatError: Error | null = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        parsed = await fetchBeatSheet();
+        break;
+      } catch (error) {
+        lastBeatError = error instanceof Error ? error : new Error("Unknown beat sheet generation error.");
+      }
     }
 
-    const parsed = beatSheetResponseSchema.parse(JSON.parse(raw));
-    let beatSheet = normalizeBeatSheet(parsed.beats, sceneCount, parsedBody.settings.projectMode || "singapore-realism");
+    let beatSheet = parsed
+      ? normalizeBeatSheet(parsed.beats, sceneCount, projectMode)
+      : buildLocalBeatFallback({
+          sourceText: parsedBody.settings.originalScript,
+          sceneCount,
+          projectMode,
+          beatLines,
+        });
 
     if (beatLines?.length) {
       beatSheet = beatSheet.map((beat, index) => ({
@@ -306,19 +395,13 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ beatSheet, sceneCount });
+    return NextResponse.json({
+      beatSheet,
+      sceneCount,
+      fallbackUsed: !parsed,
+      warning: !parsed && lastBeatError ? `Beat sheet fallback used: ${lastBeatError.message}` : undefined,
+    });
   } catch (error) {
-    if (error instanceof ZodError) {
-      const referenceTagError = error.issues.find((issue) => issue.path.join(".") === "settings.referenceTag")?.message;
-      return NextResponse.json(
-        {
-          error: referenceTagError || "Invalid beat sheet request or output format.",
-          details: error.flatten(),
-        },
-        { status: 400 }
-      );
-    }
-
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
