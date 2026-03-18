@@ -5,7 +5,7 @@ import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/co
 import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
-import type { BeatItem, DirectorSceneType, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
+import type { BeatItem, CastMemberInput, DirectorSceneType, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,8 @@ const metadataSchema = z.object({
       sceneNumber: z.number().int().positive(),
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
+      onScreenCharacter: z.string().trim().optional().or(z.literal("")),
+      impliedOtherCharacter: z.string().trim().optional().or(z.literal("")),
       sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1),
@@ -51,6 +53,8 @@ function buildMetadataJsonSchema(sceneCount: number) {
               sceneNumber: { type: "integer" },
               phase: { type: "string" },
               voLine: { type: "string" },
+              onScreenCharacter: { type: "string" },
+              impliedOtherCharacter: { type: "string" },
               sceneType: { type: "string", enum: ["action", "dialogue", "environment", "emotional"] },
               shotType: { type: "string" },
               shotGrammarPreset: { type: "string" },
@@ -67,6 +71,8 @@ function buildMetadataJsonSchema(sceneCount: number) {
               "sceneNumber",
               "phase",
               "voLine",
+              "onScreenCharacter",
+              "impliedOtherCharacter",
               "sceneType",
               "shotType",
               "shotGrammarPreset",
@@ -106,6 +112,7 @@ function buildMetadataPrompt({
   colorGradePreset,
   projectMode,
   fantasyBible,
+  castBible,
   narratorCharacter,
   onScreenCharacter,
   referenceTag,
@@ -118,6 +125,7 @@ function buildMetadataPrompt({
   colorGradePreset?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
+  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }>;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   referenceTag?: string;
@@ -167,6 +175,17 @@ Preferred location vocabulary:
 ${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
         : "";
+  const castBibleBlock = castBible?.length
+    ? `
+Cast bible:
+${castBible
+  .map(
+    (character) =>
+      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
+  )
+  .join("\n")}
+`
+    : "";
   return `
 Generate scene metadata only from this beat sheet.
 
@@ -177,6 +196,8 @@ Return valid JSON only:
       "sceneNumber": 1,
       "phase": "string",
       "voLine": "string",
+      "onScreenCharacter": "string",
+      "impliedOtherCharacter": "string",
       "shotType": "string",
       "shotGrammarPreset": "string",
       "scenePurpose": "string",
@@ -195,6 +216,8 @@ Rules:
 - Use beat.visualRole and beat.framingIntent as hard composition instructions.
 - Use beat.shotGrammarPreset as a hard visual-template instruction.
 - Assign one sceneType from: action, dialogue, environment, emotional.
+- Assign onScreenCharacter when a recurring named character from the cast bible clearly anchors the shot.
+- Assign impliedOtherCharacter when another fixed character is present in the dramatic context but should remain implied rather than fully visible.
 - dialogue means the scene should play as spoken performance, reaction, or conversational coverage.
 - action means physical conflict, chase, power burst, impact, or kinetic escalation.
 - environment means place-establishing, civic/world detail, travel, or atmospheric coverage.
@@ -206,6 +229,7 @@ Rules:
 - At least 25 percent of scenes must avoid front-facing portrait framing.
 - If no reference tag is provided, set useReferenceImage=false for all scenes.
 - If narrator and on-screen character differ, prioritize the on-screen character visually.
+- If cast bible entries are present, use those exact names consistently instead of inventing unnamed recurring people.
 - Keep metadata concise and practical.
 - Do not leave shotGrammarPreset empty.
 - For scenes that imply two or more recurring characters, keep one character as the only clear visible subject and imply the other through over-shoulder framing, back view, silhouette, reflection, foreground blur, doorway separation, hands, or object cutaways.
@@ -220,6 +244,7 @@ Rules:
 - title: ${title?.trim() || "(not provided)"}
 ${modeRules}
 ${fantasyBibleBlock}
+${castBibleBlock}
 
 Beat sheet:
 ${beatSheet.map(beatLine).join("\n")}
@@ -321,12 +346,15 @@ function fallbackMetadataFromBeat(
   beat: BeatItem,
   projectMode: ProjectMode,
   colorGradePreset?: string,
-  hasReferenceTag?: boolean
+  hasReferenceTag?: boolean,
+  fallbackOnScreenCharacter?: string
 ): SceneMetadata {
   return {
     sceneNumber: beat.beatNumber,
     phase: beat.phase,
     voLine: beat.voLine,
+    onScreenCharacter: fallbackOnScreenCharacter || "",
+    impliedOtherCharacter: "",
     sceneType: fallbackDirectorSceneTypeFromBeat(beat),
     shotType: fallbackShotTypeFromBeat(beat),
     shotGrammarPreset: beat.shotGrammarPreset,
@@ -435,6 +463,7 @@ export async function POST(request: Request) {
       colorGradePreset: parsedBody.settings.colorGradePreset,
       projectMode: parsedBody.settings.projectMode || "singapore-realism",
       fantasyBible: parsedBody.settings.fantasyBible,
+      castBible: parsedBody.settings.castBible,
       narratorCharacter: parsedBody.settings.narratorCharacter,
       onScreenCharacter: parsedBody.settings.onScreenCharacter,
       referenceTag,
@@ -480,7 +509,8 @@ export async function POST(request: Request) {
         beat,
         parsedBody.settings.projectMode || "singapore-realism",
         parsedBody.settings.colorGradePreset,
-        Boolean(referenceTag)
+        Boolean(referenceTag),
+        parsedBody.settings.onScreenCharacter
       );
       const motionTemplate = pickKlingMotionTemplate({
         scene: baseScene,

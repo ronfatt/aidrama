@@ -1,5 +1,5 @@
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
-import type { AspectRatio, BeatItem, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
+import type { AspectRatio, BeatItem, CastMemberInput, FantasyBibleInput, FilmPack, ProjectMode, SceneItem } from "@/types/film-pack";
 
 export function buildSettingNote(style: string, projectMode: ProjectMode, fantasyBible?: FantasyBibleInput) {
   if (projectMode === "coastal-fantasy-drama") {
@@ -21,12 +21,14 @@ export function buildCharacterReferenceGuidance({
   narratorCharacter,
   projectMode,
   fantasyBible,
+  castBible,
 }: {
   referenceTag: string;
   onScreenCharacter?: string;
   narratorCharacter?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
+  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
 }) {
   if (!referenceTag) {
     return "No character reference workflow is active for this film pack.";
@@ -41,8 +43,11 @@ export function buildCharacterReferenceGuidance({
     projectMode === "coastal-fantasy-drama"
       ? ` Keep ${subject} consistent across ordinary-life scenes, power-awakening scenes, and threat-response scenes. Reflect ${fantasyBible?.powerType?.trim() || "the hero's powers"} through pose, water interaction, wardrobe continuity, atmosphere, and lighting rather than changing facial identity.`
       : "";
+  const castNote = castBible?.length
+    ? ` Recurring cast in this project: ${castBible.map((character) => `${character.name} (${character.role})`).join(", ")}. Keep scenes centered on one clear on-screen subject at a time and imply additional characters through over-shoulder, back view, silhouette, reflection, doorway separation, or cutaways.`
+    : "";
 
-  return `Use ${referenceTag} consistently whenever ${subject} appears. Do not redefine facial identity; focus on pose, framing, environment, wardrobe variation, mood, and lighting.${fantasyNote}${narratorNote}`;
+  return `Use ${referenceTag} consistently whenever ${subject} appears. Do not redefine facial identity; focus on pose, framing, environment, wardrobe variation, mood, and lighting.${fantasyNote}${narratorNote}${castNote}`;
 }
 
 export function assembleFilmPackFromScenes({
@@ -63,6 +68,7 @@ export function assembleFilmPackFromScenes({
     narratorCharacter?: string;
     onScreenCharacter?: string;
     fantasyBible?: FantasyBibleInput;
+    castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
   };
   lockedVoiceOver: string;
   referenceTag: string;
@@ -81,6 +87,7 @@ export function assembleFilmPackFromScenes({
       narratorCharacter: settings.narratorCharacter,
       projectMode,
       fantasyBible: settings.fantasyBible,
+      castBible: settings.castBible,
     }),
     beatSheet,
     scenes,

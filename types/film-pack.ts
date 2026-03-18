@@ -14,6 +14,7 @@ export type ColorGradePreset =
   | "tidal supernatural realism";
 
 export type ProjectMode = "singapore-realism" | "tawau-sabah-realism" | "coastal-fantasy-drama";
+export type CastRole = "lead" | "female lead" | "ally" | "antagonist" | "supporting";
 
 export type FilmTone =
   | "cinematic documentary"
@@ -55,6 +56,7 @@ export interface UserSettings {
   colorGradePreset?: ColorGradePreset;
   strictMode?: boolean;
   fantasyBible?: FantasyBibleInput;
+  castBible?: CastMemberInput[];
 }
 
 export interface FantasyBibleInput {
@@ -65,6 +67,18 @@ export interface FantasyBibleInput {
   enemyType?: string;
   worldTone?: string;
   endingHook?: string;
+}
+
+export interface CastMemberInput {
+  id: string;
+  name: string;
+  role: CastRole;
+  referenceTag?: string;
+  identityNote?: string;
+  wardrobeNote?: string;
+  masterReferenceImages?: string[];
+  masterReferenceUrls?: string;
+  officialMasterReference?: string | null;
 }
 
 export interface BeatItem {
@@ -84,6 +98,8 @@ export interface SceneItem {
   sceneNumber: number;
   phase: ScenePhase;
   voLine: string;
+  onScreenCharacter?: string;
+  impliedOtherCharacter?: string;
   sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;
@@ -120,6 +136,8 @@ export interface SceneMetadata {
   sceneNumber: number;
   phase: ScenePhase;
   voLine: string;
+  onScreenCharacter?: string;
+  impliedOtherCharacter?: string;
   sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;
@@ -140,6 +158,8 @@ export interface CompanionShot {
   kind: CompanionShotKind;
   phase: ScenePhase;
   voLine: string;
+  onScreenCharacter?: string;
+  impliedOtherCharacter?: string;
   sceneType?: DirectorSceneType;
   shotType: SceneType;
   shotGrammarPreset?: string;

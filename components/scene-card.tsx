@@ -83,6 +83,16 @@ export function SceneCard({
             <option value="emotional">emotional</option>
           </select>
         </p>
+        {scene.onScreenCharacter ? (
+          <p>
+            <span className="font-semibold text-zinc-100">On-screen character:</span> {scene.onScreenCharacter}
+          </p>
+        ) : null}
+        {scene.impliedOtherCharacter ? (
+          <p>
+            <span className="font-semibold text-zinc-100">Implied other:</span> {scene.impliedOtherCharacter}
+          </p>
+        ) : null}
         <p>
           <span className="font-semibold text-zinc-100">Shot type:</span> {scene.shotType}
         </p>
@@ -205,6 +215,11 @@ export function SceneCard({
                   {shot.sceneType ? (
                     <p>
                       <span className="font-semibold text-zinc-100">Scene type:</span> {shot.sceneType}
+                    </p>
+                  ) : null}
+                  {shot.onScreenCharacter ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">On-screen character:</span> {shot.onScreenCharacter}
                     </p>
                   ) : null}
                   <p>

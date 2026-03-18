@@ -38,6 +38,13 @@ const colorGradePresetSchema = z.union([
 ]);
 
 const aspectRatioSchema = z.union([z.literal("16:9"), z.literal("9:16")]);
+const castRoleSchema = z.union([
+  z.literal("lead"),
+  z.literal("female lead"),
+  z.literal("ally"),
+  z.literal("antagonist"),
+  z.literal("supporting"),
+]);
 
 const phaseSchema = z.union([
   z.literal("Opening - Awareness"),
@@ -61,6 +68,22 @@ export const beatItemSchema = z.object({
   framingIntent: z.string().min(1),
 });
 
+const castMemberSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(80),
+  role: castRoleSchema,
+  referenceTag: z
+    .string()
+    .max(50)
+    .transform((value) => normalizeReferenceTag(value))
+    .refine((value) => value === "" || /^\[[A-Z0-9_]+\]$/.test(value), "Reference tag format is invalid.")
+    .optional()
+    .or(z.literal("")),
+  identityNote: z.string().trim().max(240).optional().or(z.literal("")),
+  wardrobeNote: z.string().trim().max(240).optional().or(z.literal("")),
+  hasOfficialRef: z.boolean().optional(),
+});
+
 export const generateRequestSchema = z.object({
   settings: z.object({
     projectMode: projectModeSchema.optional(),
@@ -81,6 +104,7 @@ export const generateRequestSchema = z.object({
     aspectRatio: aspectRatioSchema.optional(),
     colorGradePreset: colorGradePresetSchema.optional(),
     strictMode: z.boolean().optional(),
+    castBible: z.array(castMemberSchema).max(8).optional(),
     fantasyBible: z
       .object({
         corePremise: z.string().trim().max(1000).optional().or(z.literal("")),
@@ -101,6 +125,8 @@ export const sceneItemSchema = z.object({
   sceneNumber: z.number().int().positive(),
   phase: z.string().optional().or(z.literal("")),
   voLine: z.string().min(1),
+  onScreenCharacter: z.string().optional().or(z.literal("")),
+  impliedOtherCharacter: z.string().optional().or(z.literal("")),
   sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
   shotType: z.string().min(1),
   shotGrammarPreset: z.string().optional().or(z.literal("")),

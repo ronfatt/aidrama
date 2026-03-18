@@ -6,7 +6,7 @@ import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/co
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
-import type { FantasyBibleInput, ProjectMode, SceneCount } from "@/types/film-pack";
+import type { CastMemberInput, FantasyBibleInput, ProjectMode, SceneCount } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -127,6 +127,7 @@ function buildBeatPrompt({
   colorGradePreset,
   projectMode,
   fantasyBible,
+  castBible,
   narratorCharacter,
   onScreenCharacter,
   lockedVoiceOver,
@@ -139,6 +140,7 @@ function buildBeatPrompt({
   colorGradePreset?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
+  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }>;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   lockedVoiceOver: string;
@@ -185,12 +187,23 @@ Fantasy bible:
 Preferred location vocabulary:
 ${FANTASY_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
-      : projectMode === "tawau-sabah-realism"
+        : projectMode === "tawau-sabah-realism"
         ? `
 Preferred location vocabulary:
 ${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
         : "";
+  const castBibleBlock = castBible?.length
+    ? `
+Cast bible:
+${castBible
+  .map(
+    (character) =>
+      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
+  )
+  .join("\n")}
+`
+    : "";
 
   return `
 You are building a beat sheet for a short cinematic film pack.
@@ -237,6 +250,7 @@ Hard rules:
 - narrator / POV character is ${narratorCharacter || "not provided"}.
 - primary on-screen character is ${onScreenCharacter || "not provided"}.
 - if narrator and on-screen character are different, annotate beats primarily around the on-screen character, not the narrator.
+- if a cast bible is provided, reuse those recurring character names and roles consistently.
 - Output visualRole and framingIntent for every beat.
 - Use shotGrammarPreset as a concrete visual grammar label for the beat's intended reveal style.
 - Do not let consecutive beats repeat the same portrait logic.
@@ -280,6 +294,7 @@ ${
 }
 
 ${fantasyBibleBlock}
+${castBibleBlock}
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 
@@ -331,6 +346,7 @@ export async function POST(request: Request) {
       colorGradePreset: parsedBody.settings.colorGradePreset,
       projectMode,
       fantasyBible: parsedBody.settings.fantasyBible,
+      castBible: parsedBody.settings.castBible,
       narratorCharacter: parsedBody.settings.narratorCharacter,
       onScreenCharacter: parsedBody.settings.onScreenCharacter,
       lockedVoiceOver,

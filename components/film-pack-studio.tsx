@@ -5,6 +5,7 @@ import { CopyButton } from "@/components/copy-button";
 import { RulesPanel } from "@/components/rules-panel";
 import { SceneCard } from "@/components/scene-card";
 import {
+  CAST_ROLES,
   COLOR_GRADE_PRESETS,
   DEFAULT_REFERENCE_TAG,
   FANTASY_COLOR_GRADE_PRESETS,
@@ -26,6 +27,7 @@ import { normalizeReferenceTag } from "@/lib/reference-tag";
 import type {
   AspectRatio,
   BeatItem,
+  CastMemberInput,
   ColorGradePreset,
   CompanionShot,
   DirectorSceneType,
@@ -79,6 +81,53 @@ interface SavedFilmPackRecord {
 }
 
 const STORAGE_KEY = "film-pack-studio:saved-packs";
+
+function createCastMember(): CastMemberInput {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    role: "supporting",
+    referenceTag: "",
+    identityNote: "",
+    wardrobeNote: "",
+    masterReferenceImages: [],
+    masterReferenceUrls: "",
+    officialMasterReference: null,
+  };
+}
+
+function serializeCastBibleForRequest(castBible: CastMemberInput[]) {
+  return castBible
+    .filter((character) => character.name.trim())
+    .map((character) => ({
+      id: character.id,
+      name: character.name.trim(),
+      role: character.role,
+      referenceTag: normalizeReferenceTag(character.referenceTag || ""),
+      identityNote: character.identityNote?.trim() || "",
+      wardrobeNote: character.wardrobeNote?.trim() || "",
+      hasOfficialRef: Boolean(character.officialMasterReference),
+    }));
+}
+
+function parseCharacterReferenceUrls(raw: string) {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^https?:\/\//i.test(line));
+}
+
+function getCharacterReferenceCandidates(character: CastMemberInput) {
+  return [...(character.masterReferenceImages || []), ...parseCharacterReferenceUrls(character.masterReferenceUrls || "")];
+}
+
+function getEffectiveCharacterReferences(character: CastMemberInput) {
+  const candidates = getCharacterReferenceCandidates(character);
+  if (character.officialMasterReference) {
+    return [character.officialMasterReference];
+  }
+  return candidates;
+}
 
 function getColorGradeLock(preset: ColorGradePreset, style: FilmTone): string {
   switch (preset) {
@@ -238,12 +287,15 @@ function fallbackSceneMetadataFromBeat(
   mode: ProjectMode,
   preset: ColorGradePreset,
   tone: FilmTone,
-  normalizedReferenceTag: string
+  normalizedReferenceTag: string,
+  primaryOnScreenCharacter?: string
 ): SceneMetadata {
   const baseScene: SceneMetadata = {
     sceneNumber: beat.beatNumber,
     phase: beat.phase,
     voLine: beat.voLine,
+    onScreenCharacter: primaryOnScreenCharacter || "",
+    impliedOtherCharacter: "",
     shotType: fallbackShotTypeFromBeat(beat),
     shotGrammarPreset: beat.shotGrammarPreset,
     scenePurpose: beat.purpose,
@@ -348,6 +400,7 @@ export function FilmPackStudio() {
     worldTone: "",
     endingHook: "",
   });
+  const [castBible, setCastBible] = useState<CastMemberInput[]>([]);
   const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
   const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
   const [officialMasterReference, setOfficialMasterReference] = useState<string | null>(null);
@@ -501,6 +554,16 @@ export function FilmPackStudio() {
       setColorGradePreset("storm-blue mythic");
       setSceneCount(30);
       setFantasyBible(FANTASY_SAMPLE_BIBLE);
+      setCastBible([
+        {
+          ...createCastMember(),
+          name: "Kai",
+          role: "lead",
+          referenceTag: "[KAI_REF]",
+          identityNote: "lean young coastal hero, grounded Southeast Asian look, focused gaze",
+          wardrobeNote: "dark coastal workwear, sea-worn layers, practical silhouette",
+        },
+      ]);
       return;
     }
 
@@ -524,6 +587,24 @@ export function FilmPackStudio() {
         worldTone: "",
         endingHook: "",
       });
+      setCastBible([
+        {
+          ...createCastMember(),
+          name: "Local Citizen",
+          role: "lead",
+          referenceTag: "[CITIZEN_REPORTER]",
+          identityNote: "grounded Sabah resident, everyday civic realism",
+          wardrobeNote: "clean casual public-facing clothing, contemporary local look",
+        },
+        {
+          ...createCastMember(),
+          name: "Municipal Officer",
+          role: "supporting",
+          referenceTag: "[MUNICIPAL_OFFICER]",
+          identityNote: "professional civic staff member, composed, efficient",
+          wardrobeNote: "smart office attire or official fieldwear",
+        },
+      ]);
       return;
     }
 
@@ -546,12 +627,23 @@ export function FilmPackStudio() {
       worldTone: "",
       endingHook: "",
     });
+    setCastBible([]);
   };
 
   const onUploadMasterRefs = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []).slice(0, 4);
     const dataUrls = await Promise.all(files.map((file) => resizeImageFile(file)));
     setMasterReferenceImages(dataUrls.filter(Boolean));
+  };
+
+  const onUploadCastRefs = async (characterId: string, event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []).slice(0, 4);
+    const dataUrls = await Promise.all(files.map((file) => resizeImageFile(file)));
+    setCastBible((prev) =>
+      prev.map((character) =>
+        character.id === characterId ? { ...character, masterReferenceImages: dataUrls.filter(Boolean) } : character
+      )
+    );
   };
 
   const parsedMasterUrls = useMemo(
@@ -574,6 +666,23 @@ export function FilmPackStudio() {
     }
     return referenceCandidates;
   }, [officialMasterReference, referenceCandidates]);
+
+  const requestCastBible = useMemo(() => serializeCastBibleForRequest(castBible), [castBible]);
+
+  const resolveSceneMasterReferences = (scene: SceneItem | CompanionShot) => {
+    const targetName = scene.onScreenCharacter?.trim().toLowerCase();
+    if (targetName) {
+      const characterMatch = castBible.find((character) => character.name.trim().toLowerCase() === targetName);
+      if (characterMatch) {
+        const refs = getEffectiveCharacterReferences(characterMatch);
+        if (refs.length > 0) {
+          return refs;
+        }
+      }
+    }
+
+    return effectiveMasterReferences;
+  };
 
   useEffect(() => {
     if (!referenceCandidates.length) {
@@ -607,6 +716,7 @@ export function FilmPackStudio() {
             colorGradePreset,
             strictMode,
             fantasyBible,
+            castBible: requestCastBible,
           },
         }),
       });
@@ -659,6 +769,7 @@ export function FilmPackStudio() {
             colorGradePreset,
             strictMode,
             fantasyBible,
+            castBible: requestCastBible,
           },
           beatSheet: chunk,
         }),
@@ -712,7 +823,7 @@ export function FilmPackStudio() {
     return sourceBeatSheet.map((beat) => {
       const scene = merged.get(beat.beatNumber);
       if (scene) return scene;
-      return fallbackSceneMetadataFromBeat(beat, projectMode, colorGradePreset, style, referenceTag);
+      return fallbackSceneMetadataFromBeat(beat, projectMode, colorGradePreset, style, referenceTag, onScreenCharacter);
     });
   };
 
@@ -737,11 +848,14 @@ export function FilmPackStudio() {
             strictMode,
             projectMode,
             fantasyBible,
+            castBible: requestCastBible,
           },
           scenes: chunk.map((scene) => ({
             sceneNumber: scene.sceneNumber,
             phase: scene.phase,
             voLine: scene.voLine,
+            onScreenCharacter: scene.onScreenCharacter,
+            impliedOtherCharacter: scene.impliedOtherCharacter,
             sceneType: scene.sceneType,
             shotType: scene.shotType,
             shotGrammarPreset: scene.shotGrammarPreset,
@@ -833,12 +947,15 @@ export function FilmPackStudio() {
             strictMode,
             projectMode,
             fantasyBible,
+            castBible: requestCastBible,
           },
           scenes: [
             {
               sceneNumber: scene.sceneNumber,
               phase: scene.phase,
               voLine: scene.voLine,
+              onScreenCharacter: scene.onScreenCharacter,
+              impliedOtherCharacter: scene.impliedOtherCharacter,
               sceneType: scene.sceneType,
               shotType: scene.shotType,
               shotGrammarPreset: scene.shotGrammarPreset,
@@ -908,6 +1025,7 @@ export function FilmPackStudio() {
     }
 
     try {
+      const sceneMasterReferences = resolveSceneMasterReferences(scene);
       const response = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -923,8 +1041,8 @@ export function FilmPackStudio() {
           lightingColor: scene.lightingColor,
           projectColorGradeLock,
           strictMode,
-          continuitySeed: `${result.title}|${referenceTag || "NO_REF"}`,
-          masterReferenceImages: effectiveMasterReferences,
+          continuitySeed: `${result.title}|${scene.onScreenCharacter || referenceTag || "NO_REF"}`,
+          masterReferenceImages: sceneMasterReferences,
         }),
       });
 
@@ -1229,13 +1347,14 @@ export function FilmPackStudio() {
           projectMode,
           title,
           style,
-          aspectRatio,
-          colorGradePreset,
-          narratorCharacter,
-          onScreenCharacter,
-          fantasyBible,
-        },
-        lockedVoiceOver,
+            aspectRatio,
+            colorGradePreset,
+            narratorCharacter,
+            onScreenCharacter,
+            fantasyBible,
+            castBible: requestCastBible,
+          },
+          lockedVoiceOver,
         referenceTag,
       });
 
@@ -1374,6 +1493,208 @@ export function FilmPackStudio() {
           Use these two fields when one person narrates about another. Example: narrator = Bryan, on-screen character =
           Samuel.
         </p>
+
+        <section className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-zinc-100">Cast Bible</p>
+              <p className="text-xs text-zinc-400">
+                Add recurring roles for multi-character dramas. Each scene can then anchor itself to one clear on-screen
+                character while keeping others implied.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCastBible((prev) => [...prev, createCastMember()].slice(0, 8))}
+              className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+            >
+              Add character
+            </button>
+          </div>
+
+          {castBible.length ? (
+            <div className="space-y-4">
+              {castBible.map((character, index) => {
+                const characterCandidates = getCharacterReferenceCandidates(character);
+                const officialRef = character.officialMasterReference;
+                return (
+                  <div key={character.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-zinc-100">Character {index + 1}</p>
+                      <button
+                        type="button"
+                        onClick={() => setCastBible((prev) => prev.filter((item) => item.id !== character.id))}
+                        className="rounded-md border border-rose-300/20 bg-rose-500/10 px-2 py-1 text-[11px] font-medium text-rose-200 transition hover:bg-rose-500/20"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Character name</span>
+                        <input
+                          value={character.name}
+                          onChange={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) => (item.id === character.id ? { ...item, name: event.target.value } : item))
+                            )
+                          }
+                          className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                          placeholder="e.g. Amir"
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Role</span>
+                        <select
+                          value={character.role}
+                          onChange={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) =>
+                                item.id === character.id ? { ...item, role: event.target.value as CastMemberInput["role"] } : item
+                              )
+                            )
+                          }
+                          className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                        >
+                          {CAST_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Reference tag</span>
+                        <input
+                          value={character.referenceTag || ""}
+                          onChange={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) =>
+                                item.id === character.id ? { ...item, referenceTag: event.target.value } : item
+                              )
+                            )
+                          }
+                          onBlur={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) =>
+                                item.id === character.id
+                                  ? { ...item, referenceTag: normalizeReferenceTag(event.target.value) }
+                                  : item
+                              )
+                            )
+                          }
+                          className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                          placeholder="[AMIR_REF]"
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Identity note</span>
+                        <input
+                          value={character.identityNote || ""}
+                          onChange={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) =>
+                                item.id === character.id ? { ...item, identityNote: event.target.value } : item
+                              )
+                            )
+                          }
+                          className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                          placeholder="e.g. reserved young fisherman, sharp eyes, calm energy"
+                        />
+                      </label>
+                    </div>
+
+                    <label className="mt-4 grid gap-2">
+                      <span className="text-xs font-medium text-zinc-300">Wardrobe / continuity note</span>
+                      <input
+                        value={character.wardrobeNote || ""}
+                        onChange={(event) =>
+                          setCastBible((prev) =>
+                            prev.map((item) =>
+                              item.id === character.id ? { ...item, wardrobeNote: event.target.value } : item
+                            )
+                          )
+                        }
+                        className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                        placeholder="e.g. dark indigo jacket, practical work trousers, silver bracelet"
+                      />
+                    </label>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Upload 1-4 refs</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(event) => {
+                            void onUploadCastRefs(character.id, event);
+                          }}
+                          className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-zinc-200"
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs font-medium text-zinc-300">Reference image URLs</span>
+                        <textarea
+                          value={character.masterReferenceUrls || ""}
+                          onChange={(event) =>
+                            setCastBible((prev) =>
+                              prev.map((item) =>
+                                item.id === character.id ? { ...item, masterReferenceUrls: event.target.value } : item
+                              )
+                            )
+                          }
+                          className="min-h-20 rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-xs text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                          placeholder="https://.../amir-1.jpg"
+                        />
+                      </label>
+                    </div>
+
+                    {characterCandidates.length ? (
+                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {characterCandidates.map((src, candidateIndex) => {
+                          const isOfficial = officialRef === src;
+                          return (
+                            <div
+                              key={`${src.slice(0, 40)}-${candidateIndex}`}
+                              className={`overflow-hidden rounded-lg border ${isOfficial ? "border-cyan-300/70" : "border-white/10"}`}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={src} alt={`${character.name || "Character"} ref ${candidateIndex + 1}`} className="h-20 w-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCastBible((prev) =>
+                                    prev.map((item) =>
+                                      item.id === character.id ? { ...item, officialMasterReference: src } : item
+                                    )
+                                  )
+                                }
+                                className={`w-full border-t px-2 py-1 text-[11px] font-medium ${
+                                  isOfficial
+                                    ? "border-cyan-300/40 bg-cyan-500/10 text-cyan-200"
+                                    : "border-white/10 bg-black/30 text-zinc-300"
+                                }`}
+                              >
+                                {isOfficial ? "Official ref" : "Set official"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Keep this empty for one-character stories. For drama series, add your recurring lead, female lead, ally,
+              antagonist, and supporting roles here.
+            </p>
+          )}
+        </section>
 
         {projectMode === "coastal-fantasy-drama" ? (
           <section className="space-y-4 rounded-xl border border-sky-400/20 bg-sky-500/[0.04] p-4">

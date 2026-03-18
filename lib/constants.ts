@@ -1,4 +1,4 @@
-import type { ColorGradePreset, FantasyBibleInput, FilmTone, ProjectMode, SceneCountInput } from "@/types/film-pack";
+import type { CastRole, ColorGradePreset, FantasyBibleInput, FilmTone, ProjectMode, SceneCountInput } from "@/types/film-pack";
 
 export const PROJECT_MODES: Array<{ value: ProjectMode; label: string; description: string }> = [
   {
@@ -59,6 +59,8 @@ export const FANTASY_LOCATION_VOCABULARY = [
   "rain-slick coastal underpass",
   "sea-facing housing block corridor",
 ] as const;
+
+export const CAST_ROLES: CastRole[] = ["lead", "female lead", "ally", "antagonist", "supporting"];
 
 export const TAWAU_LOCATION_VOCABULARY = [
   "modern Tawau municipal office lobby",

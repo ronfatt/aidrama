@@ -3,7 +3,7 @@ import { z } from "zod";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { buildStructuredVideoPrompt, pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { DirectorSceneType, FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { CastMemberInput, DirectorSceneType, FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +19,20 @@ const promptRequestSchema = z.object({
     narratorCharacter: z.string().optional(),
     onScreenCharacter: z.string().optional(),
     referenceTag: z.string().optional(),
+    castBible: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          name: z.string().min(1),
+          role: z.string().min(1),
+          referenceTag: z.string().optional().or(z.literal("")),
+          identityNote: z.string().optional().or(z.literal("")),
+          wardrobeNote: z.string().optional().or(z.literal("")),
+          hasOfficialRef: z.boolean().optional(),
+        })
+      )
+      .max(8)
+      .optional(),
     strictMode: z.boolean().optional(),
     fantasyBible: z
       .object({
@@ -37,6 +51,8 @@ const promptRequestSchema = z.object({
       sceneNumber: z.number().int().positive(),
       phase: z.string().trim().min(1),
       voLine: z.string().trim().min(1),
+      onScreenCharacter: z.string().optional().or(z.literal("")),
+      impliedOtherCharacter: z.string().optional().or(z.literal("")),
       sceneType: z.union([z.literal("action"), z.literal("dialogue"), z.literal("environment"), z.literal("emotional")]).optional(),
       shotType: z.string().trim().min(1),
       shotGrammarPreset: z.string().trim().min(1).optional(),
@@ -191,6 +207,20 @@ Preferred location vocabulary:
 ${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
         : "";
+  const castBible = input.settings.castBible as Array<
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }
+  > | undefined;
+  const castBibleBlock = castBible?.length
+    ? `
+Cast bible:
+${castBible
+  .map(
+    (character) =>
+      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
+  )
+  .join("\n")}
+`
+    : "";
   return `
 Generate concise cinematic image and video prompts for these scene metadata items.
 
@@ -221,6 +251,8 @@ Rules:
 - imagePrompt should describe the single best frame.
 - Compose for ${input.settings.aspectRatio === "9:16" ? "9:16 vertical framing with stronger height and stacked composition" : "16:9 widescreen framing with horizontal environmental depth"}.
 - If a scene implies another important character, do not make both characters equally clear in the same frame.
+- If onScreenCharacter is provided, treat that character as the single clear visible subject for this scene.
+- If impliedOtherCharacter is provided, keep that character implied through over-shoulder, silhouette, back view, reflection, foreground blur, hands, or cutaway presence.
 - Prefer relationship-safe cinematic coverage:
   - one clear speaker close-up
   - one listener reaction shot
@@ -264,12 +296,13 @@ Rules:
 - title: ${input.settings.title?.trim() || "(not provided)"}
 ${modeRules}
 ${fantasyBibleBlock}
+${castBibleBlock}
 
 Scenes:
 ${input.scenes
   .map(
     (scene) =>
-      `${scene.sceneNumber}. [${scene.phase}] shotType=${scene.shotType} shotGrammarPreset="${scene.shotGrammarPreset || ""}" cameraStyle="${scene.cameraStyle || ""}" actionStyle="${scene.actionStyle || ""}" motionTemplate="${scene.motionTemplateId || ""}" importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
+      `${scene.sceneNumber}. [${scene.phase}] onScreen="${scene.onScreenCharacter || ""}" impliedOther="${scene.impliedOtherCharacter || ""}" shotType=${scene.shotType} shotGrammarPreset="${scene.shotGrammarPreset || ""}" cameraStyle="${scene.cameraStyle || ""}" actionStyle="${scene.actionStyle || ""}" motionTemplate="${scene.motionTemplateId || ""}" importance=${scene.importance} ref=${scene.useReferenceImage ? "yes" : "no"} vo="${scene.voLine}" purpose="${scene.scenePurpose}" camera="${scene.camera}" lighting="${scene.lightingColor}"`
   )
   .join("\n")}
 `;
