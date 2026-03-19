@@ -4,6 +4,7 @@ import { CopyButton } from "@/components/copy-button";
 
 interface SceneCardProps {
   scene: SceneItem;
+  availableCharacters?: string[];
   generatedImageUrl?: string;
   generatingImage?: boolean;
   imageError?: string;
@@ -20,6 +21,7 @@ interface SceneCardProps {
   onRegenerateShotPack?: (scene: SceneItem) => void;
   onGenerateAllCompanionImages?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
+  onOnScreenCharacterChange?: (sceneNumber: number, characterName: string) => void;
   onRegenerateScene?: (scene: SceneItem) => void;
   regeneratingScene?: boolean;
   generatingShotPack?: boolean;
@@ -29,6 +31,7 @@ interface SceneCardProps {
 
 export function SceneCard({
   scene,
+  availableCharacters,
   generatedImageUrl,
   generatingImage,
   imageError,
@@ -45,6 +48,7 @@ export function SceneCard({
   onRegenerateShotPack,
   onGenerateAllCompanionImages,
   onSceneTypeChange,
+  onOnScreenCharacterChange,
   onRegenerateScene,
   regeneratingScene,
   generatingShotPack,
@@ -83,11 +87,21 @@ export function SceneCard({
             <option value="emotional">emotional</option>
           </select>
         </p>
-        {scene.onScreenCharacter ? (
-          <p>
-            <span className="font-semibold text-zinc-100">On-screen character:</span> {scene.onScreenCharacter}
-          </p>
-        ) : null}
+        <p>
+          <span className="font-semibold text-zinc-100">On-screen character:</span>{" "}
+          <select
+            value={scene.onScreenCharacter || ""}
+            onChange={(event) => onOnScreenCharacterChange?.(scene.sceneNumber, event.target.value)}
+            className="ml-2 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+          >
+            <option value="">Auto / none</option>
+            {availableCharacters?.map((character) => (
+              <option key={character} value={character}>
+                {character}
+              </option>
+            ))}
+          </select>
+        </p>
         {scene.impliedOtherCharacter ? (
           <p>
             <span className="font-semibold text-zinc-100">Implied other:</span> {scene.impliedOtherCharacter}

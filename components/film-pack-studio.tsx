@@ -668,6 +668,10 @@ export function FilmPackStudio() {
   }, [officialMasterReference, referenceCandidates]);
 
   const requestCastBible = useMemo(() => serializeCastBibleForRequest(castBible), [castBible]);
+  const availableCastCharacterNames = useMemo(
+    () => castBible.map((character) => character.name.trim()).filter(Boolean),
+    [castBible]
+  );
 
   const resolveSceneMasterReferences = (scene: SceneItem | CompanionShot) => {
     const targetName = scene.onScreenCharacter?.trim().toLowerCase();
@@ -1325,6 +1329,44 @@ export function FilmPackStudio() {
         ...prev,
         scenes: prev.scenes.map((scene) =>
           scene.sceneNumber === sceneNumber ? applySceneTypeOverride(scene, nextType) : scene
+        ),
+      };
+    });
+  };
+
+  const overrideSceneOnScreenCharacter = (sceneNumber: number, nextCharacter: string) => {
+    setResult((prev) => {
+      if (!prev) return prev;
+
+      const normalizedCharacter = nextCharacter.trim();
+      const lowerCharacter = normalizedCharacter.toLowerCase();
+      const impliedFallback =
+        normalizedCharacter && castBible.length
+          ? castBible.find((character) => character.name.trim().toLowerCase() !== lowerCharacter)?.name || ""
+          : "";
+
+      return {
+        ...prev,
+        scenes: prev.scenes.map((scene) =>
+          scene.sceneNumber === sceneNumber
+            ? {
+                ...scene,
+                onScreenCharacter: normalizedCharacter,
+                impliedOtherCharacter:
+                  normalizedCharacter && scene.impliedOtherCharacter?.trim().toLowerCase() === lowerCharacter
+                    ? impliedFallback
+                    : scene.impliedOtherCharacter,
+                useReferenceImage: normalizedCharacter
+                  ? Boolean(
+                      castBible.find(
+                        (character) =>
+                          character.name.trim().toLowerCase() === lowerCharacter &&
+                          getEffectiveCharacterReferences(character).length > 0
+                      ) || referenceTag
+                    )
+                  : scene.useReferenceImage,
+              }
+            : scene
         ),
       };
     });
@@ -2077,6 +2119,7 @@ export function FilmPackStudio() {
               <SceneCard
                 key={`${scene.sceneNumber}-${scene.voLine.slice(0, 20)}`}
                 scene={scene}
+                availableCharacters={availableCastCharacterNames}
                 generatedImageUrl={sceneImages[scene.sceneNumber]}
                 generatingImage={sceneImageLoading[scene.sceneNumber]}
                 imageError={sceneImageErrors[scene.sceneNumber]}
@@ -2100,6 +2143,7 @@ export function FilmPackStudio() {
                 onRegenerateScene={regenerateSingleScene}
                 regeneratingScene={scenePromptRegenerating[scene.sceneNumber]}
                 onSceneTypeChange={overrideSceneType}
+                onOnScreenCharacterChange={overrideSceneOnScreenCharacter}
                 onGenerateImage={generateSceneImage}
                 onGenerateCompanion={generateCompanionShot}
               />
