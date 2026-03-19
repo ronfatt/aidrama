@@ -127,6 +127,25 @@ function inferProjectMode(settingNote: string): ProjectMode {
   return "singapore-realism";
 }
 
+function orderDialogueCoverageRole(role?: DialogueCoverageRole): number {
+  switch (role) {
+    case "speaker":
+      return 0;
+    case "listener":
+      return 1;
+    case "over-shoulder":
+      return 2;
+    case "cutaway":
+      return 3;
+    case "return-to-speaker":
+      return 4;
+    case "silent-hold":
+      return 5;
+    default:
+      return 99;
+  }
+}
+
 function buildPrompt(input: z.infer<typeof generateShotPackSchema>) {
   const coverageMode = input.coverageMode || "default";
   return `Create a multi-shot scene pack for one existing scene.
@@ -246,7 +265,7 @@ export async function POST(request: Request) {
     };
 
     const projectMode = inferProjectMode(parsed.settingNote);
-    const shots: CompanionShot[] = payload.shots.map((shot, index) => {
+    let shots: CompanionShot[] = payload.shots.map((shot, index) => {
       const motionTemplate = pickKlingMotionTemplate({
         scene: {
           sceneNumber: parsed.scene.sceneNumber,
@@ -283,6 +302,10 @@ export async function POST(request: Request) {
         lightingColor: shot.lightingColor,
       };
     });
+
+    if ((parsed.coverageMode || "default") === "dialogue") {
+      shots = [...shots].sort((a, b) => orderDialogueCoverageRole(a.dialogueCoverageRole) - orderDialogueCoverageRole(b.dialogueCoverageRole));
+    }
 
     return NextResponse.json({ shots });
   } catch (error) {
