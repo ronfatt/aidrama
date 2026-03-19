@@ -1372,6 +1372,27 @@ export function FilmPackStudio() {
     });
   };
 
+  const overrideSceneImpliedOtherCharacter = (sceneNumber: number, nextCharacter: string) => {
+    setResult((prev) => {
+      if (!prev) return prev;
+
+      const normalizedCharacter = nextCharacter.trim();
+
+      return {
+        ...prev,
+        scenes: prev.scenes.map((scene) =>
+          scene.sceneNumber === sceneNumber
+            ? {
+                ...scene,
+                impliedOtherCharacter:
+                  normalizedCharacter && normalizedCharacter !== scene.onScreenCharacter ? normalizedCharacter : "",
+              }
+            : scene
+        ),
+      };
+    });
+  };
+
   const onGenerate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -2144,6 +2165,7 @@ export function FilmPackStudio() {
                 regeneratingScene={scenePromptRegenerating[scene.sceneNumber]}
                 onSceneTypeChange={overrideSceneType}
                 onOnScreenCharacterChange={overrideSceneOnScreenCharacter}
+                onImpliedOtherCharacterChange={overrideSceneImpliedOtherCharacter}
                 onGenerateImage={generateSceneImage}
                 onGenerateCompanion={generateCompanionShot}
               />

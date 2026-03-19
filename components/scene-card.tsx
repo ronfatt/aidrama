@@ -22,6 +22,7 @@ interface SceneCardProps {
   onGenerateAllCompanionImages?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
   onOnScreenCharacterChange?: (sceneNumber: number, characterName: string) => void;
+  onImpliedOtherCharacterChange?: (sceneNumber: number, characterName: string) => void;
   onRegenerateScene?: (scene: SceneItem) => void;
   regeneratingScene?: boolean;
   generatingShotPack?: boolean;
@@ -49,6 +50,7 @@ export function SceneCard({
   onGenerateAllCompanionImages,
   onSceneTypeChange,
   onOnScreenCharacterChange,
+  onImpliedOtherCharacterChange,
   onRegenerateScene,
   regeneratingScene,
   generatingShotPack,
@@ -102,11 +104,23 @@ export function SceneCard({
             ))}
           </select>
         </p>
-        {scene.impliedOtherCharacter ? (
-          <p>
-            <span className="font-semibold text-zinc-100">Implied other:</span> {scene.impliedOtherCharacter}
-          </p>
-        ) : null}
+        <p>
+          <span className="font-semibold text-zinc-100">Implied other:</span>{" "}
+          <select
+            value={scene.impliedOtherCharacter || ""}
+            onChange={(event) => onImpliedOtherCharacterChange?.(scene.sceneNumber, event.target.value)}
+            className="ml-2 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-xs text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+          >
+            <option value="">None</option>
+            {availableCharacters
+              ?.filter((character) => character !== (scene.onScreenCharacter || ""))
+              .map((character) => (
+                <option key={character} value={character}>
+                  {character}
+                </option>
+              ))}
+          </select>
+        </p>
         <p>
           <span className="font-semibold text-zinc-100">Shot type:</span> {scene.shotType}
         </p>
