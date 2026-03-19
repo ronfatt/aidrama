@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { CompanionShot, CompanionShotKind, FilmTone, ProjectMode, ScenePhase, SceneType } from "@/types/film-pack";
+import type { CompanionShot, CompanionShotKind, DialogueCoverageRole, FilmTone, ProjectMode, ScenePhase, SceneType } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +54,10 @@ const responseSchema = {
           properties: {
             label: { type: "string" },
             kind: { type: "string", enum: ["broll", "transition"] },
+            dialogueCoverageRole: {
+              type: "string",
+              enum: ["speaker", "listener", "over-shoulder", "cutaway", "return-to-speaker", "silent-hold"],
+            },
             phase: {
               type: "string",
               enum: [
@@ -156,7 +160,14 @@ ${coverageMode === "dialogue" ? `- This is a dialogue coverage pack. Return 4 or
   - over-shoulder witness angle
   - cutaway bridge shot
   - optional final return-to-speaker or silent emotional hold
-- Avoid generic action or environment expansion. Make this feel like safe editorial dialogue coverage.` : ""}
+- Avoid generic action or environment expansion. Make this feel like safe editorial dialogue coverage.
+- For each shot, assign one dialogueCoverageRole from:
+  - speaker
+  - listener
+  - over-shoulder
+  - cutaway
+  - return-to-speaker
+  - silent-hold` : ""}
 
 Project:
 - title: ${input.title}
@@ -215,6 +226,7 @@ export async function POST(request: Request) {
       shots: Array<{
         label: string;
         kind: CompanionShotKind;
+        dialogueCoverageRole?: DialogueCoverageRole;
         phase: ScenePhase;
         voLine: string;
         sceneType: "action" | "dialogue" | "environment" | "emotional";
@@ -253,6 +265,7 @@ export async function POST(request: Request) {
         parentSceneNumber: parsed.scene.sceneNumber,
         label: shot.label?.trim() || `Scene ${parsed.scene.sceneNumber}.${index + 1}`,
         kind: shot.kind,
+        dialogueCoverageRole: shot.dialogueCoverageRole,
         phase: shot.phase,
         voLine: shot.voLine,
         sceneType: shot.sceneType,

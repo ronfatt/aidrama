@@ -18,7 +18,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
         ? `\n- Companion shots:\n${scene.companionShots
             .map(
               (shot) =>
-                `  - ${shot.label}: kind=${shot.kind}, shot type=${shot.shotType}, camera style=${shot.cameraStyle || "(not specified)"}, action style=${shot.actionStyle || "(not specified)"}, purpose=${shot.scenePurpose}, image prompt=${shot.imagePrompt}, video prompt=${shot.videoPrompt}`
+                `  - ${shot.label}: kind=${shot.kind}${shot.dialogueCoverageRole ? `, coverage role=${shot.dialogueCoverageRole}` : ""}, shot type=${shot.shotType}, camera style=${shot.cameraStyle || "(not specified)"}, action style=${shot.actionStyle || "(not specified)"}, purpose=${shot.scenePurpose}, image prompt=${shot.imagePrompt}, video prompt=${shot.videoPrompt}`
             )
             .join("\n")}`
         : "";

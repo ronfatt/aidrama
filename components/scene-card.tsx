@@ -234,6 +234,11 @@ export function SceneCard({
                     <span className="rounded-full border border-white/15 bg-white/[0.05] px-2 py-0.5 text-[11px] text-zinc-300">
                       {shot.kind}
                     </span>
+                    {shot.dialogueCoverageRole ? (
+                      <span className="rounded-full border border-sky-300/30 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-200">
+                        {shot.dialogueCoverageRole}
+                      </span>
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -255,6 +260,11 @@ export function SceneCard({
                   {shot.sceneType ? (
                     <p>
                       <span className="font-semibold text-zinc-100">Scene type:</span> {shot.sceneType}
+                    </p>
+                  ) : null}
+                  {shot.dialogueCoverageRole ? (
+                    <p>
+                      <span className="font-semibold text-zinc-100">Coverage role:</span> {shot.dialogueCoverageRole}
                     </p>
                   ) : null}
                   {shot.onScreenCharacter ? (

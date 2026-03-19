@@ -46,6 +46,13 @@ export type PairCoverageBias =
   | "reverse-shot"
   | "over-shoulder-tension"
   | "cutaway-bridged";
+export type DialogueCoverageRole =
+  | "speaker"
+  | "listener"
+  | "over-shoulder"
+  | "cutaway"
+  | "return-to-speaker"
+  | "silent-hold";
 
 export interface UserSettings {
   projectMode?: ProjectMode;
@@ -162,6 +169,7 @@ export interface CompanionShot {
   parentSceneNumber: number;
   label: string;
   kind: CompanionShotKind;
+  dialogueCoverageRole?: DialogueCoverageRole;
   phase: ScenePhase;
   voLine: string;
   onScreenCharacter?: string;
