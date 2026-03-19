@@ -41,6 +41,11 @@ export type SceneType =
   | "POV shot"
   | "over-shoulder shot";
 export type DirectorSceneType = "action" | "dialogue" | "environment" | "emotional";
+export type PairCoverageBias =
+  | "speaker-listener"
+  | "reverse-shot"
+  | "over-shoulder-tension"
+  | "cutaway-bridged";
 
 export interface UserSettings {
   projectMode?: ProjectMode;
@@ -117,6 +122,7 @@ export interface SceneItem {
   lipSyncPrompt?: string;
   microActingPrompt?: string;
   reactionShotPrompt?: string;
+  pairCoverageBias?: PairCoverageBias | "";
   actionSequence?: string;
   impactBeat?: string;
   enemyResponse?: string;
@@ -177,6 +183,7 @@ export interface CompanionShot {
   lipSyncPrompt?: string;
   microActingPrompt?: string;
   reactionShotPrompt?: string;
+  pairCoverageBias?: PairCoverageBias | "";
   actionSequence?: string;
   impactBeat?: string;
   enemyResponse?: string;

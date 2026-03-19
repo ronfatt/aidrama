@@ -144,6 +144,15 @@ export const sceneItemSchema = z.object({
   lipSyncPrompt: z.string().optional().or(z.literal("")),
   microActingPrompt: z.string().optional().or(z.literal("")),
   reactionShotPrompt: z.string().optional().or(z.literal("")),
+  pairCoverageBias: z
+    .union([
+      z.literal("speaker-listener"),
+      z.literal("reverse-shot"),
+      z.literal("over-shoulder-tension"),
+      z.literal("cutaway-bridged"),
+    ])
+    .optional()
+    .or(z.literal("")),
   actionSequence: z.string().optional().or(z.literal("")),
   impactBeat: z.string().optional().or(z.literal("")),
   enemyResponse: z.string().optional().or(z.literal("")),

@@ -401,6 +401,15 @@ export function SceneCard({
                   {scene.reactionShotPrompt || "(not provided)"}
                 </p>
               </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-200">Pair Coverage Bias</p>
+                  <CopyButton text={scene.pairCoverageBias || ""} label="Copy coverage" />
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-300 [overflow-wrap:anywhere]">
+                  {scene.pairCoverageBias || "(not provided)"}
+                </p>
+              </div>
             </div>
           </div>
         ) : null}

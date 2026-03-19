@@ -25,7 +25,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
 
       const dialogueBlock =
         scene.sceneType === "dialogue"
-          ? `\n- Voice script: ${scene.voiceScript || "(not provided)"}\n- Lip sync prompt: ${scene.lipSyncPrompt || "(not provided)"}\n- Micro acting: ${scene.microActingPrompt || "(not provided)"}\n- Reaction shot: ${scene.reactionShotPrompt || "(not provided)"}`
+          ? `\n- Voice script: ${scene.voiceScript || "(not provided)"}\n- Lip sync prompt: ${scene.lipSyncPrompt || "(not provided)"}\n- Micro acting: ${scene.microActingPrompt || "(not provided)"}\n- Reaction shot: ${scene.reactionShotPrompt || "(not provided)"}\n- Pair coverage bias: ${scene.pairCoverageBias || "(not provided)"}`
           : "";
       const actionBlock =
         scene.sceneType === "action"

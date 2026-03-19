@@ -3,7 +3,7 @@ import { z } from "zod";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { buildStructuredVideoPrompt, pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { CastMemberInput, DirectorSceneType, FantasyBibleInput, FilmTone, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { CastMemberInput, DirectorSceneType, FantasyBibleInput, FilmTone, PairCoverageBias, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,6 +78,7 @@ const promptResponseSchema = z.object({
       lipSyncPrompt: z.string().optional(),
       microActingPrompt: z.string().optional(),
       reactionShotPrompt: z.string().optional(),
+      pairCoverageBias: z.string().optional(),
       actionSequence: z.string().optional(),
       impactBeat: z.string().optional(),
       enemyResponse: z.string().optional(),
@@ -117,6 +118,7 @@ function buildPromptsJsonSchema(sceneCount: number) {
               lipSyncPrompt: { type: "string" },
               microActingPrompt: { type: "string" },
               reactionShotPrompt: { type: "string" },
+              pairCoverageBias: { type: "string" },
               actionSequence: { type: "string" },
               impactBeat: { type: "string" },
               enemyResponse: { type: "string" },
@@ -138,6 +140,7 @@ function buildPromptsJsonSchema(sceneCount: number) {
               "lipSyncPrompt",
               "microActingPrompt",
               "reactionShotPrompt",
+              "pairCoverageBias",
               "actionSequence",
               "impactBeat",
               "enemyResponse",
@@ -260,6 +263,12 @@ Rules:
   - one back-view or silhouette tension frame
   - one hands / object / doorway / environment cutaway between character beats
 - Avoid two clear frontal faces in one frame unless the scene metadata explicitly makes that unavoidable, and even then keep one face partial or less dominant.
+- If sceneType is dialogue and both onScreenCharacter and impliedOtherCharacter are present, choose a pairCoverageBias from:
+  - speaker-listener
+  - reverse-shot
+  - over-shoulder-tension
+  - cutaway-bridged
+- Use pairCoverageBias to steer the scene toward safe pair coverage instead of two-face staging.
 - videoPrompt must be written as five compact parts in this order: Scene, Subject, Action Timeline, Camera Movement, Atmosphere.
 - In Action Timeline, prefer a short progression such as "first..., then..., finally...".
 - Include camera movement explicitly rather than generic motion language.
@@ -268,6 +277,7 @@ Rules:
   - lipSyncPrompt: concise prompt for lip-sync delivery
   - microActingPrompt: subtle head nods, breath, eyes, pauses, hand gestures
   - reactionShotPrompt: one cutaway or listener reaction idea
+  - pairCoverageBias: the chosen dialogue coverage pattern
 - If sceneType is action, also return:
   - actionSequence: concise beat-by-beat action progression
   - impactBeat: the main impact or turning hit
@@ -284,6 +294,7 @@ Rules:
   - eyeLineShiftPrompt: eye focus or glance change that reveals inner thought
   - pullAwayShot: the ideal retreating or widening shot after the emotion lands
 - If sceneType is not dialogue, return empty strings for the four dialogue fields.
+- If sceneType is not dialogue, return empty string for pairCoverageBias.
 - If sceneType is not action, return empty strings for the four action fields.
 - If sceneType is not environment, return empty strings for the four environment fields.
 - If sceneType is not emotional, return empty strings for the four emotional fields.
@@ -310,6 +321,16 @@ ${input.scenes
 
 function fallbackDialoguePack(scene: SceneMetadata) {
   const voiceScript = scene.voLine.trim();
+  const pairCoverageBias: PairCoverageBias | "" =
+    scene.onScreenCharacter && scene.impliedOtherCharacter
+      ? scene.shotType === "over-shoulder shot"
+        ? "over-shoulder-tension"
+        : scene.scenePurpose.toLowerCase().includes("reaction") || scene.scenePurpose.toLowerCase().includes("listen")
+          ? "speaker-listener"
+          : scene.shotGrammarPreset?.toLowerCase().includes("threshold") || scene.shotGrammarPreset?.toLowerCase().includes("witness")
+            ? "cutaway-bridged"
+            : "reverse-shot"
+      : "";
   return {
     voiceScript,
     lipSyncPrompt: `${scene.cameraStyle || "cinematic close-up"}, character speaking naturally, synced to dialogue, restrained mouth movement, no exaggerated performance`,
@@ -317,7 +338,20 @@ function fallbackDialoguePack(scene: SceneMetadata) {
       "subtle head nods, natural blinking, controlled breathing, tiny eye focus shifts, slight hand gesture, realistic pauses",
     reactionShotPrompt:
       "reaction shot of listener or nearby witness, preferably as single-subject close-up, over-shoulder, or partial-profile response before returning to speaker",
+    pairCoverageBias,
   };
+}
+
+function normalizePairCoverageBias(value: string | undefined, scene: SceneMetadata): PairCoverageBias | "" {
+  if (
+    value === "speaker-listener" ||
+    value === "reverse-shot" ||
+    value === "over-shoulder-tension" ||
+    value === "cutaway-bridged"
+  ) {
+    return value;
+  }
+  return fallbackDialoguePack(scene).pairCoverageBias;
 }
 
 function fallbackActionPack() {
@@ -444,19 +478,24 @@ export async function POST(request: Request) {
       const isAction = (scene.sceneType as DirectorSceneType | undefined) === "action";
       const isEnvironment = (scene.sceneType as DirectorSceneType | undefined) === "environment";
       const isEmotional = (scene.sceneType as DirectorSceneType | undefined) === "emotional";
-      const dialoguePack =
+      const dialoguePack: Pick<
+        SceneItem,
+        "voiceScript" | "lipSyncPrompt" | "microActingPrompt" | "reactionShotPrompt" | "pairCoverageBias"
+      > =
         isDialogue
           ? {
               voiceScript: prompts.voiceScript?.trim() || fallbackDialoguePack(scene).voiceScript,
               lipSyncPrompt: prompts.lipSyncPrompt?.trim() || fallbackDialoguePack(scene).lipSyncPrompt,
               microActingPrompt: prompts.microActingPrompt?.trim() || fallbackDialoguePack(scene).microActingPrompt,
               reactionShotPrompt: prompts.reactionShotPrompt?.trim() || fallbackDialoguePack(scene).reactionShotPrompt,
+              pairCoverageBias: normalizePairCoverageBias(prompts.pairCoverageBias?.trim(), scene),
             }
           : {
               voiceScript: "",
               lipSyncPrompt: "",
               microActingPrompt: "",
               reactionShotPrompt: "",
+              pairCoverageBias: "" as const,
             };
       const actionPack = isAction
         ? {
