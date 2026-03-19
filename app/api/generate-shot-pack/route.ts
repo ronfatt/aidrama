@@ -17,6 +17,7 @@ const generateShotPackSchema = z.object({
   referenceTag: z.string().optional().or(z.literal("")),
   projectColorGradeLock: z.string().optional().or(z.literal("")),
   strictMode: z.boolean().optional(),
+  coverageMode: z.union([z.literal("default"), z.literal("dialogue")]).optional(),
   scene: z.object({
     sceneNumber: z.number().int().positive(),
     phase: z.string().trim().min(1),
@@ -123,6 +124,7 @@ function inferProjectMode(settingNote: string): ProjectMode {
 }
 
 function buildPrompt(input: z.infer<typeof generateShotPackSchema>) {
+  const coverageMode = input.coverageMode || "default";
   return `Create a multi-shot scene pack for one existing scene.
 
 Return 3 to 5 supporting shots as JSON only.
@@ -148,6 +150,13 @@ Rules:
   - back-view tension frame
   - hands / object / doorway / environmental cutaway
 - Keep only one clearly visible face per shot.
+${coverageMode === "dialogue" ? `- This is a dialogue coverage pack. Return 4 or 5 shots that strongly favor:
+  - speaker close-up
+  - listener reaction
+  - over-shoulder witness angle
+  - cutaway bridge shot
+  - optional final return-to-speaker or silent emotional hold
+- Avoid generic action or environment expansion. Make this feel like safe editorial dialogue coverage.` : ""}
 
 Project:
 - title: ${input.title}

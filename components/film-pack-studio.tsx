@@ -1215,6 +1215,7 @@ export function FilmPackStudio() {
           referenceTag,
           projectColorGradeLock,
           strictMode,
+          coverageMode: "default",
           scene,
         }),
       });
@@ -1247,6 +1248,65 @@ export function FilmPackStudio() {
       });
     } catch (generationError) {
       const message = generationError instanceof Error ? generationError.message : "Failed to generate shot pack.";
+      setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-pack`]: message }));
+    } finally {
+      setShotPackLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
+    }
+  };
+
+  const generateDialogueCoverage = async (scene: SceneItem) => {
+    if (!result) return;
+
+    setShotPackLoading((prev) => ({ ...prev, [scene.sceneNumber]: true }));
+    setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-pack`]: "" }));
+
+    try {
+      const response = await fetch("/api/generate-shot-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: result.title,
+          style: result.style,
+          colorGradePreset,
+          settingNote: result.settingNote,
+          characterReferenceGuidance: result.characterReferenceGuidance,
+          referenceTag,
+          projectColorGradeLock,
+          strictMode,
+          coverageMode: "dialogue",
+          scene,
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateShotPackPayload | null = null;
+      try {
+        payload = JSON.parse(raw) as GenerateShotPackPayload;
+      } catch {
+        payload = { error: raw || "Failed to generate dialogue coverage." };
+      }
+
+      if (!response.ok || !payload?.shots?.length) {
+        throw new Error(payload?.error || "Failed to generate dialogue coverage.");
+      }
+
+      setResult((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          scenes: prev.scenes.map((item) =>
+            item.sceneNumber === scene.sceneNumber
+              ? {
+                  ...item,
+                  companionShots: payload!.shots!,
+                }
+              : item
+          ),
+        };
+      });
+    } catch (generationError) {
+      const message =
+        generationError instanceof Error ? generationError.message : "Failed to generate dialogue coverage.";
       setCompanionImageErrors((prev) => ({ ...prev, [`scene-${scene.sceneNumber}-pack`]: message }));
     } finally {
       setShotPackLoading((prev) => ({ ...prev, [scene.sceneNumber]: false }));
@@ -2159,6 +2219,7 @@ export function FilmPackStudio() {
                   companionImageErrors[`scene-${scene.sceneNumber}-transition`]
                 }
                 onGenerateShotPack={generateShotPack}
+                onGenerateDialogueCoverage={generateDialogueCoverage}
                 onRegenerateShotPack={regenerateShotPack}
                 onGenerateAllCompanionImages={generateAllCompanionImages}
                 onRegenerateScene={regenerateSingleScene}

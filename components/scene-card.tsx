@@ -18,6 +18,7 @@ interface SceneCardProps {
   onGenerateImage?: (scene: SceneItem | CompanionShot) => void;
   onGenerateCompanion?: (scene: SceneItem, kind: "broll" | "transition") => void;
   onGenerateShotPack?: (scene: SceneItem) => void;
+  onGenerateDialogueCoverage?: (scene: SceneItem) => void;
   onRegenerateShotPack?: (scene: SceneItem) => void;
   onGenerateAllCompanionImages?: (scene: SceneItem) => void;
   onSceneTypeChange?: (sceneNumber: number, sceneType: DirectorSceneType) => void;
@@ -46,6 +47,7 @@ export function SceneCard({
   onGenerateImage,
   onGenerateCompanion,
   onGenerateShotPack,
+  onGenerateDialogueCoverage,
   onRegenerateShotPack,
   onGenerateAllCompanionImages,
   onSceneTypeChange,
@@ -172,6 +174,16 @@ export function SceneCard({
           >
             {generatingShotPack ? "Generating Shot Pack..." : "Generate Shot Pack"}
           </button>
+          {scene.sceneType === "dialogue" ? (
+            <button
+              type="button"
+              onClick={() => onGenerateDialogueCoverage?.(scene)}
+              disabled={generatingShotPack || !onGenerateDialogueCoverage}
+              className="rounded-md border border-sky-300/30 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-500/20 disabled:opacity-60"
+            >
+              {generatingShotPack ? "Generating Dialogue Coverage..." : "Generate Dialogue Coverage"}
+            </button>
+          ) : null}
           {hasShotPack ? (
             <button
               type="button"
