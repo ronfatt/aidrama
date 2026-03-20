@@ -56,7 +56,7 @@ const responseSchema = {
             kind: { type: "string", enum: ["broll", "transition"] },
             dialogueCoverageRole: {
               type: "string",
-              enum: ["speaker", "listener", "over-shoulder", "cutaway", "return-to-speaker", "silent-hold"],
+              enum: ["none", "speaker", "listener", "over-shoulder", "cutaway", "return-to-speaker", "silent-hold"],
             },
             phase: {
               type: "string",
@@ -97,6 +97,7 @@ const responseSchema = {
           required: [
             "label",
             "kind",
+            "dialogueCoverageRole",
             "phase",
             "voLine",
             "sceneType",
@@ -186,7 +187,7 @@ ${coverageMode === "dialogue" ? `- This is a dialogue coverage pack. Return 4 or
   - over-shoulder
   - cutaway
   - return-to-speaker
-  - silent-hold` : ""}
+  - silent-hold` : `- For each shot, set dialogueCoverageRole to "none".`}
 
 Project:
 - title: ${input.title}
@@ -245,7 +246,7 @@ export async function POST(request: Request) {
       shots: Array<{
         label: string;
         kind: CompanionShotKind;
-        dialogueCoverageRole?: DialogueCoverageRole;
+        dialogueCoverageRole: DialogueCoverageRole;
         phase: ScenePhase;
         voLine: string;
         sceneType: "action" | "dialogue" | "environment" | "emotional";
@@ -284,7 +285,7 @@ export async function POST(request: Request) {
         parentSceneNumber: parsed.scene.sceneNumber,
         label: shot.label?.trim() || `Scene ${parsed.scene.sceneNumber}.${index + 1}`,
         kind: shot.kind,
-        dialogueCoverageRole: shot.dialogueCoverageRole,
+        dialogueCoverageRole: shot.dialogueCoverageRole || "none",
         phase: shot.phase,
         voLine: shot.voLine,
         sceneType: shot.sceneType,

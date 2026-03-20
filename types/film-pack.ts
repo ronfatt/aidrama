@@ -47,6 +47,7 @@ export type PairCoverageBias =
   | "over-shoulder-tension"
   | "cutaway-bridged";
 export type DialogueCoverageRole =
+  | "none"
   | "speaker"
   | "listener"
   | "over-shoulder"
