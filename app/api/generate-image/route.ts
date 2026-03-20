@@ -85,6 +85,9 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
   if (input.useReferenceImage && input.referenceTag?.trim()) {
     locks.push(`keep character identity consistent with reference tag ${input.referenceTag.trim()}`);
     locks.push("avoid changing facial identity across scenes");
+    locks.push("if the written prompt conflicts with the provided reference images, follow the reference images for face identity");
+    locks.push("match the same person from the reference images, including face structure, skin tone, hairline, facial hair, and age band");
+    locks.push("do not invent a different hero face, different ethnicity, or different facial structure");
   }
 
   if (input.continuitySeed) {
@@ -97,6 +100,8 @@ function buildLockedImagePrompt(input: z.infer<typeof generateImageSchema>): str
 
   if ((input.masterReferenceImages || []).length > 0) {
     locks.push("must match identity in provided master reference images");
+    locks.push("reference images are the source of truth for identity");
+    locks.push("focus variation on pose, framing, lensing, mood, wardrobe state, and environment, not on face identity");
   }
 
   const colorNotes = [
