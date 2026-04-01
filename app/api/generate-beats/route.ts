@@ -6,7 +6,7 @@ import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/co
 import { generateRequestSchema } from "@/lib/schemas";
 import { resolveSceneCount } from "@/lib/scene-count";
 import { splitVoiceOverIntoSceneBeats } from "@/lib/vo-segmentation";
-import type { CastMemberInput, FantasyBibleInput, ProjectMode, SceneCount } from "@/types/film-pack";
+import type { CastMemberInput, EpisodeHeaderInput, FantasyBibleInput, ProjectMode, SceneCount } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,6 +128,7 @@ function buildBeatPrompt({
   projectMode,
   fantasyBible,
   castBible,
+  episodeHeader,
   narratorCharacter,
   onScreenCharacter,
   lockedVoiceOver,
@@ -141,6 +142,7 @@ function buildBeatPrompt({
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
   castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }>;
+  episodeHeader?: EpisodeHeaderInput;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   lockedVoiceOver: string;
@@ -204,6 +206,19 @@ ${castBible
   .join("\n")}
 `
     : "";
+  const episodeHeaderBlock =
+    episodeHeader && Object.values(episodeHeader).some((value) => (value || "").trim())
+      ? `
+Episode header:
+- season: ${episodeHeader.seasonLabel?.trim() || "not provided"}
+- episode number: ${episodeHeader.episodeNumber?.trim() || "not provided"}
+- episode title: ${episodeHeader.episodeTitle?.trim() || "not provided"}
+- episode goal: ${episodeHeader.episodeGoal?.trim() || "not provided"}
+- previously on: ${episodeHeader.previouslyOn?.trim() || "not provided"}
+- continuity log: ${episodeHeader.continuityLog?.trim() || "not provided"}
+- cliffhanger: ${episodeHeader.cliffhanger?.trim() || "not provided"}
+`
+      : "";
 
   return `
 You are building a beat sheet for a short cinematic film pack.
@@ -295,6 +310,7 @@ ${
 
 ${fantasyBibleBlock}
 ${castBibleBlock}
+${episodeHeaderBlock}
 
 ${lockedVoiceOver ? `Locked voice over:\n${lockedVoiceOver}\n` : ""}
 
@@ -347,6 +363,7 @@ export async function POST(request: Request) {
       projectMode,
       fantasyBible: parsedBody.settings.fantasyBible,
       castBible: parsedBody.settings.castBible,
+      episodeHeader: parsedBody.settings.episodeHeader,
       narratorCharacter: parsedBody.settings.narratorCharacter,
       onScreenCharacter: parsedBody.settings.onScreenCharacter,
       lockedVoiceOver,

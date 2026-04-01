@@ -31,6 +31,7 @@ import type {
   ColorGradePreset,
   CompanionShot,
   DirectorSceneType,
+  EpisodeHeaderInput,
   FantasyBibleInput,
   FilmPack,
   FilmTone,
@@ -467,6 +468,15 @@ export function FilmPackStudio() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [colorGradePreset, setColorGradePreset] = useState<ColorGradePreset>("warm-neutral documentary");
   const [strictMode, setStrictMode] = useState(true);
+  const [episodeHeader, setEpisodeHeader] = useState<EpisodeHeaderInput>({
+    seasonLabel: "",
+    episodeNumber: "",
+    episodeTitle: "",
+    episodeGoal: "",
+    previouslyOn: "",
+    continuityLog: "",
+    cliffhanger: "",
+  });
   const [fantasyBible, setFantasyBible] = useState<FantasyBibleInput>({
     corePremise: "",
     heroName: "",
@@ -585,6 +595,17 @@ export function FilmPackStudio() {
       if (target.filmPack.colorGradePreset) {
         setColorGradePreset(target.filmPack.colorGradePreset);
       }
+      setEpisodeHeader(
+        target.filmPack.episodeHeader || {
+          seasonLabel: "",
+          episodeNumber: "",
+          episodeTitle: "",
+          episodeGoal: "",
+          previouslyOn: "",
+          continuityLog: "",
+          cliffhanger: "",
+        }
+      );
       setBeatSheet(target.filmPack.beatSheet || []);
       setBeatSceneCount(target.filmPack.beatSheet?.length || target.filmPack.scenes.length);
       setSceneImages({});
@@ -641,6 +662,15 @@ export function FilmPackStudio() {
       setAspectRatio("16:9");
       setColorGradePreset("storm-blue mythic");
       setSceneCount(30);
+      setEpisodeHeader({
+        seasonLabel: "Season 1",
+        episodeNumber: "Episode 1",
+        episodeTitle: "Tidebound Awakening",
+        episodeGoal: "Introduce Kai, the sea-linked power, and the first sign that the coast is changing.",
+        previouslyOn: "",
+        continuityLog: "Kai still lives an ordinary coastal life. No one else fully understands his connection to the sea yet.",
+        cliffhanger: "A larger force beneath the water becomes aware of him.",
+      });
       setFantasyBible(FANTASY_SAMPLE_BIBLE);
       setCastBible([
         {
@@ -666,6 +696,15 @@ export function FilmPackStudio() {
       setAspectRatio("16:9");
       setColorGradePreset("neutral-cool restraint");
       setSceneCount("auto");
+      setEpisodeHeader({
+        seasonLabel: "Season 1",
+        episodeNumber: "Episode 1",
+        episodeTitle: "From Complaint to Action",
+        episodeGoal: "Show how a citizen report moves through Tawau's municipal system into visible action.",
+        previouslyOn: "",
+        continuityLog: "Public complaints are still handled manually in many places; this episode introduces the AI Smart Aduan workflow.",
+        cliffhanger: "The Tawau pilot hints at a wider smart-governance rollout across Malaysia.",
+      });
       setFantasyBible({
         corePremise: "",
         heroName: "",
@@ -706,6 +745,15 @@ export function FilmPackStudio() {
     setAspectRatio("16:9");
     setColorGradePreset("warm-neutral documentary");
     setSceneCount("auto");
+    setEpisodeHeader({
+      seasonLabel: "",
+      episodeNumber: "",
+      episodeTitle: "",
+      episodeGoal: "",
+      previouslyOn: "",
+      continuityLog: "",
+      cliffhanger: "",
+    });
     setFantasyBible({
       corePremise: "",
       heroName: "",
@@ -807,6 +855,7 @@ export function FilmPackStudio() {
             aspectRatio,
             colorGradePreset,
             strictMode,
+            episodeHeader,
             fantasyBible,
             castBible: requestCastBible,
           },
@@ -996,6 +1045,7 @@ export function FilmPackStudio() {
             aspectRatio,
             colorGradePreset,
             strictMode,
+            episodeHeader,
             fantasyBible,
             castBible: requestCastBible,
           },
@@ -1074,6 +1124,7 @@ export function FilmPackStudio() {
             onScreenCharacter,
             referenceTag,
             strictMode,
+            episodeHeader,
             projectMode,
             fantasyBible,
             castBible: requestCastBible,
@@ -1173,6 +1224,7 @@ export function FilmPackStudio() {
             onScreenCharacter,
             referenceTag,
             strictMode,
+            episodeHeader,
             projectMode,
             fantasyBible,
             castBible: requestCastBible,
@@ -1694,14 +1746,15 @@ export function FilmPackStudio() {
           projectMode,
           title,
           style,
-            aspectRatio,
-            colorGradePreset,
-            narratorCharacter,
-            onScreenCharacter,
-            fantasyBible,
-            castBible: requestCastBible,
-          },
-          lockedVoiceOver,
+          aspectRatio,
+          colorGradePreset,
+          episodeHeader,
+          narratorCharacter,
+          onScreenCharacter,
+          fantasyBible,
+          castBible: requestCastBible,
+        },
+        lockedVoiceOver,
         referenceTag,
       });
 
@@ -2212,6 +2265,83 @@ export function FilmPackStudio() {
             </div>
           </section>
         ) : null}
+
+        <section className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div>
+            <p className="text-sm font-medium text-zinc-100">Episode Header</p>
+            <p className="text-xs text-zinc-400">
+              Lightweight series context for recurring episodes. Use this when you want continuity, a clear episode goal,
+              and a usable cliffhanger without adding more workflow complexity.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Season</span>
+              <input
+                value={episodeHeader.seasonLabel || ""}
+                onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, seasonLabel: event.target.value }))}
+                className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="e.g. Season 1"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Episode</span>
+              <input
+                value={episodeHeader.episodeNumber || ""}
+                onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, episodeNumber: event.target.value }))}
+                className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="e.g. Episode 1"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Episode Title</span>
+              <input
+                value={episodeHeader.episodeTitle || ""}
+                onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, episodeTitle: event.target.value }))}
+                className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="e.g. The First Tide"
+              />
+            </label>
+          </div>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Episode Goal</span>
+            <input
+              value={episodeHeader.episodeGoal || ""}
+              onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, episodeGoal: event.target.value }))}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+              placeholder="What this episode must accomplish emotionally or narratively"
+            />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Previously On</span>
+              <textarea
+                value={episodeHeader.previouslyOn || ""}
+                onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, previouslyOn: event.target.value }))}
+                className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="Short recap of what the audience should already know before this episode starts"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-zinc-200">Continuity Log</span>
+              <textarea
+                value={episodeHeader.continuityLog || ""}
+                onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, continuityLog: event.target.value }))}
+                className="min-h-24 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                placeholder="Current relationship states, injuries, secrets, costumes, or story facts that must stay consistent"
+              />
+            </label>
+          </div>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-zinc-200">Cliffhanger / Hook</span>
+            <textarea
+              value={episodeHeader.cliffhanger || ""}
+              onChange={(event) => setEpisodeHeader((prev) => ({ ...prev, cliffhanger: event.target.value }))}
+              className="min-h-20 rounded-xl border border-white/15 bg-black/40 px-3 py-3 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+              placeholder="What unresolved question or hook should this episode end on"
+            />
+          </label>
+        </section>
 
         <label className="grid gap-2">
           <span className="text-sm font-medium text-zinc-200">Original Script / Story</span>

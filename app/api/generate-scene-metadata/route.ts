@@ -5,7 +5,7 @@ import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/co
 import { pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getFilmPackModelName, getOpenAIClient } from "@/lib/openai";
 import { generateRequestSchema } from "@/lib/schemas";
-import type { BeatItem, CastMemberInput, DirectorSceneType, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
+import type { BeatItem, CastMemberInput, DirectorSceneType, EpisodeHeaderInput, FantasyBibleInput, ProjectMode, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,6 +113,7 @@ function buildMetadataPrompt({
   projectMode,
   fantasyBible,
   castBible,
+  episodeHeader,
   narratorCharacter,
   onScreenCharacter,
   referenceTag,
@@ -126,6 +127,7 @@ function buildMetadataPrompt({
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
   castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }>;
+  episodeHeader?: EpisodeHeaderInput;
   narratorCharacter?: string;
   onScreenCharacter?: string;
   referenceTag?: string;
@@ -186,6 +188,19 @@ ${castBible
   .join("\n")}
 `
     : "";
+  const episodeHeaderBlock =
+    episodeHeader && Object.values(episodeHeader).some((value) => (value || "").trim())
+      ? `
+Episode header:
+- season: ${episodeHeader.seasonLabel?.trim() || "(not provided)"}
+- episode number: ${episodeHeader.episodeNumber?.trim() || "(not provided)"}
+- episode title: ${episodeHeader.episodeTitle?.trim() || "(not provided)"}
+- episode goal: ${episodeHeader.episodeGoal?.trim() || "(not provided)"}
+- previously on: ${episodeHeader.previouslyOn?.trim() || "(not provided)"}
+- continuity log: ${episodeHeader.continuityLog?.trim() || "(not provided)"}
+- cliffhanger: ${episodeHeader.cliffhanger?.trim() || "(not provided)"}
+`
+      : "";
   return `
 Generate scene metadata only from this beat sheet.
 
@@ -245,6 +260,7 @@ Rules:
 ${modeRules}
 ${fantasyBibleBlock}
 ${castBibleBlock}
+${episodeHeaderBlock}
 
 Beat sheet:
 ${beatSheet.map(beatLine).join("\n")}
@@ -460,10 +476,12 @@ export async function POST(request: Request) {
       beatSheet,
       title: parsedBody.settings.title,
       style: parsedBody.settings.style,
+      aspectRatio: parsedBody.settings.aspectRatio,
       colorGradePreset: parsedBody.settings.colorGradePreset,
       projectMode: parsedBody.settings.projectMode || "singapore-realism",
       fantasyBible: parsedBody.settings.fantasyBible,
       castBible: parsedBody.settings.castBible,
+      episodeHeader: parsedBody.settings.episodeHeader,
       narratorCharacter: parsedBody.settings.narratorCharacter,
       onScreenCharacter: parsedBody.settings.onScreenCharacter,
       referenceTag,

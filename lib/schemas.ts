@@ -84,6 +84,16 @@ const castMemberSchema = z.object({
   hasOfficialRef: z.boolean().optional(),
 });
 
+const episodeHeaderSchema = z.object({
+  seasonLabel: z.string().trim().max(40).optional().or(z.literal("")),
+  episodeNumber: z.string().trim().max(20).optional().or(z.literal("")),
+  episodeTitle: z.string().trim().max(120).optional().or(z.literal("")),
+  episodeGoal: z.string().trim().max(300).optional().or(z.literal("")),
+  previouslyOn: z.string().trim().max(600).optional().or(z.literal("")),
+  continuityLog: z.string().trim().max(1000).optional().or(z.literal("")),
+  cliffhanger: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
 export const generateRequestSchema = z.object({
   settings: z.object({
     projectMode: projectModeSchema.optional(),
@@ -105,6 +115,7 @@ export const generateRequestSchema = z.object({
     colorGradePreset: colorGradePresetSchema.optional(),
     strictMode: z.boolean().optional(),
     castBible: z.array(castMemberSchema).max(8).optional(),
+    episodeHeader: episodeHeaderSchema.optional(),
     fantasyBible: z
       .object({
         corePremise: z.string().trim().max(1000).optional().or(z.literal("")),

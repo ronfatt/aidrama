@@ -55,6 +55,16 @@ export type DialogueCoverageRole =
   | "return-to-speaker"
   | "silent-hold";
 
+export interface EpisodeHeaderInput {
+  seasonLabel?: string;
+  episodeNumber?: string;
+  episodeTitle?: string;
+  episodeGoal?: string;
+  previouslyOn?: string;
+  continuityLog?: string;
+  cliffhanger?: string;
+}
+
 export interface UserSettings {
   projectMode?: ProjectMode;
   title?: string;
@@ -70,6 +80,7 @@ export interface UserSettings {
   strictMode?: boolean;
   fantasyBible?: FantasyBibleInput;
   castBible?: CastMemberInput[];
+  episodeHeader?: EpisodeHeaderInput;
 }
 
 export interface FantasyBibleInput {
@@ -212,6 +223,7 @@ export interface FilmPack {
   style: FilmTone;
   aspectRatio?: AspectRatio;
   colorGradePreset?: ColorGradePreset;
+  episodeHeader?: EpisodeHeaderInput;
   settingNote: string;
   preservedVoiceOverScript: string;
   characterReferenceGuidance: string;

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { FANTASY_LOCATION_VOCABULARY, TAWAU_LOCATION_VOCABULARY } from "@/lib/constants";
 import { buildStructuredVideoPrompt, pickKlingMotionTemplate } from "@/lib/kling-motion";
 import { getCompanionModelName, getOpenAIClient } from "@/lib/openai";
-import type { CastMemberInput, DirectorSceneType, FantasyBibleInput, FilmTone, PairCoverageBias, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
+import type { CastMemberInput, DirectorSceneType, EpisodeHeaderInput, FantasyBibleInput, FilmTone, PairCoverageBias, ProjectMode, SceneItem, SceneMetadata } from "@/types/film-pack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +32,17 @@ const promptRequestSchema = z.object({
         })
       )
       .max(8)
+      .optional(),
+    episodeHeader: z
+      .object({
+        seasonLabel: z.string().optional(),
+        episodeNumber: z.string().optional(),
+        episodeTitle: z.string().optional(),
+        episodeGoal: z.string().optional(),
+        previouslyOn: z.string().optional(),
+        continuityLog: z.string().optional(),
+        cliffhanger: z.string().optional(),
+      })
       .optional(),
     strictMode: z.boolean().optional(),
     fantasyBible: z
@@ -224,6 +235,20 @@ ${castBible
   .join("\n")}
 `
     : "";
+  const episodeHeader = input.settings.episodeHeader as EpisodeHeaderInput | undefined;
+  const episodeHeaderBlock =
+    episodeHeader && Object.values(episodeHeader).some((value) => (value || "").trim())
+      ? `
+Episode header:
+- season: ${episodeHeader.seasonLabel?.trim() || "(not provided)"}
+- episode number: ${episodeHeader.episodeNumber?.trim() || "(not provided)"}
+- episode title: ${episodeHeader.episodeTitle?.trim() || "(not provided)"}
+- episode goal: ${episodeHeader.episodeGoal?.trim() || "(not provided)"}
+- previously on: ${episodeHeader.previouslyOn?.trim() || "(not provided)"}
+- continuity log: ${episodeHeader.continuityLog?.trim() || "(not provided)"}
+- cliffhanger: ${episodeHeader.cliffhanger?.trim() || "(not provided)"}
+`
+      : "";
   return `
 Generate concise cinematic image and video prompts for these scene metadata items.
 
@@ -308,6 +333,7 @@ Rules:
 ${modeRules}
 ${fantasyBibleBlock}
 ${castBibleBlock}
+${episodeHeaderBlock}
 
 Scenes:
 ${input.scenes

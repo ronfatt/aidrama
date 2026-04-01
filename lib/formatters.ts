@@ -1,6 +1,9 @@
 import type { FilmPack } from "@/types/film-pack";
 
 export function toFilmPackMarkdown(pack: FilmPack): string {
+  const episodeHeaderBlock = pack.episodeHeader
+    ? `## Episode Header\n- Season: ${pack.episodeHeader.seasonLabel || "(not provided)"}\n- Episode: ${pack.episodeHeader.episodeNumber || "(not provided)"}\n- Episode title: ${pack.episodeHeader.episodeTitle || "(not provided)"}\n- Episode goal: ${pack.episodeHeader.episodeGoal || "(not provided)"}\n- Previously on: ${pack.episodeHeader.previouslyOn || "(not provided)"}\n- Continuity log: ${pack.episodeHeader.continuityLog || "(not provided)"}\n- Cliffhanger: ${pack.episodeHeader.cliffhanger || "(not provided)"}\n\n`
+    : "";
   const beatSheetBlock = pack.beatSheet?.length
     ? `## Beat Sheet\n${pack.beatSheet
         .map(
@@ -10,7 +13,7 @@ export function toFilmPackMarkdown(pack: FilmPack): string {
         .join("\n")}\n\n`
     : "";
 
-  const header = `# ${pack.title}\n\n- Style: ${pack.style}\n- Frame ratio: ${pack.aspectRatio || "16:9"}\n- Setting: ${pack.settingNote}\n\n## Preserved Voice Over\n${pack.preservedVoiceOverScript}\n\n## Character Reference Guidance\n${pack.characterReferenceGuidance}\n\n${beatSheetBlock}## Scenes\n`;
+  const header = `# ${pack.title}\n\n- Style: ${pack.style}\n- Frame ratio: ${pack.aspectRatio || "16:9"}\n- Setting: ${pack.settingNote}\n\n${episodeHeaderBlock}## Preserved Voice Over\n${pack.preservedVoiceOverScript}\n\n## Character Reference Guidance\n${pack.characterReferenceGuidance}\n\n${beatSheetBlock}## Scenes\n`;
 
   const sceneBlocks = pack.scenes
     .map((scene) => {
