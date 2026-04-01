@@ -80,6 +80,15 @@ interface SavedFilmPackRecord {
   filmPack: FilmPack;
 }
 
+interface CharacterMasterShot {
+  id: string;
+  label: string;
+  purpose: string;
+  framing: string;
+  imagePrompt: string;
+  lightingColor: string;
+}
+
 const STORAGE_KEY = "film-pack-studio:saved-packs";
 
 function createCastMember(): CastMemberInput {
@@ -127,6 +136,73 @@ function getEffectiveCharacterReferences(character: CastMemberInput) {
     return [character.officialMasterReference];
   }
   return candidates;
+}
+
+function getCharacterWorldContext(projectMode: ProjectMode) {
+  if (projectMode === "coastal-fantasy-drama") {
+    return "Southeast Asian coastal fantasy world, grounded realism, no western default hero styling";
+  }
+  if (projectMode === "tawau-sabah-realism") {
+    return "modern Tawau Sabah civic and town context, contemporary Malaysian realism";
+  }
+  return "contemporary Singapore realism";
+}
+
+function buildCharacterMasterSheet(
+  character: CastMemberInput,
+  projectMode: ProjectMode,
+  colorGradePreset: ColorGradePreset
+): CharacterMasterShot[] {
+  const name = character.name.trim() || "Character";
+  const tag = normalizeReferenceTag(character.referenceTag || "");
+  const identity = character.identityNote?.trim() || "grounded Southeast Asian face identity";
+  const wardrobe = character.wardrobeNote?.trim() || "consistent wardrobe baseline, simple clean styling";
+  const worldContext = getCharacterWorldContext(projectMode);
+  const baseLocks = [
+    `${name} ${tag}`.trim(),
+    identity,
+    wardrobe,
+    worldContext,
+    "neutral identity reference image, not a dramatic scene frame",
+    "same exact person across all reference angles",
+    "avoid extreme emotion, avoid rain, avoid action blur, avoid heavy stylization",
+    "clean facial readability, realistic skin texture, grounded contemporary styling",
+  ].join(", ");
+
+  return [
+    {
+      id: `${character.id}-master-front`,
+      label: "Front Portrait",
+      purpose: "Primary identity anchor for face structure and expression neutrality.",
+      framing: "front neutral portrait",
+      imagePrompt: `${baseLocks}, front-facing portrait, calm neutral expression, direct or near-direct gaze, natural balanced daylight, simple uncluttered background, clear jawline, hairline, facial hair and eye shape readable, vertical character reference frame`,
+      lightingColor: `${colorGradePreset}, neutral clean daylight, soft contrast`,
+    },
+    {
+      id: `${character.id}-master-three-quarter`,
+      label: "Three-Quarter Portrait",
+      purpose: "Secondary angle for identity continuity in cinematic close-ups.",
+      framing: "45-degree portrait",
+      imagePrompt: `${baseLocks}, three-quarter portrait at 45 degrees, calm focused expression, natural daylight, subtle depth but face fully readable, uncluttered background, vertical character reference frame`,
+      lightingColor: `${colorGradePreset}, neutral natural side light, soft contrast`,
+    },
+    {
+      id: `${character.id}-master-profile`,
+      label: "Side Profile",
+      purpose: "Profile reference for silhouette, nose line, hairline and ear shape continuity.",
+      framing: "clean side profile",
+      imagePrompt: `${baseLocks}, clean side profile portrait, neutral expression, profile clearly visible, soft daylight from one side, plain background, emphasis on silhouette accuracy, vertical character reference frame`,
+      lightingColor: `${colorGradePreset}, profile daylight, restrained contrast`,
+    },
+    {
+      id: `${character.id}-master-half-body`,
+      label: "Half-Body Standing",
+      purpose: "Wardrobe and posture anchor for medium shots and scene continuity.",
+      framing: "half-body standing reference",
+      imagePrompt: `${baseLocks}, half-body standing portrait, relaxed natural posture, hands simple and visible, wardrobe clearly readable, neutral expression, natural daylight, clean background, vertical character reference frame`,
+      lightingColor: `${colorGradePreset}, soft daylight with realistic skin tones`,
+    },
+  ];
 }
 
 function getColorGradeLock(preset: ColorGradePreset, style: FilmTone): string {
@@ -404,6 +480,12 @@ export function FilmPackStudio() {
   const [masterReferenceImages, setMasterReferenceImages] = useState<string[]>([]);
   const [masterReferenceUrls, setMasterReferenceUrls] = useState("");
   const [officialMasterReference, setOfficialMasterReference] = useState<string | null>(null);
+  const [characterMasterSheets, setCharacterMasterSheets] = useState<Record<string, CharacterMasterShot[]>>({});
+  const [characterMasterImageUrls, setCharacterMasterImageUrls] = useState<Record<string, string>>({});
+  const [characterMasterImageMeta, setCharacterMasterImageMeta] = useState<Record<string, string>>({});
+  const [characterMasterImageLoading, setCharacterMasterImageLoading] = useState<Record<string, boolean>>({});
+  const [characterMasterImageErrors, setCharacterMasterImageErrors] = useState<Record<string, string>>({});
+  const [characterMasterBatchLoading, setCharacterMasterBatchLoading] = useState<Record<string, boolean>>({});
   const [beatSheet, setBeatSheet] = useState<BeatItem[]>([]);
   const [beatSceneCount, setBeatSceneCount] = useState<number | null>(null);
   const [beatLoading, setBeatLoading] = useState(false);
@@ -536,6 +618,12 @@ export function FilmPackStudio() {
     setCompanionBatchImageLoading({});
     setSceneImageMeta({});
     setCompanionImageMeta({});
+    setCharacterMasterSheets({});
+    setCharacterMasterImageUrls({});
+    setCharacterMasterImageMeta({});
+    setCharacterMasterImageLoading({});
+    setCharacterMasterImageErrors({});
+    setCharacterMasterBatchLoading({});
   };
 
   const loadProjectModeSample = (mode: ProjectMode) => {
@@ -747,6 +835,142 @@ export function FilmPackStudio() {
     } finally {
       setBeatLoading(false);
     }
+  };
+
+  const generateCharacterMasterSheet = (characterId: string) => {
+    setCharacterMasterSheets((prev) => {
+      const character = castBible.find((item) => item.id === characterId);
+      if (!character) return prev;
+      return {
+        ...prev,
+        [characterId]: buildCharacterMasterSheet(character, projectMode, colorGradePreset),
+      };
+    });
+  };
+
+  const generateCharacterMasterImage = async (characterId: string, shot: CharacterMasterShot) => {
+    const character = castBible.find((item) => item.id === characterId);
+    if (!character) return;
+
+    setCharacterMasterImageLoading((prev) => ({ ...prev, [shot.id]: true }));
+    setCharacterMasterImageErrors((prev) => ({ ...prev, [shot.id]: "" }));
+    setCharacterMasterImageMeta((prev) => ({ ...prev, [shot.id]: "" }));
+
+    try {
+      const masterReferenceImages = getEffectiveCharacterReferences(character);
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imagePrompt: shot.imagePrompt,
+          sceneNumber: 9000 + Number.parseInt(shot.id.replace(/\D/g, "").slice(-3) || "1", 10),
+          projectMode,
+          aspectRatio: "9:16",
+          useReferenceImage: masterReferenceImages.length > 0,
+          referenceTag: normalizeReferenceTag(character.referenceTag || ""),
+          style,
+          colorGradePreset,
+          lightingColor: shot.lightingColor,
+          projectColorGradeLock,
+          strictMode,
+          continuitySeed: `character-master|${character.name}|${shot.label}`,
+          masterReferenceImages,
+        }),
+      });
+
+      const raw = await response.text();
+      let payload: GenerateImageResponse = {};
+      try {
+        payload = JSON.parse(raw) as GenerateImageResponse;
+      } catch {
+        payload = {
+          error: raw.includes("Request Entity Too Large")
+            ? "Request too large. Use fewer or lighter reference images."
+            : raw || "Character master image generation failed.",
+        };
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Character master image generation failed.");
+      }
+
+      if (payload.taskId) {
+        let resolvedImage: string | null = null;
+        for (let attempt = 0; attempt < 24; attempt += 1) {
+          await sleep(2000);
+          const statusResponse = await fetch(`/api/generate-image?taskId=${encodeURIComponent(payload.taskId)}`, {
+            method: "GET",
+          });
+          const statusPayload = (await statusResponse.json().catch(() => null)) as GenerateImageResponse | null;
+          if (!statusResponse.ok) {
+            throw new Error(statusPayload?.error || "Character master image status check failed.");
+          }
+          if (statusPayload?.imageDataUrl) {
+            resolvedImage = statusPayload.imageDataUrl;
+            payload.provider = statusPayload.provider || payload.provider;
+            payload.fallbackFrom = statusPayload.fallbackFrom || payload.fallbackFrom;
+            payload.modelUsed = statusPayload.modelUsed || payload.modelUsed;
+            break;
+          }
+          if (statusPayload?.status === "failed") {
+            throw new Error(statusPayload.error || "Character master image generation failed.");
+          }
+        }
+        if (!resolvedImage) {
+          throw new Error("Character master image generation is taking too long. Please retry.");
+        }
+        payload.imageDataUrl = resolvedImage;
+      }
+
+      if (!payload.imageDataUrl) {
+        throw new Error(payload.error || "Character master image generation failed.");
+      }
+
+      const providerLabel = payload.provider
+        ? payload.fallbackFrom
+          ? `${payload.provider} (fallback from ${payload.fallbackFrom})`
+          : payload.provider
+        : "";
+      const metaLabel = [providerLabel, payload.modelUsed].filter(Boolean).join(" · ");
+
+      setCharacterMasterImageUrls((prev) => ({ ...prev, [shot.id]: payload.imageDataUrl as string }));
+      setCharacterMasterImageMeta((prev) => ({ ...prev, [shot.id]: metaLabel }));
+    } catch (imageError) {
+      const message =
+        imageError instanceof Error ? imageError.message : "Character master image generation failed.";
+      setCharacterMasterImageErrors((prev) => ({ ...prev, [shot.id]: message }));
+    } finally {
+      setCharacterMasterImageLoading((prev) => ({ ...prev, [shot.id]: false }));
+    }
+  };
+
+  const generateAllCharacterMasterImages = async (characterId: string) => {
+      const shots = characterMasterSheets[characterId] || [];
+      if (!shots.length) return;
+      setCharacterMasterBatchLoading((prev) => ({ ...prev, [characterId]: true }));
+      try {
+        for (const shot of shots) {
+          // sequential to reduce provider pressure and keep refs stable
+          await generateCharacterMasterImage(characterId, shot);
+        }
+      } finally {
+        setCharacterMasterBatchLoading((prev) => ({ ...prev, [characterId]: false }));
+      }
+    };
+
+  const applyGeneratedMasterAsOfficial = (characterId: string, imageSrc: string) => {
+    setCastBible((prev) =>
+      prev.map((item) => {
+        if (item.id !== characterId) return item;
+        const current = item.masterReferenceImages || [];
+        const nextImages = current.includes(imageSrc) ? current : [imageSrc, ...current].slice(0, 8);
+        return {
+          ...item,
+          masterReferenceImages: nextImages,
+          officialMasterReference: imageSrc,
+        };
+      })
+    );
   };
 
   const generateSceneMetadata = async (sourceBeatSheet: BeatItem[]): Promise<SceneMetadata[]> => {
@@ -1640,6 +1864,7 @@ export function FilmPackStudio() {
               {castBible.map((character, index) => {
                 const characterCandidates = getCharacterReferenceCandidates(character);
                 const officialRef = character.officialMasterReference;
+                const masterSheetShots = characterMasterSheets[character.id] || [];
                 return (
                   <div key={character.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -1807,6 +2032,97 @@ export function FilmPackStudio() {
                         })}
                       </div>
                     ) : null}
+
+                    <div className="mt-4 rounded-xl border border-sky-300/15 bg-sky-500/[0.04] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-sky-200">
+                            Character Master Sheet
+                          </p>
+                          <p className="text-[11px] text-zinc-400">
+                            Build 4 neutral identity anchors first, then use one as the official master ref for scene generation.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => generateCharacterMasterSheet(character.id)}
+                            className="rounded-md border border-sky-300/30 bg-sky-500/10 px-3 py-1.5 text-[11px] font-medium text-sky-200 transition hover:bg-sky-500/20"
+                          >
+                            {masterSheetShots.length ? "Regenerate Sheet" : "Generate Character Sheet"}
+                          </button>
+                          {masterSheetShots.length ? (
+                            <button
+                              type="button"
+                              onClick={() => void generateAllCharacterMasterImages(character.id)}
+                              disabled={characterMasterBatchLoading[character.id]}
+                              className="rounded-md border border-emerald-300/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                            >
+                              {characterMasterBatchLoading[character.id] ? "Generating..." : "Generate All Images"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {masterSheetShots.length ? (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          {masterSheetShots.map((shot) => {
+                            const generatedUrl = characterMasterImageUrls[shot.id];
+                            const generatedMeta = characterMasterImageMeta[shot.id];
+                            const generatedError = characterMasterImageErrors[shot.id];
+                            const isLoading = characterMasterImageLoading[shot.id];
+                            const isOfficialGenerated = officialRef === generatedUrl && Boolean(generatedUrl);
+
+                            return (
+                              <div key={shot.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                                <div className="mb-2 flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-sm font-semibold text-zinc-100">{shot.label}</p>
+                                    <p className="text-[11px] text-zinc-400">{shot.framing}</p>
+                                  </div>
+                                  <CopyButton text={shot.imagePrompt} label="Copy prompt" />
+                                </div>
+                                <p className="mb-2 text-xs text-zinc-300">{shot.purpose}</p>
+                                <p className="rounded-lg border border-white/10 bg-black/30 p-2 text-[11px] leading-6 text-zinc-300">
+                                  {shot.imagePrompt}
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void generateCharacterMasterImage(character.id, shot)}
+                                    disabled={isLoading}
+                                    className="rounded-md border border-emerald-300/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                                  >
+                                    {isLoading ? "Generating..." : generatedUrl ? "Regenerate image" : "Generate image"}
+                                  </button>
+                                  {generatedUrl ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => applyGeneratedMasterAsOfficial(character.id, generatedUrl)}
+                                      className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition ${
+                                        isOfficialGenerated
+                                          ? "border-cyan-300/40 bg-cyan-500/10 text-cyan-200"
+                                          : "border-cyan-300/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
+                                      }`}
+                                    >
+                                      {isOfficialGenerated ? "Official ref" : "Use as official"}
+                                    </button>
+                                  ) : null}
+                                </div>
+                                {generatedMeta ? <p className="mt-2 text-[11px] uppercase tracking-wide text-cyan-300">{generatedMeta}</p> : null}
+                                {generatedError ? <p className="mt-2 text-[11px] text-rose-300">{generatedError}</p> : null}
+                                {generatedUrl ? (
+                                  <div className="mt-3 overflow-hidden rounded-lg border border-white/10">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={generatedUrl} alt={`${character.name || "Character"} ${shot.label}`} className="h-64 w-full object-cover" />
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })}
