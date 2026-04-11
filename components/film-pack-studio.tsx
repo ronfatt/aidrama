@@ -78,6 +78,7 @@ interface SavedFilmPackRecord {
   style: FilmTone;
   sceneCount: number;
   createdAt: string;
+  projectMode?: ProjectMode;
   filmPack: FilmPack;
 }
 
@@ -104,6 +105,43 @@ function createCastMember(): CastMemberInput {
     masterReferenceUrls: "",
     officialMasterReference: null,
   };
+}
+
+function parseEpisodeIndex(value?: string) {
+  if (!value) return null;
+  const match = value.match(/\d+/);
+  return match ? Number.parseInt(match[0], 10) : null;
+}
+
+function extractPreviouslyOnSummary(pack: FilmPack) {
+  const episodeTitle = pack.episodeHeader?.episodeTitle?.trim();
+  const episodeGoal = pack.episodeHeader?.episodeGoal?.trim();
+  const cliffhanger = pack.episodeHeader?.cliffhanger?.trim();
+  const voSummary = pack.preservedVoiceOverScript
+    ?.replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 220);
+
+  const parts = [
+    episodeTitle ? `${episodeTitle}` : "",
+    episodeGoal || "",
+    cliffhanger ? `It ended with ${cliffhanger}` : "",
+  ].filter(Boolean);
+
+  if (parts.length > 0) {
+    return parts.join(". ");
+  }
+
+  return voSummary || "";
+}
+
+function extractContinuitySeed(pack: FilmPack) {
+  const parts = [
+    pack.episodeHeader?.continuityLog?.trim() || "",
+    pack.episodeHeader?.cliffhanger?.trim() ? `Carry forward: ${pack.episodeHeader?.cliffhanger?.trim()}` : "",
+  ].filter(Boolean);
+
+  return parts.join(". ");
 }
 
 function serializeCastBibleForRequest(castBible: CastMemberInput[]) {
@@ -580,6 +618,7 @@ export function FilmPackStudio() {
       style: result.style,
       sceneCount: result.scenes.length,
       createdAt: new Date().toISOString(),
+      projectMode,
       filmPack: result,
     };
     persistSavedPacks([record, ...savedPacks].slice(0, 50));
@@ -620,6 +659,45 @@ export function FilmPackStudio() {
 
   const deleteSavedPack = (id: string) => {
     persistSavedPacks(savedPacks.filter((record) => record.id !== id));
+  };
+
+  const previousEpisodeSource = useMemo(() => {
+    const currentEpisodeIndex = parseEpisodeIndex(episodeHeader.episodeNumber);
+    const currentSeason = (episodeHeader.seasonLabel || "").trim().toLowerCase();
+
+    const eligible = savedPacks.filter((record) => {
+      const sameMode = !record.projectMode || record.projectMode === projectMode;
+      const recordSeason = (record.filmPack.episodeHeader?.seasonLabel || "").trim().toLowerCase();
+      if (!sameMode) return false;
+      if (currentSeason && recordSeason && currentSeason !== recordSeason) return false;
+      return Boolean(record.filmPack.episodeHeader);
+    });
+
+    if (currentEpisodeIndex && currentEpisodeIndex > 1) {
+      const previousIndex = currentEpisodeIndex - 1;
+      const exact = eligible.find((record) => {
+        const recordEpisodeIndex = parseEpisodeIndex(record.filmPack.episodeHeader?.episodeNumber);
+        return recordEpisodeIndex === previousIndex;
+      });
+      if (exact) return exact;
+    }
+
+    return eligible[0] || null;
+  }, [episodeHeader.episodeNumber, episodeHeader.seasonLabel, projectMode, savedPacks]);
+
+  const applyPreviousEpisodeContext = () => {
+    if (!previousEpisodeSource) return;
+    const previousPack = previousEpisodeSource.filmPack;
+    const previousSummary = extractPreviouslyOnSummary(previousPack);
+    const continuitySeed = extractContinuitySeed(previousPack);
+
+    setEpisodeHeader((prev) => ({
+      ...prev,
+      seasonLabel: prev.seasonLabel || previousPack.episodeHeader?.seasonLabel || "",
+      previouslyOn: previousSummary || prev.previouslyOn || "",
+      continuityLog: [continuitySeed, prev.continuityLog].filter(Boolean).join("\n\n").trim(),
+      cliffhanger: prev.cliffhanger || "",
+    }));
   };
 
   const resetGeneratedState = () => {
@@ -2267,13 +2345,32 @@ export function FilmPackStudio() {
         ) : null}
 
         <section className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <div>
-            <p className="text-sm font-medium text-zinc-100">Episode Header</p>
-            <p className="text-xs text-zinc-400">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-zinc-100">Episode Header</p>
+              <p className="text-xs text-zinc-400">
               Lightweight series context for recurring episodes. Use this when you want continuity, a clear episode goal,
               and a usable cliffhanger without adding more workflow complexity.
-            </p>
+              </p>
+            </div>
+            {previousEpisodeSource ? (
+              <button
+                type="button"
+                onClick={applyPreviousEpisodeContext}
+                className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+              >
+                Use previous episode
+              </button>
+            ) : null}
           </div>
+          {previousEpisodeSource ? (
+            <p className="text-[11px] text-zinc-500">
+              Source: {previousEpisodeSource.filmPack.episodeHeader?.episodeNumber || "Previous episode"}{" "}
+              {previousEpisodeSource.filmPack.episodeHeader?.episodeTitle
+                ? `· ${previousEpisodeSource.filmPack.episodeHeader?.episodeTitle}`
+                : ""}
+            </p>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-zinc-200">Season</span>
