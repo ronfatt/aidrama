@@ -113,6 +113,15 @@ function parseEpisodeIndex(value?: string) {
   return match ? Number.parseInt(match[0], 10) : null;
 }
 
+function incrementEpisodeLabel(value?: string) {
+  const currentIndex = parseEpisodeIndex(value);
+  if (currentIndex) {
+    if (!value) return `Episode ${currentIndex + 1}`;
+    return value.replace(/\d+/, String(currentIndex + 1));
+  }
+  return value?.trim() ? `${value.trim()} 2` : "Episode 2";
+}
+
 function extractPreviouslyOnSummary(pack: FilmPack) {
   const episodeTitle = pack.episodeHeader?.episodeTitle?.trim();
   const episodeGoal = pack.episodeHeader?.episodeGoal?.trim();
@@ -142,6 +151,32 @@ function extractContinuitySeed(pack: FilmPack) {
   ].filter(Boolean);
 
   return parts.join(". ");
+}
+
+function extractCurrentEpisodeSeed(args: {
+  title: string;
+  episodeHeader: EpisodeHeaderInput;
+  preservedVoiceOverScript?: string;
+  lockedVoiceOver?: string;
+  originalScript?: string;
+}) {
+  const parts = [
+    args.episodeHeader.episodeTitle?.trim() || args.title.trim(),
+    args.episodeHeader.episodeGoal?.trim() || "",
+    args.episodeHeader.cliffhanger?.trim() ? `It ended with ${args.episodeHeader.cliffhanger.trim()}` : "",
+  ].filter(Boolean);
+
+  if (parts.length > 0) {
+    return parts.join(". ");
+  }
+
+  const fallbackText =
+    args.preservedVoiceOverScript?.trim() ||
+    args.lockedVoiceOver?.replace(/\s+/g, " ").trim() ||
+    args.originalScript?.replace(/\s+/g, " ").trim() ||
+    "";
+
+  return fallbackText.slice(0, 220);
 }
 
 function serializeCastBibleForRequest(castBible: CastMemberInput[]) {
@@ -697,6 +732,28 @@ export function FilmPackStudio() {
       previouslyOn: previousSummary || prev.previouslyOn || "",
       continuityLog: [continuitySeed, prev.continuityLog].filter(Boolean).join("\n\n").trim(),
       cliffhanger: prev.cliffhanger || "",
+    }));
+  };
+
+  const seedNextEpisode = () => {
+    const currentSummary = extractCurrentEpisodeSeed({
+      title,
+      episodeHeader,
+      preservedVoiceOverScript: result?.preservedVoiceOverScript,
+      lockedVoiceOver,
+      originalScript,
+    });
+
+    setEpisodeHeader((prev) => ({
+      ...prev,
+      episodeNumber: incrementEpisodeLabel(prev.episodeNumber),
+      episodeTitle: "",
+      episodeGoal: "",
+      previouslyOn: currentSummary || prev.previouslyOn || "",
+      continuityLog: [prev.continuityLog?.trim() || "", prev.cliffhanger?.trim() ? `Carry forward: ${prev.cliffhanger.trim()}` : ""]
+        .filter(Boolean)
+        .join("\n\n"),
+      cliffhanger: "",
     }));
   };
 
@@ -2353,15 +2410,24 @@ export function FilmPackStudio() {
               and a usable cliffhanger without adding more workflow complexity.
               </p>
             </div>
-            {previousEpisodeSource ? (
+            <div className="flex flex-wrap gap-2">
+              {previousEpisodeSource ? (
+                <button
+                  type="button"
+                  onClick={applyPreviousEpisodeContext}
+                  className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+                >
+                  Use previous episode
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={applyPreviousEpisodeContext}
-                className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+                onClick={seedNextEpisode}
+                className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20"
               >
-                Use previous episode
+                Seed next episode
               </button>
-            ) : null}
+            </div>
           </div>
           {previousEpisodeSource ? (
             <p className="text-[11px] text-zinc-500">
