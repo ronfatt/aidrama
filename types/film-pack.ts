@@ -224,6 +224,7 @@ export interface FilmPack {
   aspectRatio?: AspectRatio;
   colorGradePreset?: ColorGradePreset;
   episodeHeader?: EpisodeHeaderInput;
+  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
   settingNote: string;
   preservedVoiceOverScript: string;
   characterReferenceGuidance: string;

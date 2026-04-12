@@ -90,6 +90,7 @@ export function assembleFilmPackFromScenes({
     aspectRatio: settings.aspectRatio,
     colorGradePreset: settings.colorGradePreset,
     episodeHeader: settings.episodeHeader,
+    castBible: settings.castBible,
     settingNote: buildSettingNote(settings.style, projectMode, settings.fantasyBible),
     preservedVoiceOverScript: lockedVoiceOver || beatSheet.map((beat) => beat.voLine).join(" "),
     characterReferenceGuidance: buildCharacterReferenceGuidance({

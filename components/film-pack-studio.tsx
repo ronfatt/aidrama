@@ -193,6 +193,19 @@ function serializeCastBibleForRequest(castBible: CastMemberInput[]) {
     }));
 }
 
+function restoreCastBibleInputs(
+  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>
+) {
+  return (castBible || []).map((character) => ({
+    ...createCastMember(),
+    name: character.name || "",
+    role: character.role || "supporting",
+    referenceTag: normalizeReferenceTag(character.referenceTag || ""),
+    identityNote: character.identityNote || "",
+    wardrobeNote: character.wardrobeNote || "",
+  }));
+}
+
 function parseCharacterReferenceUrls(raw: string) {
   return raw
     .split("\n")
@@ -680,6 +693,7 @@ export function FilmPackStudio() {
           cliffhanger: "",
         }
       );
+      setCastBible(restoreCastBibleInputs(target.filmPack.castBible));
       setBeatSheet(target.filmPack.beatSheet || []);
       setBeatSceneCount(target.filmPack.beatSheet?.length || target.filmPack.scenes.length);
       setSceneImages({});
@@ -733,6 +747,46 @@ export function FilmPackStudio() {
       continuityLog: [continuitySeed, prev.continuityLog].filter(Boolean).join("\n\n").trim(),
       cliffhanger: prev.cliffhanger || "",
     }));
+  };
+
+  const applyPreviousCastContinuity = () => {
+    if (!previousEpisodeSource?.filmPack.castBible?.length) return;
+
+    setCastBible((prev) => {
+      const previousCast = previousEpisodeSource.filmPack.castBible || [];
+      const prevByName = new Map(prev.map((character) => [character.name.trim().toLowerCase(), character]));
+
+      const merged = previousCast.map((character) => {
+        const existing = prevByName.get(character.name.trim().toLowerCase());
+        if (existing) {
+          return {
+            ...existing,
+            role: character.role || existing.role,
+            referenceTag: normalizeReferenceTag(character.referenceTag || existing.referenceTag || ""),
+            identityNote: [character.identityNote?.trim() || "", existing.identityNote?.trim() || ""]
+              .filter(Boolean)
+              .join(existing.identityNote?.trim() ? "\n\n" : ""),
+            wardrobeNote: [character.wardrobeNote?.trim() || "", existing.wardrobeNote?.trim() || ""]
+              .filter(Boolean)
+              .join(existing.wardrobeNote?.trim() ? "\n\n" : ""),
+          };
+        }
+
+        return {
+          ...createCastMember(),
+          name: character.name || "",
+          role: character.role || "supporting",
+          referenceTag: normalizeReferenceTag(character.referenceTag || ""),
+          identityNote: character.identityNote || "",
+          wardrobeNote: character.wardrobeNote || "",
+        };
+      });
+
+      const carriedNames = new Set(merged.map((character) => character.name.trim().toLowerCase()));
+      const remainingCurrent = prev.filter((character) => !carriedNames.has(character.name.trim().toLowerCase()));
+
+      return [...merged, ...remainingCurrent].slice(0, 8);
+    });
   };
 
   const seedNextEpisode = () => {
@@ -2038,14 +2092,31 @@ export function FilmPackStudio() {
                 character while keeping others implied.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setCastBible((prev) => [...prev, createCastMember()].slice(0, 8))}
-              className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
-            >
-              Add character
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {previousEpisodeSource?.filmPack.castBible?.length ? (
+                <button
+                  type="button"
+                  onClick={applyPreviousCastContinuity}
+                  className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+                >
+                  Carry cast continuity
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setCastBible((prev) => [...prev, createCastMember()].slice(0, 8))}
+                className="rounded-md border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-white/15"
+              >
+                Add character
+              </button>
+            </div>
           </div>
+          {previousEpisodeSource?.filmPack.castBible?.length ? (
+            <p className="text-[11px] text-zinc-500">
+              Pull roles, identity notes, wardrobe continuity, and reference tags from{" "}
+              {previousEpisodeSource.filmPack.episodeHeader?.episodeNumber || "the previous episode"}.
+            </p>
+          ) : null}
 
           {castBible.length ? (
             <div className="space-y-4">
