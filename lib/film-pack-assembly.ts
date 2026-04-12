@@ -37,7 +37,9 @@ export function buildCharacterReferenceGuidance({
   narratorCharacter?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
-  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
+  castBible?: Array<
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote">
+  >;
 }) {
   if (!referenceTag) {
     return "No character reference workflow is active for this film pack.";
@@ -53,7 +55,13 @@ export function buildCharacterReferenceGuidance({
       ? ` Keep ${subject} consistent across ordinary-life scenes, power-awakening scenes, and threat-response scenes. Reflect ${fantasyBible?.powerType?.trim() || "the hero's powers"} through pose, water interaction, wardrobe continuity, atmosphere, and lighting rather than changing facial identity.`
       : "";
   const castNote = castBible?.length
-    ? ` Recurring cast in this project: ${castBible.map((character) => `${character.name} (${character.role})`).join(", ")}. Keep scenes centered on one clear on-screen subject at a time and imply additional characters through over-shoulder, back view, silhouette, reflection, doorway separation, or cutaways.`
+    ? ` Recurring cast in this project: ${castBible
+        .map((character) =>
+          character.relationshipNote?.trim()
+            ? `${character.name} (${character.role}; ${character.relationshipNote.trim()})`
+            : `${character.name} (${character.role})`
+        )
+        .join(", ")}. Keep scenes centered on one clear on-screen subject at a time and imply additional characters through over-shoulder, back view, silhouette, reflection, doorway separation, or cutaways.`
     : "";
 
   return `Use ${referenceTag} consistently whenever ${subject} appears. Do not redefine facial identity; focus on pose, framing, environment, wardrobe variation, mood, and lighting.${fantasyNote}${narratorNote}${castNote}`;
@@ -78,7 +86,9 @@ export function assembleFilmPackFromScenes({
     narratorCharacter?: string;
     onScreenCharacter?: string;
     fantasyBible?: FantasyBibleInput;
-    castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
+    castBible?: Array<
+      Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote">
+    >;
   };
   lockedVoiceOver: string;
   referenceTag: string;

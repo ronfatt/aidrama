@@ -100,6 +100,7 @@ export interface CastMemberInput {
   referenceTag?: string;
   identityNote?: string;
   wardrobeNote?: string;
+  relationshipNote?: string;
   masterReferenceImages?: string[];
   masterReferenceUrls?: string;
   officialMasterReference?: string | null;
@@ -224,7 +225,9 @@ export interface FilmPack {
   aspectRatio?: AspectRatio;
   colorGradePreset?: ColorGradePreset;
   episodeHeader?: EpisodeHeaderInput;
-  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>;
+  castBible?: Array<
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote">
+  >;
   settingNote: string;
   preservedVoiceOverScript: string;
   characterReferenceGuidance: string;

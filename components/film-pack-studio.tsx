@@ -101,6 +101,7 @@ function createCastMember(): CastMemberInput {
     referenceTag: "",
     identityNote: "",
     wardrobeNote: "",
+    relationshipNote: "",
     masterReferenceImages: [],
     masterReferenceUrls: "",
     officialMasterReference: null,
@@ -189,12 +190,15 @@ function serializeCastBibleForRequest(castBible: CastMemberInput[]) {
       referenceTag: normalizeReferenceTag(character.referenceTag || ""),
       identityNote: character.identityNote?.trim() || "",
       wardrobeNote: character.wardrobeNote?.trim() || "",
+      relationshipNote: character.relationshipNote?.trim() || "",
       hasOfficialRef: Boolean(character.officialMasterReference),
     }));
 }
 
 function restoreCastBibleInputs(
-  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote">>
+  castBible?: Array<
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote">
+  >
 ) {
   return (castBible || []).map((character) => ({
     ...createCastMember(),
@@ -203,6 +207,7 @@ function restoreCastBibleInputs(
     referenceTag: normalizeReferenceTag(character.referenceTag || ""),
     identityNote: character.identityNote || "",
     wardrobeNote: character.wardrobeNote || "",
+    relationshipNote: character.relationshipNote || "",
   }));
 }
 
@@ -769,6 +774,9 @@ export function FilmPackStudio() {
             wardrobeNote: [character.wardrobeNote?.trim() || "", existing.wardrobeNote?.trim() || ""]
               .filter(Boolean)
               .join(existing.wardrobeNote?.trim() ? "\n\n" : ""),
+            relationshipNote: [character.relationshipNote?.trim() || "", existing.relationshipNote?.trim() || ""]
+              .filter(Boolean)
+              .join(existing.relationshipNote?.trim() ? "\n\n" : ""),
           };
         }
 
@@ -779,6 +787,7 @@ export function FilmPackStudio() {
           referenceTag: normalizeReferenceTag(character.referenceTag || ""),
           identityNote: character.identityNote || "",
           wardrobeNote: character.wardrobeNote || "",
+          relationshipNote: character.relationshipNote || "",
         };
       });
 
@@ -2113,7 +2122,7 @@ export function FilmPackStudio() {
           </div>
           {previousEpisodeSource?.filmPack.castBible?.length ? (
             <p className="text-[11px] text-zinc-500">
-              Pull roles, identity notes, wardrobe continuity, and reference tags from{" "}
+              Pull roles, identity notes, relationship continuity, wardrobe continuity, and reference tags from{" "}
               {previousEpisodeSource.filmPack.episodeHeader?.episodeNumber || "the previous episode"}.
             </p>
           ) : null}
@@ -2211,6 +2220,22 @@ export function FilmPackStudio() {
                         />
                       </label>
                     </div>
+
+                    <label className="mt-4 grid gap-2">
+                      <span className="text-xs font-medium text-zinc-300">Relationship continuity</span>
+                      <input
+                        value={character.relationshipNote || ""}
+                        onChange={(event) =>
+                          setCastBible((prev) =>
+                            prev.map((item) =>
+                              item.id === character.id ? { ...item, relationshipNote: event.target.value } : item
+                            )
+                          )
+                        }
+                        className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none ring-cyan-300/40 focus:ring"
+                        placeholder="e.g. quietly drawn to Sara, tense with Rafiq, distrusts Mayor Iskandar"
+                      />
+                    </label>
 
                     <label className="mt-4 grid gap-2">
                       <span className="text-xs font-medium text-zinc-300">Wardrobe / continuity note</span>
