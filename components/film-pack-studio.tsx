@@ -91,6 +91,12 @@ interface CharacterMasterShot {
   lightingColor: string;
 }
 
+interface ReferenceStrengthAssessment {
+  tone: "strong" | "medium" | "weak";
+  title: string;
+  message: string;
+}
+
 const STORAGE_KEY = "film-pack-studio:saved-packs";
 
 function createCastMember(): CastMemberInput {
@@ -211,6 +217,15 @@ function restoreCastBibleInputs(
   }));
 }
 
+function buildRelationshipWebSummary(castBible: CastMemberInput[]) {
+  const relationshipLines = castBible
+    .filter((character) => character.name.trim() && character.relationshipNote?.trim())
+    .map((character) => `${character.name.trim()}: ${character.relationshipNote?.trim()}`);
+
+  if (!relationshipLines.length) return "";
+  return `Relationship web:\n${relationshipLines.map((line) => `- ${line}`).join("\n")}`;
+}
+
 function parseCharacterReferenceUrls(raw: string) {
   return raw
     .split("\n")
@@ -238,6 +253,56 @@ function getCharacterWorldContext(projectMode: ProjectMode) {
     return "modern Tawau Sabah civic and town context, contemporary Malaysian realism";
   }
   return "contemporary Singapore realism";
+}
+
+function assessReferenceStrength(args: {
+  officialRef: string | null | undefined;
+  generatedShots?: CharacterMasterShot[];
+  generatedImageUrls?: Record<string, string>;
+  candidateSources?: string[];
+}): ReferenceStrengthAssessment | null {
+  const { officialRef, generatedShots = [], generatedImageUrls = {}, candidateSources = [] } = args;
+  if (!officialRef) return null;
+
+  const generatedShot = generatedShots.find((shot) => generatedImageUrls[shot.id] === officialRef);
+  if (generatedShot) {
+    const framing = generatedShot.framing.toLowerCase();
+    if (
+      framing.includes("front neutral portrait") ||
+      framing.includes("45-degree portrait") ||
+      framing.includes("clean side profile")
+    ) {
+      return {
+        tone: "strong",
+        title: "Strong identity lock",
+        message:
+          "This official ref comes from the Character Master Sheet and should hold face identity well across close-ups and dialogue scenes.",
+      };
+    }
+
+    return {
+      tone: "medium",
+      title: "Usable but weaker",
+      message:
+        "This official ref is a half-body anchor. It helps wardrobe and posture, but a clear face portrait will lock identity more reliably.",
+    };
+  }
+
+  if (candidateSources.includes(officialRef)) {
+    return {
+      tone: "weak",
+      title: "Weak identity lock",
+      message:
+        "This official ref is a custom upload or scene-style image. If the face is not clear, frontal, and well lit, identity lock will drift. A neutral face master ref is safer.",
+    };
+  }
+
+  return {
+    tone: "weak",
+    title: "Weak identity lock",
+    message:
+      "This official ref was not recognized as a face-first master sheet image. Use a clear front or 45-degree portrait for stronger character consistency.",
+  };
 }
 
 function buildCharacterMasterSheet(
@@ -798,6 +863,16 @@ export function FilmPackStudio() {
     });
   };
 
+  const applyRelationshipWebSummary = () => {
+    const summary = buildRelationshipWebSummary(castBible);
+    if (!summary) return;
+
+    setEpisodeHeader((prev) => ({
+      ...prev,
+      continuityLog: [prev.continuityLog?.trim() || "", summary].filter(Boolean).join("\n\n"),
+    }));
+  };
+
   const seedNextEpisode = () => {
     const currentSummary = extractCurrentEpisodeSeed({
       title,
@@ -1000,6 +1075,15 @@ export function FilmPackStudio() {
     }
     return referenceCandidates;
   }, [officialMasterReference, referenceCandidates]);
+
+  const globalReferenceStrength = useMemo(
+    () =>
+      assessReferenceStrength({
+        officialRef: officialMasterReference,
+        candidateSources: referenceCandidates,
+      }),
+    [officialMasterReference, referenceCandidates]
+  );
 
   const requestCastBible = useMemo(() => serializeCastBibleForRequest(castBible), [castBible]);
   const availableCastCharacterNames = useMemo(
@@ -2111,6 +2195,15 @@ export function FilmPackStudio() {
                   Carry cast continuity
                 </button>
               ) : null}
+              {castBible.some((character) => character.name.trim() && character.relationshipNote?.trim()) ? (
+                <button
+                  type="button"
+                  onClick={applyRelationshipWebSummary}
+                  className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20"
+                >
+                  Use relationship web
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setCastBible((prev) => [...prev, createCastMember()].slice(0, 8))}
@@ -2133,6 +2226,12 @@ export function FilmPackStudio() {
                 const characterCandidates = getCharacterReferenceCandidates(character);
                 const officialRef = character.officialMasterReference;
                 const masterSheetShots = characterMasterSheets[character.id] || [];
+                const characterReferenceStrength = assessReferenceStrength({
+                  officialRef,
+                  generatedShots: masterSheetShots,
+                  generatedImageUrls: characterMasterImageUrls,
+                  candidateSources: characterCandidates,
+                });
                 return (
                   <div key={character.id} className="rounded-xl border border-white/10 bg-black/20 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -2314,6 +2413,21 @@ export function FilmPackStudio() {
                             </div>
                           );
                         })}
+                      </div>
+                    ) : null}
+
+                    {characterReferenceStrength ? (
+                      <div
+                        className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                          characterReferenceStrength.tone === "strong"
+                            ? "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                            : characterReferenceStrength.tone === "medium"
+                              ? "border-amber-300/25 bg-amber-500/10 text-amber-100"
+                              : "border-rose-300/25 bg-rose-500/10 text-rose-100"
+                        }`}
+                      >
+                        <p className="font-semibold">{characterReferenceStrength.title}</p>
+                        <p className="mt-1 text-[11px] leading-5 text-current/90">{characterReferenceStrength.message}</p>
                       </div>
                     ) : null}
 
@@ -2667,6 +2781,20 @@ export function FilmPackStudio() {
                 </div>
                 );
               })}
+            </div>
+          ) : null}
+          {globalReferenceStrength ? (
+            <div
+              className={`rounded-lg border px-3 py-2 text-xs ${
+                globalReferenceStrength.tone === "strong"
+                  ? "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                  : globalReferenceStrength.tone === "medium"
+                    ? "border-amber-300/25 bg-amber-500/10 text-amber-100"
+                    : "border-rose-300/25 bg-rose-500/10 text-rose-100"
+              }`}
+            >
+              <p className="font-semibold">{globalReferenceStrength.title}</p>
+              <p className="mt-1 text-[11px] leading-5 text-current/90">{globalReferenceStrength.message}</p>
             </div>
           ) : null}
           <label className="grid gap-2">

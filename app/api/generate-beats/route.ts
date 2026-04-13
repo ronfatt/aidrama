@@ -141,7 +141,11 @@ function buildBeatPrompt({
   colorGradePreset?: string;
   projectMode: ProjectMode;
   fantasyBible?: FantasyBibleInput;
-  castBible?: Array<Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }>;
+  castBible?: Array<
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote"> & {
+      hasOfficialRef?: boolean;
+    }
+  >;
   episodeHeader?: EpisodeHeaderInput;
   narratorCharacter?: string;
   onScreenCharacter?: string;
@@ -201,7 +205,7 @@ Cast bible:
 ${castBible
   .map(
     (character) =>
-      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
+      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | relationship=${character.relationshipNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
   )
   .join("\n")}
 `

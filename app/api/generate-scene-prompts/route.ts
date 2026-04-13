@@ -28,6 +28,7 @@ const promptRequestSchema = z.object({
           referenceTag: z.string().optional().or(z.literal("")),
           identityNote: z.string().optional().or(z.literal("")),
           wardrobeNote: z.string().optional().or(z.literal("")),
+          relationshipNote: z.string().optional().or(z.literal("")),
           hasOfficialRef: z.boolean().optional(),
         })
       )
@@ -222,7 +223,9 @@ ${TAWAU_LOCATION_VOCABULARY.map((location) => `- ${location}`).join("\n")}
 `
         : "";
   const castBible = input.settings.castBible as Array<
-    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote"> & { hasOfficialRef?: boolean }
+    Pick<CastMemberInput, "name" | "role" | "referenceTag" | "identityNote" | "wardrobeNote" | "relationshipNote"> & {
+      hasOfficialRef?: boolean;
+    }
   > | undefined;
   const castBibleBlock = castBible?.length
     ? `
@@ -230,7 +233,7 @@ Cast bible:
 ${castBible
   .map(
     (character) =>
-      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
+      `- ${character.name} | role=${character.role} | referenceTag=${character.referenceTag || "(none)"} | identity=${character.identityNote || "(none)"} | relationship=${character.relationshipNote || "(none)"} | wardrobe=${character.wardrobeNote || "(none)"} | officialRef=${character.hasOfficialRef ? "yes" : "no"}`
   )
   .join("\n")}
 `
