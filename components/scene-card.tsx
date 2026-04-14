@@ -5,6 +5,11 @@ import { CopyButton } from "@/components/copy-button";
 interface SceneCardProps {
   scene: SceneItem;
   availableCharacters?: string[];
+  referenceStrength?: {
+    tone: "strong" | "medium" | "weak";
+    title: string;
+    message: string;
+  } | null;
   generatedImageUrl?: string;
   generatingImage?: boolean;
   imageError?: string;
@@ -34,6 +39,7 @@ interface SceneCardProps {
 export function SceneCard({
   scene,
   availableCharacters,
+  referenceStrength,
   generatedImageUrl,
   generatingImage,
   imageError,
@@ -59,6 +65,14 @@ export function SceneCard({
   generatingAllCompanionImages,
   hasShotPack,
 }: SceneCardProps) {
+  const shouldShowReferenceStrength =
+    scene.useReferenceImage && referenceStrength && referenceStrength.tone !== "strong";
+
+  const referenceStrengthToneClasses =
+    referenceStrength?.tone === "weak"
+      ? "border-rose-300/25 bg-rose-500/[0.06] text-rose-200"
+      : "border-amber-300/25 bg-amber-500/[0.06] text-amber-100";
+
   return (
     <article className="rounded-2xl border border-white/10 bg-zinc-950/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -338,6 +352,18 @@ export function SceneCard({
                 </div>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {shouldShowReferenceStrength ? (
+          <div className={`rounded-xl border p-3 ${referenceStrengthToneClasses}`}>
+            <p className="text-xs font-semibold uppercase tracking-wide">{referenceStrength.title}</p>
+            <p className="mt-1 text-sm leading-relaxed">
+              {referenceStrength.message}
+              {referenceStrength.tone === "weak"
+                ? " If this scene needs a reliable face match, switch the official ref to a front or 45-degree Character Master Sheet portrait."
+                : " A face-first Character Master Sheet portrait will usually hold identity more cleanly in close-ups."}
+            </p>
           </div>
         ) : null}
 

@@ -305,6 +305,36 @@ function assessReferenceStrength(args: {
   };
 }
 
+function getSceneReferenceStrength(args: {
+  scene: SceneItem;
+  castBible: CastMemberInput[];
+  characterMasterSheets: Record<string, CharacterMasterShot[]>;
+  characterMasterImageUrls: Record<string, string>;
+  officialMasterReference: string | null;
+  referenceCandidates: string[];
+}) {
+  const { scene, castBible, characterMasterSheets, characterMasterImageUrls, officialMasterReference, referenceCandidates } = args;
+  if (!scene.useReferenceImage) return null;
+
+  const targetName = scene.onScreenCharacter?.trim().toLowerCase();
+  if (targetName) {
+    const character = castBible.find((item) => item.name.trim().toLowerCase() === targetName);
+    if (character) {
+      return assessReferenceStrength({
+        officialRef: character.officialMasterReference,
+        generatedShots: characterMasterSheets[character.id] || [],
+        generatedImageUrls: characterMasterImageUrls,
+        candidateSources: getCharacterReferenceCandidates(character),
+      });
+    }
+  }
+
+  return assessReferenceStrength({
+    officialRef: officialMasterReference,
+    candidateSources: referenceCandidates,
+  });
+}
+
 function buildCharacterMasterSheet(
   character: CastMemberInput,
   projectMode: ProjectMode,
@@ -3034,6 +3064,14 @@ export function FilmPackStudio() {
                 key={`${scene.sceneNumber}-${scene.voLine.slice(0, 20)}`}
                 scene={scene}
                 availableCharacters={availableCastCharacterNames}
+                referenceStrength={getSceneReferenceStrength({
+                  scene,
+                  castBible,
+                  characterMasterSheets,
+                  characterMasterImageUrls,
+                  officialMasterReference,
+                  referenceCandidates,
+                })}
                 generatedImageUrl={sceneImages[scene.sceneNumber]}
                 generatingImage={sceneImageLoading[scene.sceneNumber]}
                 imageError={sceneImageErrors[scene.sceneNumber]}
